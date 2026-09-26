@@ -1458,7 +1458,7 @@ function toggleCollapse() {
 /* ── Global wiring ───────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async () => {
   try { const ui = JSON.parse(localStorage.getItem('liam.ui') || '{}'); if (ui.collapsed && window.innerWidth > 960) document.body.classList.add('sidebar-collapsed'); } catch (e) {}
-  $('#buildTag').textContent = 'LIAM v2.04.0 · 177-REQUIREMENT COVERAGE';
+  $('#buildTag').textContent = 'LIAM v2.05.0 · 177-REQUIREMENT COVERAGE';
   await refreshState();
   renderNav();
   refreshStatus();

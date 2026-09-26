@@ -598,9 +598,9 @@ function otelExport(state) {
   const ns = ms => ms * 1e6;
   return {
     resourceSpans: [{
-      resource: { attributes: [{ key: 'service.name', value: { stringValue: 'witforge' } }, { key: 'service.version', value: { stringValue: (state.release && state.release.version) || '2.04.0' } }] },
+      resource: { attributes: [{ key: 'service.name', value: { stringValue: 'witforge' } }, { key: 'service.version', value: { stringValue: (state.release && state.release.version) || '2.05.0' } }] },
       scopeSpans: [{
-        scope: { name: 'witforge.platform', version: '2.04.0' },
+        scope: { name: 'witforge.platform', version: '2.05.0' },
         spans: (state.spans || []).map(s => ({
           traceId: (s.cid || s.id).padEnd(32, '0').slice(0, 32),
           spanId: s.id.replace(/[^a-f0-9]/gi, '').padEnd(16, '0').slice(0, 16),
@@ -648,7 +648,7 @@ function selftestSummary(checks) {
 function releaseMeta(opts) {
   opts = opts || {};
   return {
-    version: opts.version || '2.04.0',
+    version: opts.version || '2.05.0',
     buildDate: opts.buildDate || now(),
     sourceRevision: opts.sourceRevision || 'unknown (no VCS metadata available)',
     dependencyState: opts.dependencyState || 'zero runtime dependencies; Node built-ins only',

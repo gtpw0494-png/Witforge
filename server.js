@@ -13,6 +13,7 @@ const kernel = P.kernel, caps = P.caps, taskEngine = P.taskEngine, services = P.
 const engagement = P.engagement, ownerSec = P.ownerSec;
 const VERSION = P.VERSION;
 P.bindConfiguredOwnerEmail();
+P.migrateSessionHashes();
 
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT || 8787);
@@ -62,6 +63,11 @@ function cookie(req, name) {
   const h = req.headers.cookie || '';
   const m = h.match(new RegExp('(?:^|;\\s*)' + name + '=([^;]+)'));
   return m ? m[1] : null;
+}
+function sessionCookie(req, token, clear) {
+  const secure = !!(req.socket && req.socket.encrypted) || String(req.headers['x-forwarded-proto'] || '').toLowerCase() === 'https';
+  const age = clear ? 0 : Math.floor(P.SESSION_TTL_MS / 1000);
+  return `liam_session=${clear ? '' : token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${age}${secure ? '; Secure' : ''}`;
 }
 
 const server = http.createServer(async (req, res) => {
@@ -183,12 +189,12 @@ const server = http.createServer(async (req, res) => {
   if (p === '/api/auth/login' && req.method === 'POST') {
     const b = await body(req);
     const r = P.login(b.password, b.email);
-    if (r.ok) { res.setHeader('Set-Cookie', `liam_session=${r.token}; HttpOnly; SameSite=Strict; Path=/`); delete r.token; }
+    if (r.ok) { res.setHeader('Set-Cookie', sessionCookie(req, r.token, false)); delete r.token; }
     return json(res, 200, r);
   }
   if (p === '/api/auth/logout' && req.method === 'POST') {
     const r = P.logout(cookie(req, 'liam_session'));
-    res.setHeader('Set-Cookie', 'liam_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');
+    res.setHeader('Set-Cookie', sessionCookie(req, '', true));
     return json(res, 200, r);
   }
   if (p === '/api/legal') return json(res, 200, { ok: true, docs: P.state.legal });

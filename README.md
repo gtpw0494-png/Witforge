@@ -1,3 +1,15 @@
+# LIAM · v2.05.0 — expiring hashed Owner sessions
+
+**v2.05.0:** Owner session bearer values are never persisted. The server stores
+only SHA-256 token identifiers, enforces a 12-hour absolute lifetime and a
+2-hour idle lifetime, updates activity at bounded intervals, and removes
+expired sessions. Existing plaintext-keyed records migrate additively on boot
+so active cookies continue to resolve without keeping raw tokens. Cookies now
+carry an explicit `Max-Age` and gain `Secure` when HTTPS is active; the Owner
+session inventory exposes only abbreviated hashes and lifecycle timestamps.
+
+---
+
 # LIAM · v2.04.0 — local security perimeter
 
 **v2.04.0:** the server now binds to `127.0.0.1` by default, serves only the

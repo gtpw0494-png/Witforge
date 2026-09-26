@@ -4,7 +4,7 @@ The rule of this file: **what is listed as built was verified running in the cur
 
 Legend: ✅ verified live in this build · 🔶 partial/foundation exists · ⛔ not built (honest declaration)
 
-## Remaining productization work — status at v2.04.0
+## Remaining productization work — status at v2.05.0
 
 | §10 item | Status | Where / notes |
 |---|---|---|

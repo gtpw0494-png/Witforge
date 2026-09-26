@@ -201,12 +201,14 @@ function requireReauth(state, opts) {
 }
 function sessionInventory(state, opts) {
   opts = opts || {};
+  const currentHash = opts.currentToken ? crypto.createHash('sha256').update(String(opts.currentToken)).digest('hex') : null;
   const sessions = Object.entries(state.sessions || {}).map(([token, rec]) => ({
     id: token.slice(0, 12) + '…',
-    token,
-    createdTs: rec.ts,
-    ageMs: now() - rec.ts,
-    current: opts.currentToken === token,
+    createdTs: rec.createdTs || rec.ts,
+    lastSeenTs: rec.lastSeenTs || rec.createdTs || rec.ts,
+    expiresTs: rec.expiresTs || null,
+    ageMs: now() - (rec.createdTs || rec.ts),
+    current: currentHash === token,
     note: rec.note || null
   }));
   return sessions.sort((a, b) => b.createdTs - a.createdTs);

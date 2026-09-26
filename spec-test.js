@@ -47,8 +47,15 @@ const st = r => (r && (r.state || r.status)) || null;
   ok(wrongEmailLogin.ok !== true, 'correct password with the wrong email is rejected');
   const goodLogin = P.login('a-strong-release-passphrase', 'owner-test@example.com');
   ok(goodLogin.ok === true && P.sessionValid(goodLogin.token) === true, 'correct password issues a valid server-side session');
-  P.logout(goodLogin.token);
-  ok(P.sessionValid(goodLogin.token) !== true, 'logout invalidates the session server-side');
+  ok(!JSON.stringify(P.state.sessions).includes(goodLogin.token), 'raw session token is never stored in server state');
+  ok(P.sessionValid(goodLogin.token, { now: Date.now() + P.SESSION_TTL_MS + 1 }) !== true, 'absolute session expiry is enforced and removes the session');
+  const logoutLogin = P.login('a-strong-release-passphrase', 'owner-test@example.com');
+  P.logout(logoutLogin.token);
+  ok(P.sessionValid(logoutLogin.token) !== true, 'logout invalidates the session server-side');
+  P.state.sessions['legacy-session-token'] = { ts: Date.now() };
+  const migrated = P.migrateSessionHashes();
+  ok(migrated.changed === 1 && !P.state.sessions['legacy-session-token'] && P.sessionValid('legacy-session-token'), 'legacy plaintext-keyed sessions migrate additively to hashed expiring records');
+  P.logout('legacy-session-token');
 
   /* 2. authorization ----------------------------------------------------- */
   area(2, 'authorization');

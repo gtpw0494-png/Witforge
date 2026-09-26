@@ -20,7 +20,13 @@ const connectors = require('./connectors.js');
 const { SOCIALS, SOCIAL_POSTABLE, ADAPTERS, socialEntry } = connectors;
 const llm = require('./llm.js');
 
-const VERSION = '2.04.0';
+const VERSION = '2.05.0';
+function boundedMs(name, fallback, min, max) {
+  const n = Number(process.env[name]);
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.floor(n))) : fallback;
+}
+const SESSION_TTL_MS = boundedMs('WITFORGE_SESSION_TTL_MS', 12 * 60 * 60 * 1000, 15 * 60 * 1000, 30 * 24 * 60 * 60 * 1000);
+const SESSION_IDLE_MS = boundedMs('WITFORGE_SESSION_IDLE_MS', 2 * 60 * 60 * 1000, 5 * 60 * 1000, SESSION_TTL_MS);
 const THREE_LAWS = Object.freeze([
   Object.freeze({
     id: 1,
@@ -2633,6 +2639,29 @@ function adaptersLive() {
  * this file; decryptRec comes from ./vault.js and is injected through. ── */
 /* ── Owner authentication (scrypt + HttpOnly sessions) ───── */
 let loginFails = 0, loginWindow = Date.now();
+function sessionKey(token) { return crypto.createHash('sha256').update(String(token || '')).digest('hex'); }
+function migrateSessionHashes() {
+  let changed = 0;
+  const migrated = {};
+  for (const [token, value] of Object.entries(S.sessions || {})) {
+    const rec = Object.assign({}, value || {});
+    const createdTs = Number(rec.createdTs || rec.ts || Date.now());
+    const key = rec.tokenHash === true ? token : sessionKey(token);
+    rec.tokenHash = true;
+    rec.createdTs = createdTs;
+    rec.lastSeenTs = Number(rec.lastSeenTs || createdTs);
+    rec.expiresTs = Number(rec.expiresTs || (createdTs + SESSION_TTL_MS));
+    delete rec.ts;
+    migrated[key] = rec;
+    if (key !== token || !value || value.tokenHash !== true || value.ts !== undefined) changed++;
+  }
+  if (changed) {
+    S.sessions = migrated;
+    audit('security', 'SESSION MIGRATION: ' + changed + ' session record(s) hashed and expiry-bound', 'system');
+    save();
+  }
+  return { ok: true, changed, total: Object.keys(S.sessions || {}).length };
+}
 function normaliseOwnerEmail(email) { return String(email || '').trim().toLowerCase(); }
 function ownerEmailHash(email) { return crypto.createHash('sha256').update(normaliseOwnerEmail(email)).digest('hex'); }
 function safeEqualHex(a, b) {
@@ -2700,12 +2729,41 @@ function login(password, email) {
   }
   loginFails = 0;
   const token = crypto.randomBytes(32).toString('hex');
-  S.sessions[token] = { ts: Date.now() };
+  const now = Date.now();
+  S.sessions[sessionKey(token)] = { tokenHash: true, createdTs: now, lastSeenTs: now, expiresTs: now + SESSION_TTL_MS };
   audit('security', 'OWNER session established', 'user'); save();
-  return { ok: true, token };
+  return { ok: true, token, expiresTs: now + SESSION_TTL_MS };
 }
-function logout(token) { delete S.sessions[token]; audit('security', 'OWNER session invalidated', 'user'); save(); return { ok: true }; }
-const sessionValid = token => !!S.sessions[token];
+function logout(token) {
+  const key = sessionKey(token);
+  const existed = !!(S.sessions[key] || S.sessions[token]);
+  delete S.sessions[key]; delete S.sessions[token];
+  audit('security', 'OWNER session invalidated', 'user'); save();
+  return { ok: true, invalidated: existed };
+}
+function sessionValid(token, opts) {
+  if (!token) return false;
+  opts = opts || {};
+  const key = sessionKey(token);
+  let rec = S.sessions[key];
+  if (!rec && S.sessions[token]) {
+    rec = Object.assign({}, S.sessions[token], { tokenHash: true });
+    delete S.sessions[token];
+    S.sessions[key] = rec;
+  }
+  if (!rec) return false;
+  const now = Number(opts.now || Date.now());
+  const created = Number(rec.createdTs || rec.ts || now);
+  const lastSeen = Number(rec.lastSeenTs || created);
+  const expires = Number(rec.expiresTs || (created + SESSION_TTL_MS));
+  if (now >= expires || now - lastSeen >= SESSION_IDLE_MS) {
+    delete S.sessions[key];
+    audit('security', 'OWNER session expired and was removed', 'system'); save();
+    return false;
+  }
+  if (now - lastSeen >= 60000) { rec.lastSeenTs = now; save(); }
+  return true;
+}
 
 /* ══ v1.64 specification systems ══════════════════════════════════ */
 
@@ -3178,7 +3236,7 @@ function selftestAll() {
   checks.push(C('path traversal outside the sandbox blocked', 'security-controls', !safePath('../etc/passwd') ? 'PASS' : 'FAIL'));
   checks.push(C('secrets are not stored in plaintext', 'configuration', !Object.values(S.creds || {}).some(v => typeof v === 'string') ? 'PASS' : 'FAIL'));
   checks.push(C('owner authentication configured', 'authentication', S.owner ? 'PASS' : 'WARNING', S.owner ? 'owner exists; sessions are HttpOnly SameSite' : 'first-run owner creation is still open — create one to close it'));
-  checks.push(C('session tokens are cryptographically random and revocable', 'authentication', (() => { const t = crypto.randomBytes(32).toString('hex'); S.sessions[t] = { ts: Date.now() }; const ok = sessionValid(t); delete S.sessions[t]; return ok && !sessionValid(t); })() ? 'PASS' : 'FAIL'));
+  checks.push(C('session tokens are random, hashed at rest, expiring and revocable', 'authentication', (() => { const t = crypto.randomBytes(32).toString('hex'); const k = sessionKey(t); const now = Date.now(); S.sessions[k] = { tokenHash: true, createdTs: now, lastSeenTs: now, expiresTs: now + SESSION_TTL_MS }; const ok = sessionValid(t); delete S.sessions[k]; return ok && !sessionValid(t) && !JSON.stringify(S.sessions).includes(t); })() ? 'PASS' : 'FAIL'));
   checks.push(C('device command replay protection', 'security-controls', (() => {
     const store = { seenCommandIds: {}, devices: [] };
     const d = services.pairDevice(store, { name: 'selftest', platform: 'linux' }, 'code');
@@ -3862,6 +3920,7 @@ module.exports = {
   createPayment, confirmPayment, settleStripeEvidence, setRealMode,
   verifyAudit, withCid, tokenValid,
   createOwner, login, logout, sessionValid, ownerEmailStatus, bindConfiguredOwnerEmail,
+  migrateSessionHashes, SESSION_TTL_MS, SESSION_IDLE_MS,
   selftestAll, compliance, freshState, migrateLegal, THREE_LAWS,
   exportManifest, importManifest, sealVaultTransfer, openVaultTransfer, rotateVaultKeys, scrubSecrets,
   addReminder, tickReminders,
