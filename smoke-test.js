@@ -47,7 +47,7 @@ global.fetch = (p, opts) => realFetch(String(p).startsWith('http') ? p : BASE + 
 
 const server = spawn('node', ['server.js'], {
   cwd: __dirname,
-  env: Object.assign({}, process.env, { PORT: String(PORT), PLATFORM_DATA: path.join(tmp, 'p.json'), ARENA_DATA: path.join(tmp, 'a.json'), WITFORGE_DEVICE_KEY: path.join(tmp, 'device-key') })
+  env: Object.assign({}, process.env, { PORT: String(PORT), PLATFORM_DATA: path.join(tmp, 'p.json'), ARENA_DATA: path.join(tmp, 'a.json'), WITFORGE_DEVICE_KEY: path.join(tmp, 'device-key'), WITFORGE_OWNER_EMAIL: 'smoke-owner@example.com' })
 });
 
 const driver = `
@@ -120,6 +120,21 @@ const driver = `
   ok(hitlRes.ok === true, 'HTTP human-step resolve works');
   const hitlRun2 = await (await fetch('/api/tools/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tool: 'mock.echo', args: { behaviour: 'needs-human' } }) })).json();
   ok(hitlRun2.state === 'SUCCEEDED' && hitlRun2.result && hitlRun2.result.humanProvided === 'zz7', 'resolved answer is consumed exactly once over HTTP');
+
+  // v2.04 security perimeter: source, state and vault material are never
+  // static assets; once an Owner exists, private reads require its session.
+  const sourceLeak = await fetch('/server.js');
+  ok(sourceLeak.status === 404, 'static perimeter denies server source');
+  const dataLeak = await fetch('/data/p.json');
+  ok(dataLeak.status === 404, 'static perimeter denies platform state');
+  const keyLeak = await fetch('/data/p.json.vault-key');
+  ok(keyLeak.status === 404, 'static perimeter denies vault key material');
+  const ownerCreate = await (await fetch('/api/auth/owner', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Smoke Owner', email: 'smoke-owner@example.com', password: 'smoke-owner-password' }) })).json();
+  ok(ownerCreate.ok === true, 'first Owner is created locally with configured email binding');
+  const privateState = await fetch('/api/state');
+  ok(privateState.status === 401, 'private GET state requires an authenticated Owner session');
+  const publicHealth = await fetch('/api/health');
+  ok(publicHealth.status === 200, 'public health remains available without a session');
 
   // palette
   openPalette(); $('#paletteInput').value = 'sec'; paintPalette();

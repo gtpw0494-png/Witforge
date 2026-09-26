@@ -45,7 +45,9 @@ npm install           # succeeds and installs nothing — that is the intended r
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `PORT` | `8787` | Port the local server binds on `0.0.0.0` |
+| `PORT` | `8787` | Port the local server binds on `127.0.0.1` by default |
+| `WITFORGE_ALLOW_LAN` | `false` | Set to `true` only for intentional LAN exposure; startup also requires `LIAM_API_TOKEN` |
+| `LIAM_API_TOKEN` | *(unset)* | Required bearer token for private APIs in LAN mode; not needed for loopback-only use |
 | `WITFORGE_OWNER_EMAIL` | *(unset)* | Private local first-Owner binding. Set this before startup; only a matching email can create the first account. The state stores a one-way hash and masked form, not the plaintext address |
 | `PLATFORM_DATA` | `<repo>/data/platform.json` | Authoritative platform store (state, audit, permissions, devices, accounts, assets) |
 | `ARENA_DATA` | `<repo>/data/arena.json` | Arena/avatar/asset store |

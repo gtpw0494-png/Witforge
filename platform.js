@@ -20,7 +20,7 @@ const connectors = require('./connectors.js');
 const { SOCIALS, SOCIAL_POSTABLE, ADAPTERS, socialEntry } = connectors;
 const llm = require('./llm.js');
 
-const VERSION = '2.03.1';
+const VERSION = '2.04.0';
 const THREE_LAWS = Object.freeze([
   Object.freeze({
     id: 1,

@@ -1,3 +1,15 @@
+# LIAM · v2.04.0 — local security perimeter
+
+**v2.04.0:** the server now binds to `127.0.0.1` by default, serves only the
+four explicit browser assets, and refuses static access to source, tests,
+state, backups, vault keys and dotfiles. Once an Owner exists, private GETs and
+mutations require the Owner session. LAN mode requires both
+`WITFORGE_ALLOW_LAN=true` and `LIAM_API_TOKEN`; insecure LAN startup fails
+closed. Smoke tests prove source/state/key denial, private-state authentication
+and continued public health availability.
+
+---
+
 # LIAM · v2.03.1 — private Owner email binding
 
 **v2.03.1:** the first local account still becomes Owner, with an optional

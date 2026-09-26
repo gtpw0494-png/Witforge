@@ -16,21 +16,22 @@ P.bindConfiguredOwnerEmail();
 
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT || 8787);
+const ALLOW_LAN = String(process.env.WITFORGE_ALLOW_LAN || '').toLowerCase() === 'true';
+const HOST = ALLOW_LAN ? '0.0.0.0' : '127.0.0.1';
 
-/* v1.98 security-audit finding #1 → SHIPPED FIX: the API binds 0.0.0.0 (the
- * preview sandbox needs it), so any host that can reach the port could drive
- * /api/* — including commands that create REAL charges. LIAM_API_TOKEN (env)
- * gates every POST /api/* behind a bearer token. OFF by default for the
- * single-owner localhost UX; ON it anywhere you distrust the LAN:
- * LIAM_API_TOKEN=<…> node server.js  (front-end sends it automatically when
- * you 'll connect' through the authenticated console of this same server.) */
+/* v2.04 security perimeter: loopback is the default. LAN exposure is an
+ * explicit two-part decision: WITFORGE_ALLOW_LAN=true plus a non-empty
+ * LIAM_API_TOKEN. Private APIs also require the Owner session once created. */
 const API_TOKEN = process.env.LIAM_API_TOKEN || null;
+if (ALLOW_LAN && !API_TOKEN) throw new Error('WITFORGE_ALLOW_LAN=true requires LIAM_API_TOKEN; refusing insecure LAN exposure');
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg',
   '.ico': 'image/x-icon', '.md': 'text/plain; charset=utf-8'
 };
+const PUBLIC_API = new Set(['/api/health', '/api/version', '/api/auth/status', '/api/auth/owner', '/api/auth/login', '/api/oauth/callback']);
+const PUBLIC_FILES = new Set(['/index.html', '/styles.css', '/app.js', '/piece-gallery.html']);
 function isLoopback(req) {
   const ip = String((req.socket && req.socket.remoteAddress) || '');
   return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
@@ -64,7 +65,9 @@ function cookie(req, name) {
 }
 
 const server = http.createServer(async (req, res) => {
-  if (API_TOKEN && req.method === 'POST' && req.url.startsWith('/api/')) {
+  const url = new URL(req.url, 'http://localhost');
+  const p = decodeURIComponent(url.pathname);
+  if (API_TOKEN && p.startsWith('/api/') && !PUBLIC_API.has(p)) {
     const auth = req.headers['authorization'] || '';
     if (auth !== 'Bearer ' + API_TOKEN) {
       res.writeHead(401, { 'content-type': 'application/json', 'www-authenticate': 'Bearer realm="liam"' });
@@ -79,12 +82,10 @@ const server = http.createServer(async (req, res) => {
   if (req.method !== 'GET' && rateLimited(req)) {
     return json(res, 429, { ok: false, error: 'Rate limited (120 req/min)' });
   }
-  const url = new URL(req.url, 'http://localhost');
-  const p = decodeURIComponent(url.pathname);
   let m;
   // §58 owner session enforcement once an owner exists
   const authed = P.sessionValid(cookie(req, 'liam_session'));
-  if (P.state.owner && !authed && req.method !== 'GET' && !p.startsWith('/api/auth')) {
+  if (P.state.owner && !authed && p.startsWith('/api/') && !PUBLIC_API.has(p)) {
     return json(res, 401, { ok: false, error: 'auth-required' });
   }
 
@@ -517,6 +518,7 @@ const server = http.createServer(async (req, res) => {
 
   /* ── static files ── */
   const file = p === '/' ? '/index.html' : p;
+  if (!PUBLIC_FILES.has(file)) { res.writeHead(404, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' }); return res.end('Not found'); }
   const resolved = path.normalize(path.join(ROOT, file));
   if (!resolved.startsWith(ROOT + path.sep) && resolved !== ROOT) { res.writeHead(403); return res.end('Forbidden'); }
   fs.readFile(resolved, (err, data) => {
@@ -535,4 +537,4 @@ P.overseer.bindProbe(async () => new Promise(resolve => {
     .on('error', () => resolve({ status: 0, headers: {} }));
 }));
 
-server.listen(PORT, '0.0.0.0', () => console.log(`LIAM control centre listening on http://0.0.0.0:${PORT}`));
+server.listen(PORT, HOST, () => console.log(`LIAM control centre listening on http://${HOST}:${PORT}`));
