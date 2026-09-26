@@ -1,0 +1,998 @@
+[
+ {
+  "n": 1,
+  "title": "PRODUCT IDENTITY",
+  "line": 12,
+  "body": "WitForge is a local-first, security-first conversational AI operating platform.\nIt is not merely a chatbot.\nIt is an intelligent orchestration system through which a user can express an outcome in natural language and WitForge can:\n1. understand the objective;\n2. identify and solve the underlying problem;\n3. reason about possible approaches;\n4. create a plan;\n5. discover required capabilities;\n6. determine required permissions;\n7. request authorization;\n8. apply security and policy controls;\n9. execute authorized actions;\n10. verify results;\n11. detect and correct failures;\n12. adapt the plan;\n13. continue where safely possible;\n14. recover or roll back when necessary;\n15. maintain an auditable record;\n16. clearly report the result.\nWitForge is therefore an AI operating layer between human intent and authorized digital action."
+ },
+ {
+  "n": 2,
+  "title": "CORE PROMISE",
+  "line": 36,
+  "body": "The central promise is:\n«Tell WitForge what you want accomplished. WitForge understands the goal, solves the problem, plans the work, obtains the authority it needs, performs the work through legitimate interfaces, verifies the outcome, corrects failures where possible, and tells you exactly what happened.»\nWitForge must never pretend an action succeeded when it did not."
+ },
+ {
+  "n": 3,
+  "title": "CENTRAL CONVERSATIONAL INTERFACE",
+  "line": 43,
+  "body": "The primary interface is conversational.\nUsers can communicate through:\n• text;\n• voice;\n• images;\n• video;\n• files;\n• screenshots;\n• documents;\n• structured data;\n• application context;\n• device context;\n• approved external information.\nConversation is the primary control surface, but not the only interface.\nWitForge may expose:\n• dashboards;\n• action previews;\n• approval dialogs;\n• security alerts;\n• task timelines;\n• device controls;\n• account management;\n• project management;\n• media editors;\n• asset inventories;\n• audit records;\n• developer consoles."
+ },
+ {
+  "n": 4,
+  "title": "CONVERSATION-TO-ACTION ENGINE",
+  "line": 74,
+  "body": "Every meaningful request is transformed into an internal task representation.\nThe engine determines:\n• desired outcome;\n• constraints;\n• resources;\n• dependencies;\n• risks;\n• required capabilities;\n• required permissions;\n• affected accounts;\n• affected devices;\n• affected data;\n• expected result;\n• verification method;\n• recovery strategy.\nNatural language must never directly bypass the security layer."
+ },
+ {
+  "n": 5,
+  "title": "PROBLEM-SOLVING ENGINE",
+  "line": 94,
+  "body": "Problem solving is a first-class subsystem.\nWitForge must not merely execute the literal wording of a request.\nIt must determine what problem the user is actually trying to solve.\nThe problem-solving lifecycle is:\nUnderstand → Diagnose → Generate Solutions → Evaluate → Select → Plan → Execute → Verify → Correct → Continue/Recover → Report\nThe system may:\n• decompose large problems;\n• identify dependencies;\n• identify missing information;\n• detect contradictions;\n• compare approaches;\n• research relevant information;\n• test hypotheses;\n• diagnose failures;\n• generate alternatives;\n• select safer alternatives;\n• retry failed operations;\n• change execution strategy;\n• repair configuration;\n• recover interrupted tasks;\n• continue from the last verified state.\nProblem solving must remain subordinate to:\n• user authority;\n• capability permissions;\n• security policy;\n• authentication;\n• application permissions;\n• operating-system controls;\n• legal constraints.\nProblem solving can solve around a failure; it cannot solve around a security boundary."
+ },
+ {
+  "n": 6,
+  "title": "CORRECTION AND CONTINUATION",
+  "line": 128,
+  "body": "Failure must not automatically terminate a task.\nWhen an operation fails, WitForge should determine:\n1. whether the failure is temporary;\n2. whether retrying is safe;\n3. whether another method exists;\n4. whether the problem can be repaired;\n5. whether additional authorization is required;\n6. whether rollback is required;\n7. whether the task can safely continue.\nExample:\nUpload fails → diagnose → check authentication → refresh authorized session → retry → verify upload.\nBut:\nPermission denied → do not bypass → explain → request legitimate permission or stop.\nThe system must distinguish:\n• recoverable failure;\n• authorization failure;\n• security block;\n• policy violation;\n• unavailable capability;\n• external service failure;\n• invalid input;\n• environmental failure;\n• irreversible failure."
+ },
+ {
+  "n": 7,
+  "title": "UNIVERSAL CAPABILITY BROKER",
+  "line": 155,
+  "body": "The Universal Capability Broker is the central abstraction connecting WitForge to external systems.\nCapabilities are discovered through legitimate interfaces.\nPriority:\n1. official API;\n2. official SDK;\n3. official automation interface;\n4. operating-system API;\n5. accessibility interface;\n6. browser automation;\n7. other explicitly authorized integration mechanisms.\nUniversal does not mean unrestricted.\nIt means:\n«WitForge can support any system for which a legitimate, authorized technical interface exists.»"
+ },
+ {
+  "n": 8,
+  "title": "CAPABILITY IDENTIFIERS",
+  "line": 172,
+  "body": "Capabilities use explicit identifiers.\nExamples:\n• \"email.read\"\n• \"email.compose\"\n• \"email.send\"\n• \"calendar.read\"\n• \"calendar.create\"\n• \"files.read\"\n• \"files.write\"\n• \"files.delete\"\n• \"camera.capture\"\n• \"microphone.record\"\n• \"screen.view\"\n• \"screen.capture\"\n• \"device.control\"\n• \"termux.execute\"\n• \"browser.navigate\"\n• \"browser.interact\"\n• \"media.video.create\"\n• \"media.edit\"\n• \"youtube.upload\"\n• \"youtube.publish\"\n• \"account.create\"\n• \"account.configure\"\n• \"account.delete\"\n• \"security.scan\"\n• \"security.remediate\"\nCapabilities are independently controllable."
+ },
+ {
+  "n": 9,
+  "title": "UNIVERSAL PERMISSION SYSTEM",
+  "line": 204,
+  "body": "Permission states:\n• \"NOT_REQUESTED\"\n• \"REQUESTED\"\n• \"GRANTED\"\n• \"DENIED\"\n• \"EXPIRED\"\n• \"REVOKED\"\n• \"SUSPENDED\"\n• \"BLOCKED_BY_SECURITY\"\n• \"BLOCKED_BY_POLICY\"\nPermissions are scoped.\nPossible scope dimensions:\n• user;\n• agent;\n• task;\n• project;\n• application;\n• account;\n• device;\n• resource;\n• action;\n• time;\n• purpose;\n• environment."
+ },
+ {
+  "n": 10,
+  "title": "PERMISSION LEVELS",
+  "line": 232,
+  "body": "Supported delegation levels:\nOBSERVE\nRead or inspect.\nASSIST\nPrepare actions but require user execution/approval.\nEXECUTE\nPerform explicitly authorized actions.\nAUTONOMOUS\nPerform actions within a narrowly defined approved scope without asking for every individual action.\nRESTRICTED\nExplicitly limited execution boundaries.\nWitForge cannot elevate itself between levels."
+ },
+ {
+  "n": 11,
+  "title": "ACT-ON-MY-BEHALF",
+  "line": 248,
+  "body": "WitForge supports explicit delegation.\nA user may authorize:\n«“Act on my behalf to manage my calendar.”»\nThat authorization remains bounded by the selected capabilities and scope.\nIt does not grant unrestricted access to:\n• unrelated accounts;\n• unrelated devices;\n• unrelated applications;\n• unrestricted financial actions;\n• security-sensitive operations."
+ },
+ {
+  "n": 12,
+  "title": "AUTONOMOUS MODE",
+  "line": 262,
+  "body": "Autonomous operation is controlled delegation, not unrestricted AI freedom.\nAutonomous tasks require:\n• defined scope;\n• defined capabilities;\n• defined resources;\n• expiration;\n• security policy;\n• risk threshold;\n• action limits;\n• emergency stop;\n• audit trail.\nCritical actions may always require renewed human approval."
+ },
+ {
+  "n": 13,
+  "title": "ACTION PREVIEW",
+  "line": 278,
+  "body": "Consequential actions should have a preview.\nExample:\nAction: Publish YouTube video\n Account: User's authorized YouTube account\n Video: Funny Cat Compilation\n Visibility: Public\n Music: Authorized/generated\n Risk: Medium\n Permission: \"youtube.publish\"\n Approval: Required\nThe user can:\n• approve;\n• reject;\n• modify;\n• narrow scope;\n• request another plan."
+ },
+ {
+  "n": 14,
+  "title": "UNIVERSAL APP CONTROL",
+  "line": 298,
+  "body": "WitForge can control supported applications through adapters.\nApplications may include:\n• email;\n• messaging;\n• social platforms;\n• browsers;\n• productivity tools;\n• development environments;\n• media applications;\n• cloud services;\n• business systems;\n• smart-home applications;\n• enterprise systems.\nEach integration is independently authenticated and permissioned."
+ },
+ {
+  "n": 15,
+  "title": "APPLICATION ADAPTERS",
+  "line": 316,
+  "body": "Every adapter implements, where applicable:\nauthenticate()\n discoverCapabilities()\n checkPermission()\n requestPermission()\n executeAction()\n verifyAction()\n revokePermission()\n getStatus()\nAdapters must not silently expand their authority."
+ },
+ {
+  "n": 16,
+  "title": "WEB",
+  "line": 330,
+  "body": "WitForge can:\n• search;\n• retrieve information;\n• navigate websites;\n• inspect pages;\n• interact with supported forms;\n• download authorized files;\n• upload authorized files;\n• complete legitimate workflows.\nWeb content is untrusted input.\nInstructions embedded in webpages cannot modify WitForge policy."
+ },
+ {
+  "n": 17,
+  "title": "BROWSER",
+  "line": 345,
+  "body": "Browser automation supports:\n• navigation;\n• clicking;\n• typing;\n• scrolling;\n• tab management;\n• file upload/download;\n• page inspection;\n• authenticated workflows.\nCredential handling must use the Credential Broker rather than exposing raw secrets unnecessarily to the model."
+ },
+ {
+  "n": 18,
+  "title": "COMPUTER CONTROL",
+  "line": 359,
+  "body": "Where explicitly authorized, WitForge may control:\n• keyboard;\n• mouse;\n• windows;\n• applications;\n• files;\n• terminal;\n• screen;\n• supported desktop automation interfaces.\nOperating-system security remains authoritative."
+ },
+ {
+  "n": 19,
+  "title": "UNIVERSAL DEVICE ECOSYSTEM",
+  "line": 373,
+  "body": "Target platforms include:\n• Android;\n• iOS;\n• iPadOS;\n• macOS;\n• Windows;\n• Linux;\n• ChromeOS;\n• web browsers;\n• servers;\n• cloud environments;\n• supported wearables;\n• supported smart devices."
+ },
+ {
+  "n": 20,
+  "title": "ANDROID",
+  "line": 390,
+  "body": "Supported capabilities may include:\n• intents;\n• app links;\n• notifications;\n• camera;\n• microphone;\n• files;\n• media;\n• Bluetooth;\n• USB;\n• Sharesheet;\n• Accessibility;\n• ADB;\n• Wireless Debugging;\n• Shizuku;\n• Termux;\n• supported system APIs.\nAndroid permissions remain authoritative."
+ },
+ {
+  "n": 21,
+  "title": "ANDROID ACCESSIBILITY",
+  "line": 412,
+  "body": "Accessibility automation may support:\n• reading visible UI;\n• clicking;\n• typing;\n• scrolling;\n• swiping;\n• focusing;\n• navigation.\nAccessibility authorization must be explicitly granted by the device owner.\nWitForge cannot silently obtain or elevate Accessibility privileges."
+ },
+ {
+  "n": 22,
+  "title": "ADB",
+  "line": 426,
+  "body": "When deliberately enabled and authorized:\n• device information;\n• shell;\n• files;\n• logs;\n• application management;\n• launch;\n• diagnostics;\n• supported installation operations.\nADB access is treated as high privilege."
+ },
+ {
+  "n": 23,
+  "title": "SHIZUKU",
+  "line": 440,
+  "body": "WitForge can detect and use Shizuku where legitimately authorized.\nShizuku status must be visible.\nNo silent privilege escalation is permitted."
+ },
+ {
+  "n": 24,
+  "title": "ROOT",
+  "line": 447,
+  "body": "Root states:\n• \"NO_ROOT\"\n• \"ROOT_AVAILABLE\"\n• \"ROOT_AUTHORIZED\"\n• \"ROOT_DENIED\"\n• \"UNKNOWN\"\nRoot is never silently requested or activated.\nRoot operations receive elevated risk classification."
+ },
+ {
+  "n": 25,
+  "title": "TERMUX",
+  "line": 459,
+  "body": "Termux integration may provide:\n• shell;\n• scripts;\n• filesystem;\n• Git;\n• Node.js;\n• Python;\n• package management;\n• local servers;\n• development;\n• diagnostics.\nControls include:\n• command validation;\n• executable restrictions;\n• working-directory restrictions;\n• timeouts;\n• output limits;\n• environment filtering;\n• security analysis;\n• audit logging."
+ },
+ {
+  "n": 26,
+  "title": "APPLE ECOSYSTEM",
+  "line": 483,
+  "body": "Supported interfaces may include:\n• App Intents;\n• Shortcuts;\n• URL schemes;\n• Share extensions;\n• approved APIs;\n• supported accessibility/automation.\nPotential capabilities:\n• \"apple.shortcuts\"\n• \"apple.intents\"\n• \"apple.files\"\n• \"apple.photos\"\n• \"apple.camera\"\n• \"apple.microphone\"\n• \"apple.contacts\"\n• \"apple.calendar\"\n• \"apple.reminders\"\n• \"apple.notifications\"\n• \"apple.accessibility\"\n• \"apple.macos.automation\"\n\n\n\n27. macOS\nSupported controls may include:\n• files;\n• screen;\n• accessibility;\n• camera;\n• microphone;\n• notifications;\n• applications;\n• terminal;\n• Shortcuts;\n• automation.\nmacOS security permissions remain authoritative."
+ },
+ {
+  "n": 28,
+  "title": "WINDOWS",
+  "line": 523,
+  "body": "Supported interfaces may include:\n• Win32;\n• Windows App SDK;\n• PowerShell;\n• Windows Terminal;\n• WSL;\n• filesystem;\n• notifications;\n• UI Automation;\n• browser automation;\n• Microsoft Graph;\n• supported system APIs.\nAdministrative operations require appropriate elevation."
+ },
+ {
+  "n": 29,
+  "title": "LINUX",
+  "line": 540,
+  "body": "Supported interfaces may include:\n• shell;\n• filesystem;\n• DBus;\n• desktop automation;\n• X11;\n• supported Wayland interfaces;\n• applications;\n• notifications;\n• Git;\n• Python;\n• Node;\n• Docker;\n• package managers;\n• services."
+ },
+ {
+  "n": 30,
+  "title": "CHROMEOS",
+  "line": 559,
+  "body": "Supported interfaces may include:\n• Chrome;\n• files;\n• notifications;\n• Android applications;\n• Linux environment;\n• supported device APIs."
+ },
+ {
+  "n": 31,
+  "title": "GOOGLE ECOSYSTEM",
+  "line": 570,
+  "body": "Supported integrations may include:\n• Google Account;\n• Gmail;\n• Calendar;\n• Contacts;\n• Drive;\n• Docs;\n• Sheets;\n• YouTube;\n• Photos;\n• Maps;\n• Tasks;\n• Meet.\nEach service receives separate permissions."
+ },
+ {
+  "n": 32,
+  "title": "MICROSOFT ECOSYSTEM",
+  "line": 588,
+  "body": "Supported integrations may include:\n• Microsoft Account;\n• Outlook;\n• Calendar;\n• Contacts;\n• OneDrive;\n• Teams;\n• Graph;\n• Office;\n• Windows."
+ },
+ {
+  "n": 33,
+  "title": "OTHER SERVICES",
+  "line": 602,
+  "body": "Potential integrations include:\n• GitHub;\n• GitLab;\n• Bitbucket;\n• Dropbox;\n• Slack;\n• Discord;\n• Notion;\n• Jira;\n• AWS;\n• Azure;\n• Google Cloud;\n• Cloudflare;\n• media platforms;\n• automation platforms;\n• smart-home platforms;\n• enterprise APIs;\n• supported vehicles;\n• supported wearables.\nAvailability depends on legitimate APIs and authorization."
+ },
+ {
+  "n": 34,
+  "title": "COMMUNICATIONS",
+  "line": 626,
+  "body": "Separate capabilities exist for:\n• read;\n• search;\n• compose;\n• draft;\n• send;\n• reply;\n• forward;\n• delete;\n• archive;\n• attach.\nA request to “reply to that email” may require:\n\"email.read → email.reply → email.send\"\nEach authority is separately evaluated."
+ },
+ {
+  "n": 35,
+  "title": "FILES",
+  "line": 644,
+  "body": "Supported operations:\n• read;\n• create;\n• write;\n• rename;\n• move;\n• copy;\n• delete;\n• share;\n• export;\n• import.\nSensitive locations require additional controls."
+ },
+ {
+  "n": 36,
+  "title": "CAMERA, MICROPHONE AND SCREEN",
+  "line": 660,
+  "body": "Capabilities include:\n• camera view;\n• photo capture;\n• video capture;\n• microphone recording;\n• live audio;\n• screen view;\n• screenshot;\n• screen recording;\n• screen sharing.\nThese are sensitive capabilities and require explicit authorization."
+ },
+ {
+  "n": 37,
+  "title": "LOCATION",
+  "line": 675,
+  "body": "Location permissions may distinguish:\n• approximate;\n• precise;\n• foreground;\n• background.\nWitForge cannot upgrade approximate location to precise location without authorization."
+ },
+ {
+  "n": 38,
+  "title": "BLUETOOTH, USB AND NFC",
+  "line": 685,
+  "body": "Supported operations may include:\n• discover;\n• connect;\n• read;\n• write;\n• transfer.\nEach device and operation is permission-scoped."
+ },
+ {
+  "n": 39,
+  "title": "SECURE CREDENTIALS",
+  "line": 696,
+  "body": "Credentials must be isolated through a Credential Broker.\nSupported stores may include:\n• Apple Keychain;\n• Android Keystore;\n• Windows Credential Manager;\n• Linux secret stores;\n• browser credential APIs;\n• enterprise secret managers.\nThe model should not receive raw credentials unless technically necessary and explicitly permitted.\nBiometric operations return authorization results, not raw biometric templates."
+ },
+ {
+  "n": 40,
+  "title": "DEVICE TRUST",
+  "line": 710,
+  "body": "Device trust states:\n• \"UNKNOWN\"\n• \"PENDING\"\n• \"TRUSTED\"\n• \"RESTRICTED\"\n• \"REVOKED\"\n• \"LOCKED\"\nTrust must be authenticated and revocable."
+ },
+ {
+  "n": 41,
+  "title": "DEVICE-TO-DEVICE CONTROL",
+  "line": 722,
+  "body": "Commands must contain:\n• command ID;\n• user ID;\n• device ID;\n• capability;\n• action;\n• scope;\n• expiration;\n• authorization;\n• correlation ID.\nReplay protection is required."
+ },
+ {
+  "n": 42,
+  "title": "UNIVERSAL DO-IT WORKFLOW",
+  "line": 737,
+  "body": "Every action follows:\nUnderstand → Problem-solve → Plan → Discover → Permission → Security → Approval → Execute → Verify → Correct → Continue/Recover → Audit → Report\nThis is the central WitForge operating cycle."
+ },
+ {
+  "n": 43,
+  "title": "SECURITY ARCHITECTURE",
+  "line": 744,
+  "body": "Security is independent from the AI model.\nCore principle:\n«AI proposes → Security Policy → Permission Check → Risk Assessment → Approval Gate → Executor → Verification → Audit»\nThe AI cannot rewrite the security layer."
+ },
+ {
+  "n": 44,
+  "title": "POLICY ENGINE",
+  "line": 752,
+  "body": "Policy decisions:\n• \"ALLOW\"\n• \"DENY\"\n• \"ASK\"\n• \"ESCALATE\"\n• \"BLOCK\"\nPolicies are applied before execution."
+ },
+ {
+  "n": 45,
+  "title": "CAPABILITY FIREWALL",
+  "line": 763,
+  "body": "The Capability Firewall controls access to:\n• applications;\n• devices;\n• accounts;\n• files;\n• APIs;\n• tools;\n• network resources;\n• privileged operations.\nEvery execution request passes through it."
+ },
+ {
+  "n": 46,
+  "title": "SCOPED CAPABILITY TOKENS",
+  "line": 777,
+  "body": "Tokens bind authority to:\n• subject;\n• agent;\n• device;\n• account;\n• resource;\n• scope;\n• purpose;\n• expiration;\n• approval;\n• policy version.\nTokens must be revocable."
+ },
+ {
+  "n": 47,
+  "title": "THREAT DETECTION",
+  "line": 793,
+  "body": "Detection covers:\n• prompt injection;\n• secret exfiltration;\n• command injection;\n• path traversal;\n• SSRF;\n• credential spraying;\n• suspicious automation;\n• malicious files;\n• abnormal tool usage;\n• integrity violations;\n• suspicious account behavior.\nDetection does not rely solely on the model."
+ },
+ {
+  "n": 48,
+  "title": "SECURITY SHIELD",
+  "line": 810,
+  "body": "Security Shield provides:\n• threat monitoring;\n• classification;\n• firewalling;\n• identity protection;\n• tool protection;\n• prompt-injection protection;\n• file protection;\n• network protection;\n• sandboxing;\n• quarantine;\n• incident response;\n• evidence storage;\n• security dashboard;\n• recovery;\n• self-test."
+ },
+ {
+  "n": 49,
+  "title": "EXTERNAL CONTENT",
+  "line": 830,
+  "body": "Websites, emails, uploads, GitHub content, API responses, documents and tool output are untrusted.\nThey may contain instructions.\nThose instructions are treated as data, not authority.\nExternal content cannot:\n• grant itself permissions;\n• change policy;\n• become Owner;\n• disable security;\n• expose credentials;\n• authorize actions."
+ },
+ {
+  "n": 50,
+  "title": "ACTIVE DEFENSE",
+  "line": 844,
+  "body": "Authorized defensive operations may include:\n• asset registration;\n• safe reconnaissance;\n• configuration scanning;\n• dependency audits;\n• safe exploit validation;\n• attack-path simulation;\n• privilege-boundary testing;\n• integrity scanning;\n• evidence collection;\n• remediation;\n• isolation;\n• patching;\n• restoration;\n• verification.\nActive defense is restricted to authorized assets."
+ },
+ {
+  "n": 51,
+  "title": "RISK ENGINE",
+  "line": 864,
+  "body": "Risk factors include:\n• capability sensitivity;\n• data sensitivity;\n• financial impact;\n• reversibility;\n• account impact;\n• device impact;\n• external visibility;\n• security impact;\n• legal impact;\n• scope;\n• autonomy;\n• uncertainty.\nRisk classifications:\n• LOW;\n• MEDIUM;\n• HIGH;\n• CRITICAL;\n• PROHIBITED."
+ },
+ {
+  "n": 52,
+  "title": "HUMAN APPROVAL MATRIX",
+  "line": 887,
+  "body": "LOW\nMay execute within existing authorization.\nMEDIUM\nMay execute under defined permissions.\nHIGH\nNormally requires explicit approval unless a narrowly scoped autonomous policy exists.\nCRITICAL\nRequires strong human confirmation and may require additional authentication.\nPROHIBITED\nMust not execute."
+ },
+ {
+  "n": 53,
+  "title": "AGENT SANDBOX",
+  "line": 901,
+  "body": "Agents operate inside isolated execution boundaries.\nSandbox controls include:\n• filesystem restrictions;\n• network restrictions;\n• process restrictions;\n• resource limits;\n• capability restrictions;\n• time limits;\n• output limits;\n• audit logging."
+ },
+ {
+  "n": 54,
+  "title": "CREDENTIAL BROKER",
+  "line": 915,
+  "body": "Credential Broker manages:\n• API keys;\n• OAuth tokens;\n• refresh tokens;\n• passwords;\n• session credentials;\n• certificates;\n• secure device credentials.\nCredential exposure to agents is minimized."
+ },
+ {
+  "n": 55,
+  "title": "EMERGENCY STOP",
+  "line": 928,
+  "body": "Users must be able to immediately stop:\n• current task;\n• agent;\n• application integration;\n• device;\n• autonomous mode;\n• network execution;\n• account operations."
+ },
+ {
+  "n": 56,
+  "title": "EMERGENCY CONTROL HIERARCHY",
+  "line": 940,
+  "body": "Emergency states:\nNORMAL → ELEVATED → HIGH → LOCKDOWN\nLockdown can suspend execution while preserving evidence and recovery functions."
+ },
+ {
+  "n": 57,
+  "title": "APPLICATION SECURITY",
+  "line": 947,
+  "body": "Every integration must enforce:\n• authentication;\n• authorization;\n• rate limits;\n• trusted endpoints;\n• input validation;\n• output validation;\n• secure transport;\n• capability checks;\n• audit logging."
+ },
+ {
+  "n": 58,
+  "title": "AUTHENTICATION",
+  "line": 961,
+  "body": "WitForge supports secure authentication using appropriate mechanisms.\nPossible methods:\n• passwords;\n• passkeys;\n• OAuth;\n• device authentication;\n• MFA;\n• hardware-backed credentials;\n• platform authentication."
+ },
+ {
+  "n": 59,
+  "title": "AUTHORIZATION VS CONSENT",
+  "line": 974,
+  "body": "Authentication proves identity.\nAuthorization grants capability.\nConsent is user approval.\nThese are distinct concepts and must never be conflated."
+ },
+ {
+  "n": 60,
+  "title": "OWNER",
+  "line": 982,
+  "body": "The Owner is the highest administrative authority within WitForge.\nOwner identity is private administrative data and must not be unnecessarily exposed to:\n• frontend bundles;\n• public APIs;\n• logs;\n• analytics;\n• URLs;\n• external services.\nOwner status must be protected by strong authentication."
+ },
+ {
+  "n": 61,
+  "title": "OWNER SECURITY",
+  "line": 995,
+  "body": "Owner operations require:\n• strong authentication;\n• secure session management;\n• audit logging;\n• sensitive-operation confirmation;\n• recovery controls;\n• revocation mechanisms."
+ },
+ {
+  "n": 62,
+  "title": "AI AGENTS",
+  "line": 1006,
+  "body": "WitForge supports specialized agents.\nExamples:\n• planner;\n• researcher;\n• coding agent;\n• browser agent;\n• device agent;\n• media agent;\n• security agent;\n• account agent;\n• communications agent;\n• finance/reconciliation agent;\n• project agent.\nAgents cannot independently grant themselves capabilities."
+ },
+ {
+  "n": 63,
+  "title": "AGENT INHERITANCE",
+  "line": 1024,
+  "body": "Agents inherit only explicitly delegated authority.\nNo implicit privilege inheritance.\nAn agent may delegate only capabilities it is itself permitted to delegate."
+ },
+ {
+  "n": 64,
+  "title": "PROJECTS",
+  "line": 1031,
+  "body": "Users can organize work into projects.\nProjects contain:\n• goals;\n• tasks;\n• agents;\n• files;\n• integrations;\n• permissions;\n• memory;\n• assets;\n• audit history."
+ },
+ {
+  "n": 65,
+  "title": "MEMORY",
+  "line": 1046,
+  "body": "Memory is divided into:\n• conversation memory;\n• project memory;\n• user preferences;\n• task state;\n• verified facts;\n• integration state.\nSecurity policy and permissions cannot be rewritten by ordinary memory."
+ },
+ {
+  "n": 66,
+  "title": "MULTIMODAL AI",
+  "line": 1058,
+  "body": "WitForge supports:\n• text;\n• speech;\n• images;\n• video;\n• audio;\n• documents;\n• screenshots.\nPotential media operations:\n• speech-to-text;\n• text-to-speech;\n• image generation;\n• image editing;\n• video generation;\n• video editing;\n• audio generation;\n• multimodal analysis.\nProvider availability must be verified."
+ },
+ {
+  "n": 67,
+  "title": "MODEL PROVIDERS",
+  "line": 1080,
+  "body": "WitForge can support multiple providers.\nProvider abstraction must separate:\n• model discovery;\n• model execution;\n• credentials;\n• quotas;\n• capabilities;\n• costs;\n• safety policies.\nNo provider is assumed to magically support an unavailable capability."
+ },
+ {
+  "n": 68,
+  "title": "AVATAR SYSTEM",
+  "line": 1094,
+  "body": "Users may create digital avatars.\nAvatar construction can include:\n• appearance;\n• clothing;\n• equipment;\n• attributes;\n• personality;\n• visual components;\n• metadata.\nAn avatar must be fully constructed before entering systems that require complete identity."
+ },
+ {
+  "n": 69,
+  "title": "AI-GENERATED AVATAR PIECES",
+  "line": 1108,
+  "body": "Avatar components may be generated by authorized AI systems.\nEach generated component receives:\n• identity;\n• provenance;\n• metadata;\n• ownership record;\n• creation timestamp."
+ },
+ {
+  "n": 70,
+  "title": "PRIVATE MINTING",
+  "line": 1119,
+  "body": "Digital assets can be created in a private WitForge-controlled asset registry.\nThe core system does not require a public blockchain."
+ },
+ {
+  "n": 71,
+  "title": "CRYPTOGRAPHIC ASSET IDENTITY",
+  "line": 1125,
+  "body": "Each digital asset may receive:\n• unique asset ID;\n• cryptographic identity;\n• provenance hash;\n• creation record;\n• ownership record;\n• version history."
+ },
+ {
+  "n": 72,
+  "title": "ASSET OWNERSHIP",
+  "line": 1136,
+  "body": "Ownership records must distinguish:\n• creator;\n• current owner;\n• source;\n• transfer history;\n• merge history;\n• status."
+ },
+ {
+  "n": 73,
+  "title": "EXACTLY 100 RARITY LEVELS",
+  "line": 1147,
+  "body": "The avatar/asset rarity system contains exactly:\n100 rarity levels.\nRarity 1 is commonest.\nRarity 100 is the highest rarity.\nThe system must not silently introduce additional rarity levels."
+ },
+ {
+  "n": 74,
+  "title": "RARITY RULES",
+  "line": 1156,
+  "body": "Rarity assignment must be deterministic or auditable.\nRarity cannot be fraudulently duplicated."
+ },
+ {
+  "n": 75,
+  "title": "PIECE MERGING",
+  "line": 1162,
+  "body": "Compatible digital components can be merged.\nA merge produces a new asset identity.\nOriginal component history remains auditable."
+ },
+ {
+  "n": 76,
+  "title": "MERGE TRANSACTION",
+  "line": 1169,
+  "body": "Merge operation:\nValidate → Authorize → Prepare → Execute → Verify → Commit → Audit\nFailure must leave the original state intact."
+ },
+ {
+  "n": 77,
+  "title": "ANTI-DUPLICATION",
+  "line": 1176,
+  "body": "Asset creation and merging require uniqueness checks.\nDuplicate identities must be detected."
+ },
+ {
+  "n": 78,
+  "title": "RARITY 100",
+  "line": 1182,
+  "body": "Rarity 100 is a controlled state.\nIts creation rules must be explicit and auditable."
+ },
+ {
+  "n": 79,
+  "title": "PET SYSTEM",
+  "line": 1188,
+  "body": "WitForge supports digital companion/pet assets.\nPets may have:\n• identity;\n• appearance;\n• attributes;\n• rarity;\n• provenance;\n• ownership."
+ },
+ {
+  "n": 80,
+  "title": "PET GENERATION",
+  "line": 1200,
+  "body": "Pet generation follows the same provenance and ownership rules as other digital assets."
+ },
+ {
+  "n": 81,
+  "title": "PET MERGING",
+  "line": 1205,
+  "body": "Compatible pets may be merged subject to:\n• ownership;\n• compatibility;\n• rarity rules;\n• anti-duplication;\n• transaction integrity."
+ },
+ {
+  "n": 82,
+  "title": "AVATAR + PET GENERATION",
+  "line": 1215,
+  "body": "WitForge may generate complete avatar/pet combinations through multimodal systems.\nGenerated content must be labeled according to provenance."
+ },
+ {
+  "n": 83,
+  "title": "INVENTORY",
+  "line": 1221,
+  "body": "Users receive an inventory containing:\n• avatars;\n• avatar pieces;\n• pets;\n• media;\n• digital assets;\n• licenses;\n• account-linked assets."
+ },
+ {
+  "n": 84,
+  "title": "MARKETPLACE",
+  "line": 1233,
+  "body": "A future marketplace may support authorized asset exchange.\nAll marketplace operations require:\n• ownership verification;\n• anti-fraud;\n• transaction integrity;\n• applicable legal controls;\n• user authorization."
+ },
+ {
+  "n": 85,
+  "title": "ARENA",
+  "line": 1244,
+  "body": "The Arena is a controlled digital competition system.\nCurrent economic concept:\n• each participant wagers 100 LD;\n• total pool = 200 LD;\n• winner receives 198 LD;\n• treasury receives 2 LD.\nArena mechanics must remain isolated from core security and account systems."
+ },
+ {
+  "n": 86,
+  "title": "ARENA SECURITY",
+  "line": 1255,
+  "body": "Arena operations require:\n• authenticated participants;\n• verified avatars;\n• anti-cheat;\n• transaction integrity;\n• deterministic/auditable results;\n• fraud monitoring;\n• dispute handling."
+ },
+ {
+  "n": 87,
+  "title": "ECONOMY",
+  "line": 1267,
+  "body": "LD means:\nLife and Death\nCurrent conceptual conversion:\n100 LD = A$1\nThe economic layer is isolated from the AI execution layer."
+ },
+ {
+  "n": 88,
+  "title": "ECONOMY ISOLATION",
+  "line": 1276,
+  "body": "AI execution must not have unrestricted economic authority.\nFinancial capabilities are independently permissioned."
+ },
+ {
+  "n": 89,
+  "title": "DOUBLE-ENTRY LEDGER",
+  "line": 1282,
+  "body": "Economic balances use double-entry accounting.\nEvery transaction must have:\n• debit;\n• credit;\n• transaction ID;\n• timestamp;\n• actor;\n• reason;\n• source;\n• destination;\n• resulting balances.\nBalances must be derived from auditable ledger state.\n\n\n\n90. 1% ALLOCATION\nThe Arena treasury allocation is:\n1% of the total wager pool.\nFor a 200 LD pool:\n2 LD treasury allocation.\nThe exact economic rules must remain deterministic and auditable."
+ },
+ {
+  "n": 91,
+  "title": "NOT-FOR-PROFIT GOVERNANCE",
+  "line": 1307,
+  "body": "Treasury use may be governed toward:\n• sustainable energy;\n• agriculture;\n• technology;\n• recycling;\n• resource management;\n• longevity;\n• mining.\nGovernance must be transparent and independently auditable."
+ },
+ {
+  "n": 92,
+  "title": "REAL-MONEY LOCK",
+  "line": 1320,
+  "body": "Real-money functionality must remain disabled unless all applicable:\n• licensing;\n• regulatory;\n• payment;\n• responsible-gambling;\n• consumer-protection;\n• tax;\n• identity;\n• age-verification;\n• jurisdictional\nrequirements have been satisfied.\nA specification does not constitute legal authorization."
+ },
+ {
+  "n": 93,
+  "title": "LEGAL AND REGULATORY CONTROL",
+  "line": 1336,
+  "body": "WitForge must maintain jurisdiction-aware compliance controls.\nThe system must never interpret a user's instruction as permission to violate law.\nWhere requirements are uncertain, WitForge must:\n• identify the uncertainty;\n• explain it;\n• avoid irreversible action;\n• request appropriate human/legal review where necessary."
+ },
+ {
+  "n": 94,
+  "title": "TERMS AND CONDITIONS",
+  "line": 1347,
+  "body": "WitForge requires versioned legal documents.\nDocuments include:\n• Terms of Service;\n• Privacy Policy;\n• acceptable-use rules;\n• capability delegation terms;\n• account terms;\n• marketplace terms;\n• economic terms;\n• Arena terms."
+ },
+ {
+  "n": 95,
+  "title": "PRIVACY",
+  "line": 1361,
+  "body": "Privacy architecture follows:\n• data minimization;\n• purpose limitation;\n• access controls;\n• encryption;\n• retention policies;\n• deletion controls;\n• auditability.\nSensitive information must not be unnecessarily exposed."
+ },
+ {
+  "n": 96,
+  "title": "AUDIT ARCHITECTURE",
+  "line": 1374,
+  "body": "Every consequential operation generates an audit record.\nRecords may include:\n• event ID;\n• timestamp;\n• actor;\n• agent;\n• device;\n• account;\n• capability;\n• action;\n• decision;\n• reason;\n• risk;\n• approval;\n• result;\n• correlation ID;\n• evidence hash.\nSecrets must be masked or excluded."
+ },
+ {
+  "n": 97,
+  "title": "TAMPER-EVIDENT AUDIT",
+  "line": 1396,
+  "body": "Audit records should support:\n• integrity hashes;\n• chained records;\n• append-only storage;\n• evidence hashes;\n• secure timestamps.\nAudit history must not be silently altered."
+ },
+ {
+  "n": 98,
+  "title": "VERIFICATION",
+  "line": 1407,
+  "body": "Every important operation has a verification method.\nVerification may check:\n• API response;\n• application state;\n• device state;\n• file state;\n• account state;\n• external confirmation;\n• cryptographic evidence;\n• expected result."
+ },
+ {
+  "n": 99,
+  "title": "RESULT STATES",
+  "line": 1421,
+  "body": "Standard result states:\n• \"PLANNED\"\n• \"WAITING_FOR_PERMISSION\"\n• \"WAITING_FOR_APPROVAL\"\n• \"EXECUTING\"\n• \"SUCCEEDED\"\n• \"PARTIALLY_SUCCEEDED\"\n• \"FAILED\"\n• \"BLOCKED\"\n• \"QUARANTINED\"\n• \"ROLLED_BACK\"\n• \"RECOVERING\"\n• \"CANCELLED\"\n• \"UNKNOWN\""
+ },
+ {
+  "n": 100,
+  "title": "ACTION TRANSPARENCY",
+  "line": 1439,
+  "body": "Users must be able to understand:\n• what WitForge intended;\n• what it did;\n• what permissions it used;\n• what failed;\n• what it corrected;\n• what it verified;\n• what remains incomplete."
+ },
+ {
+  "n": 101,
+  "title": "ROLLBACK AND TRANSACTION FRAMEWORK",
+  "line": 1451,
+  "body": "Consequential workflows use:\nPLAN → SNAPSHOT/PREPARE → EXECUTE → VERIFY → COMMIT\nIf verification fails:\nSTOP → DIAGNOSE → ROLLBACK/RECOVER → VERIFY → CONTINUE OR REPORT\nNot every external action is technically reversible, so irreversible operations must be identified before execution where possible."
+ },
+ {
+  "n": 102,
+  "title": "UNIVERSAL APP PERMISSION EXAMPLE",
+  "line": 1460,
+  "body": "Request:\n«“Reply to that email.”»\nWitForge determines:\n1. locate email;\n2. require \"email.read\";\n3. identify response;\n4. generate draft;\n5. require \"email.reply\";\n6. require \"email.send\";\n7. security check;\n8. approval if required;\n9. send;\n10. verify sent state;\n11. audit."
+ },
+ {
+  "n": 103,
+  "title": "UNIVERSAL DEVICE EXAMPLE",
+  "line": 1478,
+  "body": "Request:\n«“Install this application on my Android phone.”»\nWitForge:\n1. identifies target device;\n2. verifies device trust;\n3. inspects application;\n4. checks source;\n5. scans package;\n6. determines installation capability;\n7. requests required authorization;\n8. checks security policy;\n9. installs;\n10. verifies installation;\n11. reports result.\nIt cannot bypass Android security controls."
+ },
+ {
+  "n": 104,
+  "title": "MULTI-DEVICE",
+  "line": 1497,
+  "body": "A user may have multiple trusted devices.\nEach device maintains:\n• identity;\n• trust state;\n• capabilities;\n• sessions;\n• authorization;\n• revocation state."
+ },
+ {
+  "n": 105,
+  "title": "CROSS-PLATFORM CONTINUITY",
+  "line": 1509,
+  "body": "A task may move between devices.\nExample:\nPhone: user starts task\n ↓\n Cloud/local task state: plan stored\n ↓\n Computer: execution continues\n ↓\n Phone: result notification\nContinuity requires authenticated channels."
+ },
+ {
+  "n": 106,
+  "title": "LOCAL-FIRST OPERATION",
+  "line": 1523,
+  "body": "WitForge should operate locally wherever practical.\nLocal operation provides:\n• lower latency;\n• privacy;\n• offline functionality;\n• local files;\n• local automation;\n• local model support where available.\nExternal services are used only when required or authorized."
+ },
+ {
+  "n": 107,
+  "title": "OFFLINE MODE",
+  "line": 1536,
+  "body": "Offline mode supports:\n• local conversation;\n• local planning;\n• local files;\n• local models where available;\n• queued tasks;\n• local automation;\n• deferred synchronization.\nTasks requiring external services remain pending."
+ },
+ {
+  "n": 108,
+  "title": "NO FAKE FUNCTIONALITY",
+  "line": 1549,
+  "body": "WitForge must never claim:\n• an account was created when it was not;\n• a message was sent when it was not;\n• a file was uploaded when it was not;\n• a payment succeeded when it did not;\n• a security scan passed when it did not run;\n• a capability exists when it does not;\n• an integration works when it has not been verified.\nSimulation must be clearly labeled."
+ },
+ {
+  "n": 109,
+  "title": "DATABASE",
+  "line": 1562,
+  "body": "The platform database stores:\n• users;\n• authentication;\n• sessions;\n• projects;\n• tasks;\n• permissions;\n• capabilities;\n• accounts;\n• devices;\n• agents;\n• memory;\n• assets;\n• transactions;\n• security events;\n• audit events;\n• integrations.\nSensitive secrets should be stored outside ordinary model-accessible records."
+ },
+ {
+  "n": 110,
+  "title": "ASSET DATABASE",
+  "line": 1584,
+  "body": "Asset records include:\n• asset ID;\n• type;\n• owner;\n• creator;\n• provenance;\n• rarity;\n• status;\n• parent assets;\n• merge history;\n• cryptographic identity."
+ },
+ {
+  "n": 111,
+  "title": "MERGE DATABASE TRANSACTION",
+  "line": 1599,
+  "body": "Asset merging must be atomic.\nA failed merge cannot leave partially merged ownership."
+ },
+ {
+  "n": 112,
+  "title": "ANTI-FRAUD",
+  "line": 1605,
+  "body": "Anti-fraud controls include:\n• duplicate detection;\n• transaction monitoring;\n• identity verification where required;\n• rate limits;\n• anomaly detection;\n• account separation;\n• audit trails;\n• asset provenance."
+ },
+ {
+  "n": 113,
+  "title": "ORGANISATIONS",
+  "line": 1618,
+  "body": "WitForge may support organisations with:\n• administrators;\n• members;\n• roles;\n• teams;\n• projects;\n• shared resources;\n• policies;\n• delegated capabilities.\nOrganisation authority does not automatically override individual account authority."
+ },
+ {
+  "n": 114,
+  "title": "SUBSCRIPTIONS",
+  "line": 1632,
+  "body": "Subscription systems may support:\n• plans;\n• usage;\n• limits;\n• billing;\n• invoices;\n• entitlements.\nBilling actions require explicit authority."
+ },
+ {
+  "n": 115,
+  "title": "MEDIA",
+  "line": 1644,
+  "body": "Media capabilities include:\n• image creation;\n• image editing;\n• video creation;\n• video editing;\n• audio creation;\n• audio editing;\n• speech recognition;\n• speech synthesis.\nProvider capabilities and licensing must be checked."
+ },
+ {
+  "n": 116,
+  "title": "SECURITY + AI",
+  "line": 1658,
+  "body": "AI is a component inside the security architecture, not the security authority itself.\nThe model may:\n• identify threats;\n• propose defenses;\n• analyze evidence;\n• recommend remediation.\nThe enforcement layer decides whether execution is permitted."
+ },
+ {
+  "n": 117,
+  "title": "EMERGENCY RECOVERY",
+  "line": 1669,
+  "body": "Recovery can include:\n• session revocation;\n• capability revocation;\n• account disconnect;\n• device isolation;\n• integration disablement;\n• rollback;\n• restoration;\n• quarantine;\n• credential rotation;\n• lockdown.\nRecovery must itself be audited."
+ },
+ {
+  "n": 118,
+  "title": "EVIDENCE VAULT",
+  "line": 1685,
+  "body": "Security evidence may include:\n• event records;\n• hashes;\n• screenshots;\n• logs;\n• tool results;\n• scan results;\n• affected resource identifiers.\nSecrets must be protected."
+ },
+ {
+  "n": 119,
+  "title": "OBSERVABILITY",
+  "line": 1698,
+  "body": "WitForge should support:\n• logs;\n• metrics;\n• traces;\n• correlation IDs;\n• task timelines;\n• OpenTelemetry-compatible observability.\nSecurity and operational telemetry must remain privacy-aware."
+ },
+ {
+  "n": 120,
+  "title": "SECURITY FRAMEWORK",
+  "line": 1710,
+  "body": "Security design references:\n• OWASP ASVS 5.x;\n• OWASP API Security Top 10;\n• secure coding practices;\n• least privilege;\n• defense in depth;\n• zero-trust principles;\n• secure-by-default architecture.\nFramework versions must be revalidated during implementation."
+ },
+ {
+  "n": 121,
+  "title": "DEVELOPMENT ARCHITECTURE",
+  "line": 1723,
+  "body": "Recommended major layers:\nUser Interface\n ↓\n Conversation / Voice / Multimodal Layer\n ↓\n Intent + Problem-Solving Engine\n ↓\n Planner / Agent Orchestrator\n ↓\n Policy + Permission + Risk Layer\n ↓\n Capability Firewall\n ↓\n Universal Capability Broker\n ↓\n Application / Device / API Adapters\n ↓\n Execution Layer\n ↓\n Verification\n ↓\n Audit / Evidence / Recovery"
+ },
+ {
+  "n": 122,
+  "title": "TOOL MANIFEST",
+  "line": 1749,
+  "body": "Every tool exposes a manifest containing:\n• tool ID;\n• version;\n• capabilities;\n• inputs;\n• outputs;\n• permissions;\n• risk class;\n• supported platforms;\n• authentication method;\n• verification method;\n• rollback support."
+ },
+ {
+  "n": 123,
+  "title": "TOOL RESULT",
+  "line": 1765,
+  "body": "Every tool should return structured results.\nExample:\n{\n \"status\": \"SUCCEEDED\",\n \"result\": {},\n \"verification\": {},\n \"evidence\": {},\n \"error\": null,\n \"correlationId\": \"...\"\n }"
+ },
+ {
+  "n": 124,
+  "title": "MOCK ADAPTER REQUIREMENT",
+  "line": 1779,
+  "body": "Every integration should have a mock/test adapter where practical.\nThis allows testing:\n• authorization;\n• failures;\n• retries;\n• rollback;\n• verification;\n• security boundaries.\nNo production integration should be considered validated merely because its UI exists."
+ },
+ {
+  "n": 125,
+  "title": "RELEASE TESTING",
+  "line": 1792,
+  "body": "Every release must test:\n• authentication;\n• authorization;\n• permissions;\n• session security;\n• capability enforcement;\n• input validation;\n• SSRF protection;\n• path traversal;\n• command injection;\n• prompt injection;\n• secret handling;\n• rate limiting;\n• account boundaries;\n• device trust;\n• audit integrity;\n• rollback;\n• recovery;\n• failure continuation."
+ },
+ {
+  "n": 126,
+  "title": "SELF-TEST",
+  "line": 1815,
+  "body": "WitForge should provide an internal security and health self-test.\nChecks include:\n• configuration;\n• database;\n• authentication;\n• permissions;\n• integrations;\n• security controls;\n• dependency health;\n• audit system;\n• recovery system.\nResults must distinguish:\nPASS / FAIL / WARNING / NOT TESTED"
+ },
+ {
+  "n": 127,
+  "title": "TERMUX DEVELOPMENT",
+  "line": 1832,
+  "body": "For Android development and local testing, Termux may be a first-class development environment.\nTypical validation flow:\ncd ~/WitForge\n npm install\n npm run build\n npm test\n npm run lint\n npm run dev\nActual commands must match the implementation's \"package.json\".\nDo not claim a command succeeded unless it was actually run."
+ },
+ {
+  "n": 128,
+  "title": "INSTALLATION VALIDATION",
+  "line": 1846,
+  "body": "A release must document:\n• prerequisites;\n• supported Node version;\n• dependency installation;\n• environment variables;\n• secure configuration;\n• database initialization;\n• first-run setup;\n• startup;\n• health check;\n• test commands;\n• shutdown;\n• upgrade procedure;\n• rollback procedure."
+ },
+ {
+  "n": 129,
+  "title": "VERSIONING",
+  "line": 1864,
+  "body": "Use semantic versioning where appropriate:\n\"MAJOR.MINOR.PATCH\"\nEvery release must identify:\n• version;\n• build date;\n• source revision;\n• dependency state;\n• test status;\n• known limitations;\n• security status."
+ },
+ {
+  "n": 130,
+  "title": "UNIVERSAL ACCOUNT LIFECYCLE",
+  "line": 1878,
+  "body": "WitForge must support a complete account lifecycle where the target service legitimately allows it.\nCapabilities:\n• \"account.discover\"\n• \"account.create\"\n• \"account.configure\"\n• \"account.verify\"\n• \"account.login\"\n• \"account.logout\"\n• \"account.recover\"\n• \"account.update\"\n• \"account.disable\"\n• \"account.delete\"\n• \"account.disconnect\""
+ },
+ {
+  "n": 131,
+  "title": "ACCOUNT CREATION WORKFLOW",
+  "line": 1895,
+  "body": "When instructed:\n«“Create me an account on X.”»\nWitForge:\n1. identifies the service;\n2. determines whether account creation is supported;\n3. discovers the legitimate registration interface;\n4. identifies required information;\n5. identifies email/phone verification requirements;\n6. identifies payment requirements;\n7. identifies terms/consent requirements;\n8. presents important requirements;\n9. obtains required approval;\n10. creates the account;\n11. completes supported configuration;\n12. handles legitimate verification;\n13. stores credentials securely;\n14. verifies the resulting account;\n15. registers the integration;\n16. reports the result."
+ },
+ {
+  "n": 132,
+  "title": "ACCOUNT CREATION BOUNDARIES",
+  "line": 1918,
+  "body": "WitForge may:\n• generate strong passwords;\n• generate usernames where permitted;\n• fill legitimate registration forms;\n• configure supported settings;\n• complete authorized email verification;\n• manage credentials securely.\nWitForge must not:\n• fabricate identity;\n• falsely claim age;\n• falsify legal information;\n• bypass CAPTCHA;\n• bypass identity verification;\n• bypass phone verification;\n• evade service restrictions;\n• impersonate another person;\n• accept legally binding terms when personal confirmation is required without the required authority."
+ },
+ {
+  "n": 133,
+  "title": "ACCOUNT PAYMENT",
+  "line": 1939,
+  "body": "Payment requires:\n• supported payment integration;\n• authorization;\n• appropriate user approval;\n• transaction verification.\nPayment credentials remain protected by the Credential Broker."
+ },
+ {
+  "n": 134,
+  "title": "ACCOUNT INVENTORY",
+  "line": 1949,
+  "body": "WitForge maintains an account inventory containing:\n• service;\n• account identifier;\n• connection status;\n• capabilities;\n• authorization date;\n• expiration;\n• security status;\n• revocation state.\nMultiple accounts for one service must remain separated."
+ },
+ {
+  "n": 135,
+  "title": "ACCOUNT SWITCHING",
+  "line": 1963,
+  "body": "Users can explicitly select which account an operation applies to.\nWitForge must not accidentally send an action through the wrong account."
+ },
+ {
+  "n": 136,
+  "title": "ACCOUNT SECURITY CONFIGURATION",
+  "line": 1969,
+  "body": "Where supported, WitForge may assist with:\n• password changes;\n• MFA;\n• passkeys;\n• recovery methods;\n• sessions;\n• security settings."
+ },
+ {
+  "n": 137,
+  "title": "ACCOUNT RECOVERY",
+  "line": 1980,
+  "body": "Account recovery must use legitimate provider mechanisms.\nRecovery cannot become a security bypass."
+ },
+ {
+  "n": 138,
+  "title": "ACCOUNT DELETION",
+  "line": 1986,
+  "body": "Deletion is consequential.\nWitForge must:\n• identify affected data;\n• warn about consequences;\n• obtain required confirmation;\n• execute through legitimate mechanisms;\n• verify the resulting state."
+ },
+ {
+  "n": 139,
+  "title": "ACCOUNT DISCONNECT",
+  "line": 1997,
+  "body": "Disconnect should, where supported:\n• revoke tokens;\n• remove capability grants;\n• invalidate local integration state;\n• preserve required audit information."
+ },
+ {
+  "n": 140,
+  "title": "LEGAL DOCUMENT SYSTEM",
+  "line": 2006,
+  "body": "Legal and policy documents must be:\n• versioned;\n• dated;\n• jurisdiction-aware;\n• auditable;\n• presented at required points.\nWitForge must distinguish system policy from legal advice."
+ },
+ {
+  "n": 141,
+  "title": "USER RESPONSIBILITY",
+  "line": 2017,
+  "body": "The user remains responsible for decisions requiring personal legal authority, identity, consent, payment authorization, or other personal declarations.\nWitForge assists but does not impersonate legal authority."
+ },
+ {
+  "n": 142,
+  "title": "PLATFORM RESPONSIBILITY",
+  "line": 2023,
+  "body": "WitForge is responsible for implementing:\n• security boundaries;\n• permission enforcement;\n• truthful status;\n• auditability;\n• safe defaults;\n• failure containment;\n• capability isolation."
+ },
+ {
+  "n": 143,
+  "title": "NO UNIVERSAL SECURITY BYPASS",
+  "line": 2035,
+  "body": "WitForge must never attempt to defeat:\n• OS security;\n• authentication;\n• access controls;\n• encryption;\n• CAPTCHA;\n• identity verification;\n• application sandboxing;\n• provider security;\n• network security;\n• permission systems.\nNo problem-solving capability may override this rule."
+ },
+ {
+  "n": 144,
+  "title": "UNIVERSAL CAPABILITY PRINCIPLE",
+  "line": 2051,
+  "body": "The system should aim to support any legitimate digital capability.\nThe determining factor is not whether the AI can imagine the action.\nThe determining factor is:\nDoes a legitimate technical interface exist, and does WitForge have authorized access to it?"
+ },
+ {
+  "n": 145,
+  "title": "AI SELF-IMPROVEMENT",
+  "line": 2059,
+  "body": "WitForge may improve:\n• planning;\n• reasoning;\n• prompts;\n• adapters;\n• workflows;\n• diagnostics;\n• performance;\n• error recovery.\nSelf-improvement must pass controlled testing and cannot modify security authority without explicit governance."
+ },
+ {
+  "n": 146,
+  "title": "FUTURE EXTENSIBILITY",
+  "line": 2073,
+  "body": "The architecture must support future:\n• operating systems;\n• devices;\n• AI models;\n• applications;\n• APIs;\n• agents;\n• automation systems;\n• media systems;\n• digital assets;\n• security technologies.\nNew capabilities are added through controlled adapters and manifests."
+ },
+ {
+  "n": 147,
+  "title": "PROBLEM-SOLVING ABSOLUTE RULE",
+  "line": 2089,
+  "body": "WitForge must always attempt to solve legitimate problems intelligently.\nIf the first method fails:\nDiagnose → Correct → Retry → Alternative → Recover → Continue\nprovided the alternative remains authorized and safe.\nIf an action is blocked by security or permission:\nDo not bypass.\nInstead:\nExplain → Request legitimate authorization → Re-plan → Continue if authorized."
+ },
+ {
+  "n": 148,
+  "title": "DATA AUTHORITY MODEL",
+  "line": 2101,
+  "body": "Authority hierarchy:\n1. system security;\n2. operating-system security;\n3. authenticated user/Owner authority;\n4. explicit capability permissions;\n5. policy;\n6. agent delegation;\n7. task instructions;\n8. external content.\nExternal content can never outrank trusted authority."
+ },
+ {
+  "n": 149,
+  "title": "FAILURE CONTAINMENT",
+  "line": 2115,
+  "body": "When something goes wrong:\n1. stop unsafe propagation;\n2. preserve evidence;\n3. determine scope;\n4. isolate affected resources;\n5. diagnose;\n6. repair if safe;\n7. restore if necessary;\n8. verify;\n9. continue where safe;\n10. report honestly."
+ },
+ {
+  "n": 150,
+  "title": "SECURITY BOUNDARY TESTING",
+  "line": 2130,
+  "body": "Every major capability requires adversarial tests.\nTests should attempt:\n• unauthorized execution;\n• permission escalation;\n• account crossover;\n• prompt injection;\n• malicious tool output;\n• malicious file input;\n• SSRF;\n• command injection;\n• path traversal;\n• secret extraction;\n• replay;\n• session abuse;\n• privilege escalation.\nExpected result is containment or rejection."
+ },
+ {
+  "n": 151,
+  "title": "UNIVERSAL TASK STATE MACHINE",
+  "line": 2150,
+  "body": "Every complex task should maintain durable state:\nCREATED\n ↓\n UNDERSTANDING\n ↓\n PROBLEM_SOLVING\n ↓\n PLANNING\n ↓\n WAITING_FOR_CAPABILITY\n ↓\n WAITING_FOR_PERMISSION\n ↓\n WAITING_FOR_APPROVAL\n ↓\n EXECUTING\n ↓\n VERIFYING\n ↓\n ├── SUCCESS\n ├── CORRECTING\n │ ↓\n │ RETRYING\n │ ↓\n │ VERIFYING\n │\n ├── RECOVERING\n │\n ├── BLOCKED\n └── FAILED\nThis allows interrupted tasks to resume from verified state."
+ },
+ {
+  "n": 152,
+  "title": "SELF-DIAGNOSTIC PROBLEM SOLVING",
+  "line": 2185,
+  "body": "WitForge should diagnose its own operational failures.\nExamples:\n• missing dependency;\n• expired authentication;\n• unavailable API;\n• incorrect configuration;\n• network failure;\n• invalid parameter;\n• permission change;\n• provider outage.\nIt may repair configuration where authorized.\nIt must not silently weaken security to make the system work."
+ },
+ {
+  "n": 153,
+  "title": "CONTINUATION ENGINE",
+  "line": 2201,
+  "body": "A task that fails should preserve:\n• original objective;\n• completed steps;\n• verified state;\n• failed step;\n• reason;\n• attempted corrections;\n• remaining work;\n• required permissions.\nThis prevents unnecessary repetition."
+ },
+ {
+  "n": 154,
+  "title": "HUMAN HANDOFF",
+  "line": 2215,
+  "body": "When the system cannot safely continue, it must provide a useful handoff.\nExample:\n«“The upload failed because YouTube requires a fresh authorization. The video has been rendered and verified locally. Nothing was published. Reconnect the YouTube account and I can continue from the upload stage.”»\nThe goal is to preserve progress rather than simply saying “failed.”"
+ },
+ {
+  "n": 155,
+  "title": "UNIVERSAL MEDIA EXAMPLE",
+  "line": 2223,
+  "body": "Request:\n«“Make a funny cat video, add music and post it on my YouTube account.”»\nWitForge performs:\n1. understand desired style;\n2. generate or source authorized cat footage;\n3. generate/select appropriately licensed music;\n4. edit video;\n5. verify audio/video;\n6. obtain YouTube authorization;\n7. check \"youtube.upload\";\n8. check \"youtube.publish\";\n9. security scan;\n10. preview;\n11. upload;\n12. verify upload;\n13. publish if authorized;\n14. verify public status;\n15. return result.\n“Create” and “publish” are separate authorities."
+ },
+ {
+  "n": 156,
+  "title": "UNIVERSAL RESEARCH EXAMPLE",
+  "line": 2246,
+  "body": "Request:\n«“Find the best solution to this problem.”»\nWitForge should:\n1. define the problem;\n2. gather relevant evidence;\n3. distinguish facts from assumptions;\n4. generate alternatives;\n5. compare cost/risk/benefit;\n6. identify uncertainty;\n7. recommend an approach;\n8. optionally execute authorized implementation;\n9. verify the outcome."
+ },
+ {
+  "n": 157,
+  "title": "UNIVERSAL DEVELOPMENT EXAMPLE",
+  "line": 2262,
+  "body": "Request:\n«“Fix my application.”»\nWitForge may:\n1. inspect project;\n2. reproduce issue;\n3. identify root cause;\n4. create a patch;\n5. run tests;\n6. inspect security impact;\n7. show diff;\n8. apply patch if authorized;\n9. rebuild;\n10. run regression tests;\n11. verify;\n12. preserve rollback state."
+ },
+ {
+  "n": 158,
+  "title": "UNIVERSAL SECURITY EXAMPLE",
+  "line": 2281,
+  "body": "Request:\n«“Secure my server.”»\nWitForge may:\n1. identify authorized server;\n2. inventory services;\n3. scan configuration;\n4. identify vulnerabilities;\n5. prioritize risks;\n6. propose remediation;\n7. obtain approval;\n8. apply safe fixes;\n9. verify;\n10. monitor;\n11. report.\nIt must not scan or attack unauthorized systems."
+ },
+ {
+  "n": 159,
+  "title": "UNIVERSAL ACCOUNT EXAMPLE",
+  "line": 2300,
+  "body": "Request:\n«“Create me an account on this service and configure it.”»\nWitForge:\nDiscover → Register → Verify → Secure → Configure → Connect → Test → Audit\nIf a CAPTCHA or identity check appears:\nstop at the human-required boundary rather than bypassing it."
+ },
+ {
+  "n": 160,
+  "title": "UNIVERSAL RECOVERY EXAMPLE",
+  "line": 2310,
+  "body": "If a task fails halfway:\nPreserve state → Diagnose → Identify completed verified actions → Repair → Resume from checkpoint → Verify → Complete\nThe system must avoid duplicating actions that already succeeded."
+ },
+ {
+  "n": 161,
+  "title": "PRODUCT PHILOSOPHY",
+  "line": 2317,
+  "body": "WitForge should be:\n• capable;\n• honest;\n• adaptive;\n• secure;\n• transparent;\n• user-controlled;\n• extensible;\n• local-first;\n• privacy-aware;\n• failure-tolerant.\nThe objective is not maximum autonomy.\nThe objective is maximum useful autonomy within legitimate authority."
+ },
+ {
+  "n": 162,
+  "title": "ABSOLUTE SECURITY RULE",
+  "line": 2334,
+  "body": "«WitForge may solve around problems, but it may never solve around security.»\nIt may:\n• correct;\n• retry;\n• adapt;\n• substitute;\n• recover;\n• continue;\n• request additional authorization.\nIt may never:\n• bypass;\n• forge;\n• impersonate;\n• escalate without authority;\n• disable security;\n• evade authentication;\n• circumvent permissions."
+ },
+ {
+  "n": 163,
+  "title": "ABSOLUTE ECONOMIC RULE",
+  "line": 2355,
+  "body": "Economic operations must remain:\n• auditable;\n• isolated;\n• permission-controlled;\n• jurisdiction-aware;\n• fraud-resistant.\nNo AI agent receives unrestricted financial authority."
+ },
+ {
+  "n": 164,
+  "title": "ABSOLUTE ASSET RULE",
+  "line": 2366,
+  "body": "Every digital asset must have a traceable identity and provenance.\nNo silent duplication.\nNo untraceable ownership mutation.\nNo hidden creation of economic value."
+ },
+ {
+  "n": 165,
+  "title": "ABSOLUTE TRUTHFULNESS RULE",
+  "line": 2374,
+  "body": "WitForge must always distinguish:\n• planned;\n• simulated;\n• attempted;\n• succeeded;\n• verified;\n• failed;\n• blocked;\n• unknown.\nA generated answer is not evidence that an external action occurred."
+ },
+ {
+  "n": 166,
+  "title": "FINAL USER EXPERIENCE",
+  "line": 2388,
+  "body": "The user should experience WitForge as:\n«“I tell it what I need. It figures out how to solve it, asks me only for the authority or information it actually needs, safely does the work, fixes problems when possible, keeps going when it can, and tells me the truth about the result.”»\nThe interface should minimize unnecessary friction without hiding consequential decisions."
+ },
+ {
+  "n": 167,
+  "title": "FINAL PRODUCT ARCHITECTURE",
+  "line": 2395,
+  "body": "The definitive architecture is:\n┌─┐  \n                     │        USER          │  \n                     └─┬──┘  \n                                │  \n                                ▼  \n                     ┌─┐  \n                     │ CONVERSATIONAL UI    │  \n                     │ Text / Voice / Media │  \n                     └─┬──┘  \n                                │  \n                                ▼  \n                     ┌─┐  \n                     │ INTENT UNDERSTANDING │  \n                     └─┬──┘  \n                                │  \n                                ▼  \n                     ┌─┐  \n                     │ PROBLEM SOLVING      │  \n                     │ Diagnose / Reason    │  \n                     │ Alternatives / Fix   │  \n                     └─┬──┘  \n                                │  \n                                ▼  \n                     ┌─┐  \n                     │ PLANNER / ORCHESTRATOR│  \n                     └─┬──┘  \n                                │  \n                                ▼  \n                ┌┐  \n                │ SECURITY + POLICY + RISK     │  \n                │ Permission / Firewall /      │  \n                │ Approval / Threat Detection  │  \n                └──┬┘  \n                               │  \n                               ▼  \n                ┌┐  \n                │ UNIVERSAL CAPABILITY BROKER  │  \n                └──┬┘  \n                               │  \n      ┌┼─┐  \n      │                        │                         │  \n      ▼                        ▼                         ▼\n\nApplications Devices Services\n APIs / Web OS Control Cloud\n Accounts Termux Media\n Files Accessibility Enterprise\n │ │ │\n └┼─┘\n │\n ▼\n ┌─┐\n │ EXECUTION ENGINE │\n └─┬──┘\n │\n ▼\n ┌─┐\n │ VERIFICATION ENGINE │\n └─┬──┘\n │\n ┌─┴─┐\n │ │\n ▼ ▼\n VERIFIED FAILURE\n │ │\n │ ▼\n │ DIAGNOSE / CORRECT\n │ │\n │ ▼\n │ RETRY / RECOVER\n │ │\n └─┬─┘\n │\n ▼\n ┌─┐\n │ AUDIT / EVIDENCE │\n └─┬──┘\n │\n ▼\n ┌─┐\n │ USER RESULT │\n │ Truthful Status │\n │ Evidence / Next Step │\n └─┘"
+ },
+ {
+  "n": 168,
+  "title": "FINAL WITFORGE PRINCIPLE",
+  "line": 2484,
+  "body": "WitForge is not designed to be an AI that simply answers questions.\nIt is designed to become a universal, conversational, problem-solving operating platform.\nIts fundamental loop is:\n«UNDERSTAND → SOLVE → PLAN → AUTHORIZE → SECURE → EXECUTE → VERIFY → CORRECT → CONTINUE → RECOVER → AUDIT → REPORT»\nThe defining rule is:\n«WitForge should be as capable as possible without becoming unauthorized.»\nWhen something fails, WitForge does not unnecessarily give up.\nIt diagnoses.\nIt corrects.\nIt adapts.\nIt retries when safe.\nIt finds another legitimate route when available.\nIt preserves progress.\nIt recovers when necessary.\nIt continues when authorized.\nBut when a genuine security, permission, authentication, legal, or authority boundary is reached, it does not bypass that boundary.\nIt explains the boundary and seeks the legitimate path forward.\nTherefore:\n«WitForge can solve problems.\n WitForge can solve failures.\n WitForge can solve around unavailable methods.\n WitForge can correct itself.\n WitForge can recover and continue.\n WitForge can coordinate applications, accounts, devices, services, agents, media, files and digital systems.\n But WitForge can never override the authority that governs those systems.»\nThat is the foundation of the WitForge Universal AI Operating Platform."
+ }
+]

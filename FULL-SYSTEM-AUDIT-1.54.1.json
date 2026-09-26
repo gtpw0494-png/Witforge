@@ -1,0 +1,313 @@
+{
+  "generatedAt": "2026-09-18T07:15:42.337Z",
+  "version": "1.54.1",
+  "overall": "PASS_WITH_EXTERNAL_DEPENDENCIES_REPORTED",
+  "health": {
+    "status": "PASS",
+    "database": "PASS",
+    "authorization": "SCOPED",
+    "simulationAdapters": "NONE"
+  },
+  "capabilities": {
+    "registered": 101,
+    "grantedByDefault": 0,
+    "defaultState": "NOT_REQUESTED",
+    "defaultLevel": "RESTRICTED",
+    "autoGrant": false
+  },
+  "adapterCounts": {
+    "PASS": 5,
+    "CONFIGURED_UNVERIFIED": 0,
+    "UNAVAILABLE": 25,
+    "FAILED": 0,
+    "UNKNOWN": 0
+  },
+  "adapterRecords": [
+    {
+      "id": "files.local",
+      "status": "PASS",
+      "capabilities": [
+        "files.read",
+        "files.create",
+        "files.write",
+        "files.rename",
+        "files.move",
+        "files.copy",
+        "files.delete"
+      ]
+    },
+    {
+      "id": "termux.local",
+      "status": "UNAVAILABLE",
+      "capabilities": []
+    },
+    {
+      "id": "web.http",
+      "status": "PASS",
+      "capabilities": [
+        "browser.navigate",
+        "weather.read"
+      ]
+    },
+    {
+      "id": "github.api",
+      "status": "PASS",
+      "capabilities": [
+        "github.read",
+        "github.pr.read"
+      ]
+    },
+    {
+      "id": "google.workspace",
+      "status": "UNAVAILABLE",
+      "capabilities": []
+    },
+    {
+      "id": "ios.adapter",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "ios.device.info",
+        "ios.app.intent",
+        "ios.shortcuts"
+      ]
+    },
+    {
+      "id": "ipados.adapter",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "ipados.device.info",
+        "ipados.app.intent",
+        "ipados.shortcuts"
+      ]
+    },
+    {
+      "id": "macos.desktop.automation",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "macos.shortcut",
+        "macos.files",
+        "macos.screen.capture",
+        "macos.app.control"
+      ]
+    },
+    {
+      "id": "windows.desktop",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "windows.powershell",
+        "windows.files",
+        "windows.ui.automation"
+      ]
+    },
+    {
+      "id": "linux.desktop.automation",
+      "status": "PASS",
+      "capabilities": [
+        "linux.command",
+        "linux.files",
+        "linux.dbus",
+        "linux.screen.capture"
+      ]
+    },
+    {
+      "id": "chromeos.adapter",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "chromeos.device.info",
+        "chromeos.linux",
+        "chromeos.files"
+      ]
+    },
+    {
+      "id": "android.accessibility",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "android.accessibility",
+        "android.intents",
+        "android.notifications",
+        "android.files"
+      ]
+    },
+    {
+      "id": "adb.adapter",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "adb.execute",
+        "adb.files",
+        "adb.screen.capture",
+        "adb.device.info"
+      ]
+    },
+    {
+      "id": "shizuku.adapter",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "shizuku.execute",
+        "shizuku.files",
+        "shizuku.device.control"
+      ]
+    },
+    {
+      "id": "bluetooth_usb_nfc.adapter",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "bluetooth.control",
+        "usb.device",
+        "nfc.read"
+      ]
+    },
+    {
+      "id": "speech.local",
+      "status": "PASS",
+      "capabilities": [
+        "voice_provider",
+        "speech_to_text_provider",
+        "text_to_speech_provider"
+      ]
+    },
+    {
+      "id": "media.local",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "image_generation_provider",
+        "video_generation_provider",
+        "audio_generation_provider"
+      ]
+    },
+    {
+      "id": "multimodal.ollama",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "multimodal_model_provider"
+      ]
+    },
+    {
+      "id": "youtube.real.write",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "youtube.upload",
+        "youtube.publish"
+      ]
+    },
+    {
+      "id": "microsoft.real",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "microsoft.profile.read",
+        "microsoft.mail.read",
+        "microsoft.mail.send",
+        "microsoft.calendar.read",
+        "microsoft.calendar.create",
+        "microsoft.files.read",
+        "microsoft.files.write"
+      ]
+    },
+    {
+      "id": "gitlab.real",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "gitlab.status"
+      ]
+    },
+    {
+      "id": "bitbucket.real",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "bitbucket.status"
+      ]
+    },
+    {
+      "id": "slack.real",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "slack.status"
+      ]
+    },
+    {
+      "id": "discord.real",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "discord.status"
+      ]
+    },
+    {
+      "id": "notion.real",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "notion.status"
+      ]
+    },
+    {
+      "id": "jira.real",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "jira.status"
+      ]
+    },
+    {
+      "id": "cloudflare.real",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "cloudflare.status"
+      ]
+    },
+    {
+      "id": "aws.real",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "aws.status"
+      ]
+    },
+    {
+      "id": "azure.real",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "azure.status"
+      ]
+    },
+    {
+      "id": "gcp.real",
+      "status": "UNAVAILABLE",
+      "capabilities": [
+        "gcp.status"
+      ]
+    }
+  ],
+  "truth": {
+    "status": "VERIFIED",
+    "counts": {
+      "verified": 2,
+      "observed": 7,
+      "configuredUnverified": 0,
+      "unavailable": 25,
+      "unknown": 2,
+      "planned": 0,
+      "blocked": 0
+    }
+  },
+  "resources": {
+    "truth": "MEASURED"
+  },
+  "distribution": {
+    "version": "1.54.1",
+    "platform": {
+      "platform": "linux",
+      "arch": "x64",
+      "node": "v22.16.0",
+      "os": "linux",
+      "release": "6.18.44"
+    }
+  },
+  "knownLimitations": [
+    "External integrations are unavailable until their real APIs, credentials, device permissions and authorization are present.",
+    "Platform adapters for other operating systems cannot report local execution availability when this process is not running on those platforms.",
+    "Pairing establishes device identity only; it does not grant capabilities.",
+    "Provider-reported quotas/costs and external service availability are not inferred as local facts."
+  ],
+  "fixes": [
+    "Persistent initial state snapshot",
+    "Session authentication for POST/PATCH/DELETE mutation routes",
+    "Complete capability discovery profile",
+    "Full audit API"
+  ]
+}

@@ -1,0 +1,2511 @@
+WITFORGE
+DEFINITIVE MASTER PRODUCT SPECIFICATION
+Universal AI Operating Platform
+Product: WitForge
+ Product class: Conversational AI Operating Platform / Agentic Operating System
+ Owner: Gregory Thomas Pervan Webb
+ Owner identifier: doomedsouls689@proton.me
+ Specification status: Definitive master architecture
+ Purpose: Define the complete intended architecture, capabilities, security model, permission model, account lifecycle, problem-solving system, execution model, economy, digital assets, applications, devices, agents, and release requirements of WitForge.
+
+───
+
+1. PRODUCT IDENTITY
+WitForge is a local-first, security-first conversational AI operating platform.
+It is not merely a chatbot.
+It is an intelligent orchestration system through which a user can express an outcome in natural language and WitForge can:
+1. understand the objective;
+2. identify and solve the underlying problem;
+3. reason about possible approaches;
+4. create a plan;
+5. discover required capabilities;
+6. determine required permissions;
+7. request authorization;
+8. apply security and policy controls;
+9. execute authorized actions;
+10. verify results;
+11. detect and correct failures;
+12. adapt the plan;
+13. continue where safely possible;
+14. recover or roll back when necessary;
+15. maintain an auditable record;
+16. clearly report the result.
+WitForge is therefore an AI operating layer between human intent and authorized digital action.
+
+───
+
+2. CORE PROMISE
+The central promise is:
+«Tell WitForge what you want accomplished. WitForge understands the goal, solves the problem, plans the work, obtains the authority it needs, performs the work through legitimate interfaces, verifies the outcome, corrects failures where possible, and tells you exactly what happened.»
+WitForge must never pretend an action succeeded when it did not.
+
+───
+
+3. CENTRAL CONVERSATIONAL INTERFACE
+The primary interface is conversational.
+Users can communicate through:
+• text;
+• voice;
+• images;
+• video;
+• files;
+• screenshots;
+• documents;
+• structured data;
+• application context;
+• device context;
+• approved external information.
+Conversation is the primary control surface, but not the only interface.
+WitForge may expose:
+• dashboards;
+• action previews;
+• approval dialogs;
+• security alerts;
+• task timelines;
+• device controls;
+• account management;
+• project management;
+• media editors;
+• asset inventories;
+• audit records;
+• developer consoles.
+
+───
+
+4. CONVERSATION-TO-ACTION ENGINE
+Every meaningful request is transformed into an internal task representation.
+The engine determines:
+• desired outcome;
+• constraints;
+• resources;
+• dependencies;
+• risks;
+• required capabilities;
+• required permissions;
+• affected accounts;
+• affected devices;
+• affected data;
+• expected result;
+• verification method;
+• recovery strategy.
+Natural language must never directly bypass the security layer.
+
+───
+
+5. PROBLEM-SOLVING ENGINE
+Problem solving is a first-class subsystem.
+WitForge must not merely execute the literal wording of a request.
+It must determine what problem the user is actually trying to solve.
+The problem-solving lifecycle is:
+Understand → Diagnose → Generate Solutions → Evaluate → Select → Plan → Execute → Verify → Correct → Continue/Recover → Report
+The system may:
+• decompose large problems;
+• identify dependencies;
+• identify missing information;
+• detect contradictions;
+• compare approaches;
+• research relevant information;
+• test hypotheses;
+• diagnose failures;
+• generate alternatives;
+• select safer alternatives;
+• retry failed operations;
+• change execution strategy;
+• repair configuration;
+• recover interrupted tasks;
+• continue from the last verified state.
+Problem solving must remain subordinate to:
+• user authority;
+• capability permissions;
+• security policy;
+• authentication;
+• application permissions;
+• operating-system controls;
+• legal constraints.
+Problem solving can solve around a failure; it cannot solve around a security boundary.
+
+───
+
+6. CORRECTION AND CONTINUATION
+Failure must not automatically terminate a task.
+When an operation fails, WitForge should determine:
+1. whether the failure is temporary;
+2. whether retrying is safe;
+3. whether another method exists;
+4. whether the problem can be repaired;
+5. whether additional authorization is required;
+6. whether rollback is required;
+7. whether the task can safely continue.
+Example:
+Upload fails → diagnose → check authentication → refresh authorized session → retry → verify upload.
+But:
+Permission denied → do not bypass → explain → request legitimate permission or stop.
+The system must distinguish:
+• recoverable failure;
+• authorization failure;
+• security block;
+• policy violation;
+• unavailable capability;
+• external service failure;
+• invalid input;
+• environmental failure;
+• irreversible failure.
+
+───
+
+7. UNIVERSAL CAPABILITY BROKER
+The Universal Capability Broker is the central abstraction connecting WitForge to external systems.
+Capabilities are discovered through legitimate interfaces.
+Priority:
+1. official API;
+2. official SDK;
+3. official automation interface;
+4. operating-system API;
+5. accessibility interface;
+6. browser automation;
+7. other explicitly authorized integration mechanisms.
+Universal does not mean unrestricted.
+It means:
+«WitForge can support any system for which a legitimate, authorized technical interface exists.»
+
+───
+
+8. CAPABILITY IDENTIFIERS
+Capabilities use explicit identifiers.
+Examples:
+• "email.read"
+• "email.compose"
+• "email.send"
+• "calendar.read"
+• "calendar.create"
+• "files.read"
+• "files.write"
+• "files.delete"
+• "camera.capture"
+• "microphone.record"
+• "screen.view"
+• "screen.capture"
+• "device.control"
+• "termux.execute"
+• "browser.navigate"
+• "browser.interact"
+• "media.video.create"
+• "media.edit"
+• "youtube.upload"
+• "youtube.publish"
+• "account.create"
+• "account.configure"
+• "account.delete"
+• "security.scan"
+• "security.remediate"
+Capabilities are independently controllable.
+
+───
+
+9. UNIVERSAL PERMISSION SYSTEM
+Permission states:
+• "NOT_REQUESTED"
+• "REQUESTED"
+• "GRANTED"
+• "DENIED"
+• "EXPIRED"
+• "REVOKED"
+• "SUSPENDED"
+• "BLOCKED_BY_SECURITY"
+• "BLOCKED_BY_POLICY"
+Permissions are scoped.
+Possible scope dimensions:
+• user;
+• agent;
+• task;
+• project;
+• application;
+• account;
+• device;
+• resource;
+• action;
+• time;
+• purpose;
+• environment.
+
+───
+
+10. PERMISSION LEVELS
+Supported delegation levels:
+OBSERVE
+Read or inspect.
+ASSIST
+Prepare actions but require user execution/approval.
+EXECUTE
+Perform explicitly authorized actions.
+AUTONOMOUS
+Perform actions within a narrowly defined approved scope without asking for every individual action.
+RESTRICTED
+Explicitly limited execution boundaries.
+WitForge cannot elevate itself between levels.
+
+───
+
+11. ACT-ON-MY-BEHALF
+WitForge supports explicit delegation.
+A user may authorize:
+«“Act on my behalf to manage my calendar.”»
+That authorization remains bounded by the selected capabilities and scope.
+It does not grant unrestricted access to:
+• unrelated accounts;
+• unrelated devices;
+• unrelated applications;
+• unrestricted financial actions;
+• security-sensitive operations.
+
+───
+
+12. AUTONOMOUS MODE
+Autonomous operation is controlled delegation, not unrestricted AI freedom.
+Autonomous tasks require:
+• defined scope;
+• defined capabilities;
+• defined resources;
+• expiration;
+• security policy;
+• risk threshold;
+• action limits;
+• emergency stop;
+• audit trail.
+Critical actions may always require renewed human approval.
+
+───
+
+13. ACTION PREVIEW
+Consequential actions should have a preview.
+Example:
+Action: Publish YouTube video
+ Account: User's authorized YouTube account
+ Video: Funny Cat Compilation
+ Visibility: Public
+ Music: Authorized/generated
+ Risk: Medium
+ Permission: "youtube.publish"
+ Approval: Required
+The user can:
+• approve;
+• reject;
+• modify;
+• narrow scope;
+• request another plan.
+
+───
+
+14. UNIVERSAL APP CONTROL
+WitForge can control supported applications through adapters.
+Applications may include:
+• email;
+• messaging;
+• social platforms;
+• browsers;
+• productivity tools;
+• development environments;
+• media applications;
+• cloud services;
+• business systems;
+• smart-home applications;
+• enterprise systems.
+Each integration is independently authenticated and permissioned.
+
+───
+
+15. APPLICATION ADAPTERS
+Every adapter implements, where applicable:
+authenticate()
+ discoverCapabilities()
+ checkPermission()
+ requestPermission()
+ executeAction()
+ verifyAction()
+ revokePermission()
+ getStatus()
+Adapters must not silently expand their authority.
+
+───
+
+16. WEB
+WitForge can:
+• search;
+• retrieve information;
+• navigate websites;
+• inspect pages;
+• interact with supported forms;
+• download authorized files;
+• upload authorized files;
+• complete legitimate workflows.
+Web content is untrusted input.
+Instructions embedded in webpages cannot modify WitForge policy.
+
+───
+
+17. BROWSER
+Browser automation supports:
+• navigation;
+• clicking;
+• typing;
+• scrolling;
+• tab management;
+• file upload/download;
+• page inspection;
+• authenticated workflows.
+Credential handling must use the Credential Broker rather than exposing raw secrets unnecessarily to the model.
+
+───
+
+18. COMPUTER CONTROL
+Where explicitly authorized, WitForge may control:
+• keyboard;
+• mouse;
+• windows;
+• applications;
+• files;
+• terminal;
+• screen;
+• supported desktop automation interfaces.
+Operating-system security remains authoritative.
+
+───
+
+19. UNIVERSAL DEVICE ECOSYSTEM
+Target platforms include:
+• Android;
+• iOS;
+• iPadOS;
+• macOS;
+• Windows;
+• Linux;
+• ChromeOS;
+• web browsers;
+• servers;
+• cloud environments;
+• supported wearables;
+• supported smart devices.
+
+───
+
+20. ANDROID
+Supported capabilities may include:
+• intents;
+• app links;
+• notifications;
+• camera;
+• microphone;
+• files;
+• media;
+• Bluetooth;
+• USB;
+• Sharesheet;
+• Accessibility;
+• ADB;
+• Wireless Debugging;
+• Shizuku;
+• Termux;
+• supported system APIs.
+Android permissions remain authoritative.
+
+───
+
+21. ANDROID ACCESSIBILITY
+Accessibility automation may support:
+• reading visible UI;
+• clicking;
+• typing;
+• scrolling;
+• swiping;
+• focusing;
+• navigation.
+Accessibility authorization must be explicitly granted by the device owner.
+WitForge cannot silently obtain or elevate Accessibility privileges.
+
+───
+
+22. ADB
+When deliberately enabled and authorized:
+• device information;
+• shell;
+• files;
+• logs;
+• application management;
+• launch;
+• diagnostics;
+• supported installation operations.
+ADB access is treated as high privilege.
+
+───
+
+23. SHIZUKU
+WitForge can detect and use Shizuku where legitimately authorized.
+Shizuku status must be visible.
+No silent privilege escalation is permitted.
+
+───
+
+24. ROOT
+Root states:
+• "NO_ROOT"
+• "ROOT_AVAILABLE"
+• "ROOT_AUTHORIZED"
+• "ROOT_DENIED"
+• "UNKNOWN"
+Root is never silently requested or activated.
+Root operations receive elevated risk classification.
+
+───
+
+25. TERMUX
+Termux integration may provide:
+• shell;
+• scripts;
+• filesystem;
+• Git;
+• Node.js;
+• Python;
+• package management;
+• local servers;
+• development;
+• diagnostics.
+Controls include:
+• command validation;
+• executable restrictions;
+• working-directory restrictions;
+• timeouts;
+• output limits;
+• environment filtering;
+• security analysis;
+• audit logging.
+
+───
+
+26. APPLE ECOSYSTEM
+Supported interfaces may include:
+• App Intents;
+• Shortcuts;
+• URL schemes;
+• Share extensions;
+• approved APIs;
+• supported accessibility/automation.
+Potential capabilities:
+• "apple.shortcuts"
+• "apple.intents"
+• "apple.files"
+• "apple.photos"
+• "apple.camera"
+• "apple.microphone"
+• "apple.contacts"
+• "apple.calendar"
+• "apple.reminders"
+• "apple.notifications"
+• "apple.accessibility"
+• "apple.macos.automation"
+
+───
+
+27. macOS
+Supported controls may include:
+• files;
+• screen;
+• accessibility;
+• camera;
+• microphone;
+• notifications;
+• applications;
+• terminal;
+• Shortcuts;
+• automation.
+macOS security permissions remain authoritative.
+
+───
+
+28. WINDOWS
+Supported interfaces may include:
+• Win32;
+• Windows App SDK;
+• PowerShell;
+• Windows Terminal;
+• WSL;
+• filesystem;
+• notifications;
+• UI Automation;
+• browser automation;
+• Microsoft Graph;
+• supported system APIs.
+Administrative operations require appropriate elevation.
+
+───
+
+29. LINUX
+Supported interfaces may include:
+• shell;
+• filesystem;
+• DBus;
+• desktop automation;
+• X11;
+• supported Wayland interfaces;
+• applications;
+• notifications;
+• Git;
+• Python;
+• Node;
+• Docker;
+• package managers;
+• services.
+
+───
+
+30. CHROMEOS
+Supported interfaces may include:
+• Chrome;
+• files;
+• notifications;
+• Android applications;
+• Linux environment;
+• supported device APIs.
+
+───
+
+31. GOOGLE ECOSYSTEM
+Supported integrations may include:
+• Google Account;
+• Gmail;
+• Calendar;
+• Contacts;
+• Drive;
+• Docs;
+• Sheets;
+• YouTube;
+• Photos;
+• Maps;
+• Tasks;
+• Meet.
+Each service receives separate permissions.
+
+───
+
+32. MICROSOFT ECOSYSTEM
+Supported integrations may include:
+• Microsoft Account;
+• Outlook;
+• Calendar;
+• Contacts;
+• OneDrive;
+• Teams;
+• Graph;
+• Office;
+• Windows.
+
+───
+
+33. OTHER SERVICES
+Potential integrations include:
+• GitHub;
+• GitLab;
+• Bitbucket;
+• Dropbox;
+• Slack;
+• Discord;
+• Notion;
+• Jira;
+• AWS;
+• Azure;
+• Google Cloud;
+• Cloudflare;
+• media platforms;
+• automation platforms;
+• smart-home platforms;
+• enterprise APIs;
+• supported vehicles;
+• supported wearables.
+Availability depends on legitimate APIs and authorization.
+
+───
+
+34. COMMUNICATIONS
+Separate capabilities exist for:
+• read;
+• search;
+• compose;
+• draft;
+• send;
+• reply;
+• forward;
+• delete;
+• archive;
+• attach.
+A request to “reply to that email” may require:
+"email.read → email.reply → email.send"
+Each authority is separately evaluated.
+
+───
+
+35. FILES
+Supported operations:
+• read;
+• create;
+• write;
+• rename;
+• move;
+• copy;
+• delete;
+• share;
+• export;
+• import.
+Sensitive locations require additional controls.
+
+───
+
+36. CAMERA, MICROPHONE AND SCREEN
+Capabilities include:
+• camera view;
+• photo capture;
+• video capture;
+• microphone recording;
+• live audio;
+• screen view;
+• screenshot;
+• screen recording;
+• screen sharing.
+These are sensitive capabilities and require explicit authorization.
+
+───
+
+37. LOCATION
+Location permissions may distinguish:
+• approximate;
+• precise;
+• foreground;
+• background.
+WitForge cannot upgrade approximate location to precise location without authorization.
+
+───
+
+38. BLUETOOTH, USB AND NFC
+Supported operations may include:
+• discover;
+• connect;
+• read;
+• write;
+• transfer.
+Each device and operation is permission-scoped.
+
+───
+
+39. SECURE CREDENTIALS
+Credentials must be isolated through a Credential Broker.
+Supported stores may include:
+• Apple Keychain;
+• Android Keystore;
+• Windows Credential Manager;
+• Linux secret stores;
+• browser credential APIs;
+• enterprise secret managers.
+The model should not receive raw credentials unless technically necessary and explicitly permitted.
+Biometric operations return authorization results, not raw biometric templates.
+
+───
+
+40. DEVICE TRUST
+Device trust states:
+• "UNKNOWN"
+• "PENDING"
+• "TRUSTED"
+• "RESTRICTED"
+• "REVOKED"
+• "LOCKED"
+Trust must be authenticated and revocable.
+
+───
+
+41. DEVICE-TO-DEVICE CONTROL
+Commands must contain:
+• command ID;
+• user ID;
+• device ID;
+• capability;
+• action;
+• scope;
+• expiration;
+• authorization;
+• correlation ID.
+Replay protection is required.
+
+───
+
+42. UNIVERSAL DO-IT WORKFLOW
+Every action follows:
+Understand → Problem-solve → Plan → Discover → Permission → Security → Approval → Execute → Verify → Correct → Continue/Recover → Audit → Report
+This is the central WitForge operating cycle.
+
+───
+
+43. SECURITY ARCHITECTURE
+Security is independent from the AI model.
+Core principle:
+«AI proposes → Security Policy → Permission Check → Risk Assessment → Approval Gate → Executor → Verification → Audit»
+The AI cannot rewrite the security layer.
+
+───
+
+44. POLICY ENGINE
+Policy decisions:
+• "ALLOW"
+• "DENY"
+• "ASK"
+• "ESCALATE"
+• "BLOCK"
+Policies are applied before execution.
+
+───
+
+45. CAPABILITY FIREWALL
+The Capability Firewall controls access to:
+• applications;
+• devices;
+• accounts;
+• files;
+• APIs;
+• tools;
+• network resources;
+• privileged operations.
+Every execution request passes through it.
+
+───
+
+46. SCOPED CAPABILITY TOKENS
+Tokens bind authority to:
+• subject;
+• agent;
+• device;
+• account;
+• resource;
+• scope;
+• purpose;
+• expiration;
+• approval;
+• policy version.
+Tokens must be revocable.
+
+───
+
+47. THREAT DETECTION
+Detection covers:
+• prompt injection;
+• secret exfiltration;
+• command injection;
+• path traversal;
+• SSRF;
+• credential spraying;
+• suspicious automation;
+• malicious files;
+• abnormal tool usage;
+• integrity violations;
+• suspicious account behavior.
+Detection does not rely solely on the model.
+
+───
+
+48. SECURITY SHIELD
+Security Shield provides:
+• threat monitoring;
+• classification;
+• firewalling;
+• identity protection;
+• tool protection;
+• prompt-injection protection;
+• file protection;
+• network protection;
+• sandboxing;
+• quarantine;
+• incident response;
+• evidence storage;
+• security dashboard;
+• recovery;
+• self-test.
+
+───
+
+49. EXTERNAL CONTENT
+Websites, emails, uploads, GitHub content, API responses, documents and tool output are untrusted.
+They may contain instructions.
+Those instructions are treated as data, not authority.
+External content cannot:
+• grant itself permissions;
+• change policy;
+• become Owner;
+• disable security;
+• expose credentials;
+• authorize actions.
+
+───
+
+50. ACTIVE DEFENSE
+Authorized defensive operations may include:
+• asset registration;
+• safe reconnaissance;
+• configuration scanning;
+• dependency audits;
+• safe exploit validation;
+• attack-path simulation;
+• privilege-boundary testing;
+• integrity scanning;
+• evidence collection;
+• remediation;
+• isolation;
+• patching;
+• restoration;
+• verification.
+Active defense is restricted to authorized assets.
+
+───
+
+51. RISK ENGINE
+Risk factors include:
+• capability sensitivity;
+• data sensitivity;
+• financial impact;
+• reversibility;
+• account impact;
+• device impact;
+• external visibility;
+• security impact;
+• legal impact;
+• scope;
+• autonomy;
+• uncertainty.
+Risk classifications:
+• LOW;
+• MEDIUM;
+• HIGH;
+• CRITICAL;
+• PROHIBITED.
+
+───
+
+52. HUMAN APPROVAL MATRIX
+LOW
+May execute within existing authorization.
+MEDIUM
+May execute under defined permissions.
+HIGH
+Normally requires explicit approval unless a narrowly scoped autonomous policy exists.
+CRITICAL
+Requires strong human confirmation and may require additional authentication.
+PROHIBITED
+Must not execute.
+
+───
+
+53. AGENT SANDBOX
+Agents operate inside isolated execution boundaries.
+Sandbox controls include:
+• filesystem restrictions;
+• network restrictions;
+• process restrictions;
+• resource limits;
+• capability restrictions;
+• time limits;
+• output limits;
+• audit logging.
+
+───
+
+54. CREDENTIAL BROKER
+Credential Broker manages:
+• API keys;
+• OAuth tokens;
+• refresh tokens;
+• passwords;
+• session credentials;
+• certificates;
+• secure device credentials.
+Credential exposure to agents is minimized.
+
+───
+
+55. EMERGENCY STOP
+Users must be able to immediately stop:
+• current task;
+• agent;
+• application integration;
+• device;
+• autonomous mode;
+• network execution;
+• account operations.
+
+───
+
+56. EMERGENCY CONTROL HIERARCHY
+Emergency states:
+NORMAL → ELEVATED → HIGH → LOCKDOWN
+Lockdown can suspend execution while preserving evidence and recovery functions.
+
+───
+
+57. APPLICATION SECURITY
+Every integration must enforce:
+• authentication;
+• authorization;
+• rate limits;
+• trusted endpoints;
+• input validation;
+• output validation;
+• secure transport;
+• capability checks;
+• audit logging.
+
+───
+
+58. AUTHENTICATION
+WitForge supports secure authentication using appropriate mechanisms.
+Possible methods:
+• passwords;
+• passkeys;
+• OAuth;
+• device authentication;
+• MFA;
+• hardware-backed credentials;
+• platform authentication.
+
+───
+
+59. AUTHORIZATION VS CONSENT
+Authentication proves identity.
+Authorization grants capability.
+Consent is user approval.
+These are distinct concepts and must never be conflated.
+
+───
+
+60. OWNER
+The Owner is the highest administrative authority within WitForge.
+Owner identity is private administrative data and must not be unnecessarily exposed to:
+• frontend bundles;
+• public APIs;
+• logs;
+• analytics;
+• URLs;
+• external services.
+Owner status must be protected by strong authentication.
+
+───
+
+61. OWNER SECURITY
+Owner operations require:
+• strong authentication;
+• secure session management;
+• audit logging;
+• sensitive-operation confirmation;
+• recovery controls;
+• revocation mechanisms.
+
+───
+
+62. AI AGENTS
+WitForge supports specialized agents.
+Examples:
+• planner;
+• researcher;
+• coding agent;
+• browser agent;
+• device agent;
+• media agent;
+• security agent;
+• account agent;
+• communications agent;
+• finance/reconciliation agent;
+• project agent.
+Agents cannot independently grant themselves capabilities.
+
+───
+
+63. AGENT INHERITANCE
+Agents inherit only explicitly delegated authority.
+No implicit privilege inheritance.
+An agent may delegate only capabilities it is itself permitted to delegate.
+
+───
+
+64. PROJECTS
+Users can organize work into projects.
+Projects contain:
+• goals;
+• tasks;
+• agents;
+• files;
+• integrations;
+• permissions;
+• memory;
+• assets;
+• audit history.
+
+───
+
+65. MEMORY
+Memory is divided into:
+• conversation memory;
+• project memory;
+• user preferences;
+• task state;
+• verified facts;
+• integration state.
+Security policy and permissions cannot be rewritten by ordinary memory.
+
+───
+
+66. MULTIMODAL AI
+WitForge supports:
+• text;
+• speech;
+• images;
+• video;
+• audio;
+• documents;
+• screenshots.
+Potential media operations:
+• speech-to-text;
+• text-to-speech;
+• image generation;
+• image editing;
+• video generation;
+• video editing;
+• audio generation;
+• multimodal analysis.
+Provider availability must be verified.
+
+───
+
+67. MODEL PROVIDERS
+WitForge can support multiple providers.
+Provider abstraction must separate:
+• model discovery;
+• model execution;
+• credentials;
+• quotas;
+• capabilities;
+• costs;
+• safety policies.
+No provider is assumed to magically support an unavailable capability.
+
+───
+
+68. AVATAR SYSTEM
+Users may create digital avatars.
+Avatar construction can include:
+• appearance;
+• clothing;
+• equipment;
+• attributes;
+• personality;
+• visual components;
+• metadata.
+An avatar must be fully constructed before entering systems that require complete identity.
+
+───
+
+69. AI-GENERATED AVATAR PIECES
+Avatar components may be generated by authorized AI systems.
+Each generated component receives:
+• identity;
+• provenance;
+• metadata;
+• ownership record;
+• creation timestamp.
+
+───
+
+70. PRIVATE MINTING
+Digital assets can be created in a private WitForge-controlled asset registry.
+The core system does not require a public blockchain.
+
+───
+
+71. CRYPTOGRAPHIC ASSET IDENTITY
+Each digital asset may receive:
+• unique asset ID;
+• cryptographic identity;
+• provenance hash;
+• creation record;
+• ownership record;
+• version history.
+
+───
+
+72. ASSET OWNERSHIP
+Ownership records must distinguish:
+• creator;
+• current owner;
+• source;
+• transfer history;
+• merge history;
+• status.
+
+───
+
+73. EXACTLY 100 RARITY LEVELS
+The avatar/asset rarity system contains exactly:
+100 rarity levels.
+Rarity 1 is commonest.
+Rarity 100 is the highest rarity.
+The system must not silently introduce additional rarity levels.
+
+───
+
+74. RARITY RULES
+Rarity assignment must be deterministic or auditable.
+Rarity cannot be fraudulently duplicated.
+
+───
+
+75. PIECE MERGING
+Compatible digital components can be merged.
+A merge produces a new asset identity.
+Original component history remains auditable.
+
+───
+
+76. MERGE TRANSACTION
+Merge operation:
+Validate → Authorize → Prepare → Execute → Verify → Commit → Audit
+Failure must leave the original state intact.
+
+───
+
+77. ANTI-DUPLICATION
+Asset creation and merging require uniqueness checks.
+Duplicate identities must be detected.
+
+───
+
+78. RARITY 100
+Rarity 100 is a controlled state.
+Its creation rules must be explicit and auditable.
+
+───
+
+79. PET SYSTEM
+WitForge supports digital companion/pet assets.
+Pets may have:
+• identity;
+• appearance;
+• attributes;
+• rarity;
+• provenance;
+• ownership.
+
+───
+
+80. PET GENERATION
+Pet generation follows the same provenance and ownership rules as other digital assets.
+
+───
+
+81. PET MERGING
+Compatible pets may be merged subject to:
+• ownership;
+• compatibility;
+• rarity rules;
+• anti-duplication;
+• transaction integrity.
+
+───
+
+82. AVATAR + PET GENERATION
+WitForge may generate complete avatar/pet combinations through multimodal systems.
+Generated content must be labeled according to provenance.
+
+───
+
+83. INVENTORY
+Users receive an inventory containing:
+• avatars;
+• avatar pieces;
+• pets;
+• media;
+• digital assets;
+• licenses;
+• account-linked assets.
+
+───
+
+84. MARKETPLACE
+A future marketplace may support authorized asset exchange.
+All marketplace operations require:
+• ownership verification;
+• anti-fraud;
+• transaction integrity;
+• applicable legal controls;
+• user authorization.
+
+───
+
+85. ARENA
+The Arena is a controlled digital competition system.
+Current economic concept:
+• each participant wagers 100 LD;
+• total pool = 200 LD;
+• winner receives 198 LD;
+• treasury receives 2 LD.
+Arena mechanics must remain isolated from core security and account systems.
+
+───
+
+86. ARENA SECURITY
+Arena operations require:
+• authenticated participants;
+• verified avatars;
+• anti-cheat;
+• transaction integrity;
+• deterministic/auditable results;
+• fraud monitoring;
+• dispute handling.
+
+───
+
+87. ECONOMY
+LD means:
+Life and Death
+Current conceptual conversion:
+100 LD = A$1
+The economic layer is isolated from the AI execution layer.
+
+───
+
+88. ECONOMY ISOLATION
+AI execution must not have unrestricted economic authority.
+Financial capabilities are independently permissioned.
+
+───
+
+89. DOUBLE-ENTRY LEDGER
+Economic balances use double-entry accounting.
+Every transaction must have:
+• debit;
+• credit;
+• transaction ID;
+• timestamp;
+• actor;
+• reason;
+• source;
+• destination;
+• resulting balances.
+Balances must be derived from auditable ledger state.
+
+───
+
+90. 1% ALLOCATION
+The Arena treasury allocation is:
+1% of the total wager pool.
+For a 200 LD pool:
+2 LD treasury allocation.
+The exact economic rules must remain deterministic and auditable.
+
+───
+
+91. NOT-FOR-PROFIT GOVERNANCE
+Treasury use may be governed toward:
+• sustainable energy;
+• agriculture;
+• technology;
+• recycling;
+• resource management;
+• longevity;
+• mining.
+Governance must be transparent and independently auditable.
+
+───
+
+92. REAL-MONEY LOCK
+Real-money functionality must remain disabled unless all applicable:
+• licensing;
+• regulatory;
+• payment;
+• responsible-gambling;
+• consumer-protection;
+• tax;
+• identity;
+• age-verification;
+• jurisdictional
+requirements have been satisfied.
+A specification does not constitute legal authorization.
+
+───
+
+93. LEGAL AND REGULATORY CONTROL
+WitForge must maintain jurisdiction-aware compliance controls.
+The system must never interpret a user's instruction as permission to violate law.
+Where requirements are uncertain, WitForge must:
+• identify the uncertainty;
+• explain it;
+• avoid irreversible action;
+• request appropriate human/legal review where necessary.
+
+───
+
+94. TERMS AND CONDITIONS
+WitForge requires versioned legal documents.
+Documents include:
+• Terms of Service;
+• Privacy Policy;
+• acceptable-use rules;
+• capability delegation terms;
+• account terms;
+• marketplace terms;
+• economic terms;
+• Arena terms.
+
+───
+
+95. PRIVACY
+Privacy architecture follows:
+• data minimization;
+• purpose limitation;
+• access controls;
+• encryption;
+• retention policies;
+• deletion controls;
+• auditability.
+Sensitive information must not be unnecessarily exposed.
+
+───
+
+96. AUDIT ARCHITECTURE
+Every consequential operation generates an audit record.
+Records may include:
+• event ID;
+• timestamp;
+• actor;
+• agent;
+• device;
+• account;
+• capability;
+• action;
+• decision;
+• reason;
+• risk;
+• approval;
+• result;
+• correlation ID;
+• evidence hash.
+Secrets must be masked or excluded.
+
+───
+
+97. TAMPER-EVIDENT AUDIT
+Audit records should support:
+• integrity hashes;
+• chained records;
+• append-only storage;
+• evidence hashes;
+• secure timestamps.
+Audit history must not be silently altered.
+
+───
+
+98. VERIFICATION
+Every important operation has a verification method.
+Verification may check:
+• API response;
+• application state;
+• device state;
+• file state;
+• account state;
+• external confirmation;
+• cryptographic evidence;
+• expected result.
+
+───
+
+99. RESULT STATES
+Standard result states:
+• "PLANNED"
+• "WAITING_FOR_PERMISSION"
+• "WAITING_FOR_APPROVAL"
+• "EXECUTING"
+• "SUCCEEDED"
+• "PARTIALLY_SUCCEEDED"
+• "FAILED"
+• "BLOCKED"
+• "QUARANTINED"
+• "ROLLED_BACK"
+• "RECOVERING"
+• "CANCELLED"
+• "UNKNOWN"
+
+───
+
+100. ACTION TRANSPARENCY
+Users must be able to understand:
+• what WitForge intended;
+• what it did;
+• what permissions it used;
+• what failed;
+• what it corrected;
+• what it verified;
+• what remains incomplete.
+
+───
+
+101. ROLLBACK AND TRANSACTION FRAMEWORK
+Consequential workflows use:
+PLAN → SNAPSHOT/PREPARE → EXECUTE → VERIFY → COMMIT
+If verification fails:
+STOP → DIAGNOSE → ROLLBACK/RECOVER → VERIFY → CONTINUE OR REPORT
+Not every external action is technically reversible, so irreversible operations must be identified before execution where possible.
+
+───
+
+102. UNIVERSAL APP PERMISSION EXAMPLE
+Request:
+«“Reply to that email.”»
+WitForge determines:
+1. locate email;
+2. require "email.read";
+3. identify response;
+4. generate draft;
+5. require "email.reply";
+6. require "email.send";
+7. security check;
+8. approval if required;
+9. send;
+10. verify sent state;
+11. audit.
+
+───
+
+103. UNIVERSAL DEVICE EXAMPLE
+Request:
+«“Install this application on my Android phone.”»
+WitForge:
+1. identifies target device;
+2. verifies device trust;
+3. inspects application;
+4. checks source;
+5. scans package;
+6. determines installation capability;
+7. requests required authorization;
+8. checks security policy;
+9. installs;
+10. verifies installation;
+11. reports result.
+It cannot bypass Android security controls.
+
+───
+
+104. MULTI-DEVICE
+A user may have multiple trusted devices.
+Each device maintains:
+• identity;
+• trust state;
+• capabilities;
+• sessions;
+• authorization;
+• revocation state.
+
+───
+
+105. CROSS-PLATFORM CONTINUITY
+A task may move between devices.
+Example:
+Phone: user starts task
+ ↓
+ Cloud/local task state: plan stored
+ ↓
+ Computer: execution continues
+ ↓
+ Phone: result notification
+Continuity requires authenticated channels.
+
+───
+
+106. LOCAL-FIRST OPERATION
+WitForge should operate locally wherever practical.
+Local operation provides:
+• lower latency;
+• privacy;
+• offline functionality;
+• local files;
+• local automation;
+• local model support where available.
+External services are used only when required or authorized.
+
+───
+
+107. OFFLINE MODE
+Offline mode supports:
+• local conversation;
+• local planning;
+• local files;
+• local models where available;
+• queued tasks;
+• local automation;
+• deferred synchronization.
+Tasks requiring external services remain pending.
+
+───
+
+108. NO FAKE FUNCTIONALITY
+WitForge must never claim:
+• an account was created when it was not;
+• a message was sent when it was not;
+• a file was uploaded when it was not;
+• a payment succeeded when it did not;
+• a security scan passed when it did not run;
+• a capability exists when it does not;
+• an integration works when it has not been verified.
+Simulation must be clearly labeled.
+
+───
+
+109. DATABASE
+The platform database stores:
+• users;
+• authentication;
+• sessions;
+• projects;
+• tasks;
+• permissions;
+• capabilities;
+• accounts;
+• devices;
+• agents;
+• memory;
+• assets;
+• transactions;
+• security events;
+• audit events;
+• integrations.
+Sensitive secrets should be stored outside ordinary model-accessible records.
+
+───
+
+110. ASSET DATABASE
+Asset records include:
+• asset ID;
+• type;
+• owner;
+• creator;
+• provenance;
+• rarity;
+• status;
+• parent assets;
+• merge history;
+• cryptographic identity.
+
+───
+
+111. MERGE DATABASE TRANSACTION
+Asset merging must be atomic.
+A failed merge cannot leave partially merged ownership.
+
+───
+
+112. ANTI-FRAUD
+Anti-fraud controls include:
+• duplicate detection;
+• transaction monitoring;
+• identity verification where required;
+• rate limits;
+• anomaly detection;
+• account separation;
+• audit trails;
+• asset provenance.
+
+───
+
+113. ORGANISATIONS
+WitForge may support organisations with:
+• administrators;
+• members;
+• roles;
+• teams;
+• projects;
+• shared resources;
+• policies;
+• delegated capabilities.
+Organisation authority does not automatically override individual account authority.
+
+───
+
+114. SUBSCRIPTIONS
+Subscription systems may support:
+• plans;
+• usage;
+• limits;
+• billing;
+• invoices;
+• entitlements.
+Billing actions require explicit authority.
+
+───
+
+115. MEDIA
+Media capabilities include:
+• image creation;
+• image editing;
+• video creation;
+• video editing;
+• audio creation;
+• audio editing;
+• speech recognition;
+• speech synthesis.
+Provider capabilities and licensing must be checked.
+
+───
+
+116. SECURITY + AI
+AI is a component inside the security architecture, not the security authority itself.
+The model may:
+• identify threats;
+• propose defenses;
+• analyze evidence;
+• recommend remediation.
+The enforcement layer decides whether execution is permitted.
+
+───
+
+117. EMERGENCY RECOVERY
+Recovery can include:
+• session revocation;
+• capability revocation;
+• account disconnect;
+• device isolation;
+• integration disablement;
+• rollback;
+• restoration;
+• quarantine;
+• credential rotation;
+• lockdown.
+Recovery must itself be audited.
+
+───
+
+118. EVIDENCE VAULT
+Security evidence may include:
+• event records;
+• hashes;
+• screenshots;
+• logs;
+• tool results;
+• scan results;
+• affected resource identifiers.
+Secrets must be protected.
+
+───
+
+119. OBSERVABILITY
+WitForge should support:
+• logs;
+• metrics;
+• traces;
+• correlation IDs;
+• task timelines;
+• OpenTelemetry-compatible observability.
+Security and operational telemetry must remain privacy-aware.
+
+───
+
+120. SECURITY FRAMEWORK
+Security design references:
+• OWASP ASVS 5.x;
+• OWASP API Security Top 10;
+• secure coding practices;
+• least privilege;
+• defense in depth;
+• zero-trust principles;
+• secure-by-default architecture.
+Framework versions must be revalidated during implementation.
+
+───
+
+121. DEVELOPMENT ARCHITECTURE
+Recommended major layers:
+User Interface
+ ↓
+ Conversation / Voice / Multimodal Layer
+ ↓
+ Intent + Problem-Solving Engine
+ ↓
+ Planner / Agent Orchestrator
+ ↓
+ Policy + Permission + Risk Layer
+ ↓
+ Capability Firewall
+ ↓
+ Universal Capability Broker
+ ↓
+ Application / Device / API Adapters
+ ↓
+ Execution Layer
+ ↓
+ Verification
+ ↓
+ Audit / Evidence / Recovery
+
+───
+
+122. TOOL MANIFEST
+Every tool exposes a manifest containing:
+• tool ID;
+• version;
+• capabilities;
+• inputs;
+• outputs;
+• permissions;
+• risk class;
+• supported platforms;
+• authentication method;
+• verification method;
+• rollback support.
+
+───
+
+123. TOOL RESULT
+Every tool should return structured results.
+Example:
+{
+ "status": "SUCCEEDED",
+ "result": {},
+ "verification": {},
+ "evidence": {},
+ "error": null,
+ "correlationId": "..."
+ }
+
+───
+
+124. MOCK ADAPTER REQUIREMENT
+Every integration should have a mock/test adapter where practical.
+This allows testing:
+• authorization;
+• failures;
+• retries;
+• rollback;
+• verification;
+• security boundaries.
+No production integration should be considered validated merely because its UI exists.
+
+───
+
+125. RELEASE TESTING
+Every release must test:
+• authentication;
+• authorization;
+• permissions;
+• session security;
+• capability enforcement;
+• input validation;
+• SSRF protection;
+• path traversal;
+• command injection;
+• prompt injection;
+• secret handling;
+• rate limiting;
+• account boundaries;
+• device trust;
+• audit integrity;
+• rollback;
+• recovery;
+• failure continuation.
+
+───
+
+126. SELF-TEST
+WitForge should provide an internal security and health self-test.
+Checks include:
+• configuration;
+• database;
+• authentication;
+• permissions;
+• integrations;
+• security controls;
+• dependency health;
+• audit system;
+• recovery system.
+Results must distinguish:
+PASS / FAIL / WARNING / NOT TESTED
+
+───
+
+127. TERMUX DEVELOPMENT
+For Android development and local testing, Termux may be a first-class development environment.
+Typical validation flow:
+cd ~/WitForge
+ npm install
+ npm run build
+ npm test
+ npm run lint
+ npm run dev
+Actual commands must match the implementation's "package.json".
+Do not claim a command succeeded unless it was actually run.
+
+───
+
+128. INSTALLATION VALIDATION
+A release must document:
+• prerequisites;
+• supported Node version;
+• dependency installation;
+• environment variables;
+• secure configuration;
+• database initialization;
+• first-run setup;
+• startup;
+• health check;
+• test commands;
+• shutdown;
+• upgrade procedure;
+• rollback procedure.
+
+───
+
+129. VERSIONING
+Use semantic versioning where appropriate:
+"MAJOR.MINOR.PATCH"
+Every release must identify:
+• version;
+• build date;
+• source revision;
+• dependency state;
+• test status;
+• known limitations;
+• security status.
+
+───
+
+130. UNIVERSAL ACCOUNT LIFECYCLE
+WitForge must support a complete account lifecycle where the target service legitimately allows it.
+Capabilities:
+• "account.discover"
+• "account.create"
+• "account.configure"
+• "account.verify"
+• "account.login"
+• "account.logout"
+• "account.recover"
+• "account.update"
+• "account.disable"
+• "account.delete"
+• "account.disconnect"
+
+───
+
+131. ACCOUNT CREATION WORKFLOW
+When instructed:
+«“Create me an account on X.”»
+WitForge:
+1. identifies the service;
+2. determines whether account creation is supported;
+3. discovers the legitimate registration interface;
+4. identifies required information;
+5. identifies email/phone verification requirements;
+6. identifies payment requirements;
+7. identifies terms/consent requirements;
+8. presents important requirements;
+9. obtains required approval;
+10. creates the account;
+11. completes supported configuration;
+12. handles legitimate verification;
+13. stores credentials securely;
+14. verifies the resulting account;
+15. registers the integration;
+16. reports the result.
+
+───
+
+132. ACCOUNT CREATION BOUNDARIES
+WitForge may:
+• generate strong passwords;
+• generate usernames where permitted;
+• fill legitimate registration forms;
+• configure supported settings;
+• complete authorized email verification;
+• manage credentials securely.
+WitForge must not:
+• fabricate identity;
+• falsely claim age;
+• falsify legal information;
+• bypass CAPTCHA;
+• bypass identity verification;
+• bypass phone verification;
+• evade service restrictions;
+• impersonate another person;
+• accept legally binding terms when personal confirmation is required without the required authority.
+
+───
+
+133. ACCOUNT PAYMENT
+Payment requires:
+• supported payment integration;
+• authorization;
+• appropriate user approval;
+• transaction verification.
+Payment credentials remain protected by the Credential Broker.
+
+───
+
+134. ACCOUNT INVENTORY
+WitForge maintains an account inventory containing:
+• service;
+• account identifier;
+• connection status;
+• capabilities;
+• authorization date;
+• expiration;
+• security status;
+• revocation state.
+Multiple accounts for one service must remain separated.
+
+───
+
+135. ACCOUNT SWITCHING
+Users can explicitly select which account an operation applies to.
+WitForge must not accidentally send an action through the wrong account.
+
+───
+
+136. ACCOUNT SECURITY CONFIGURATION
+Where supported, WitForge may assist with:
+• password changes;
+• MFA;
+• passkeys;
+• recovery methods;
+• sessions;
+• security settings.
+
+───
+
+137. ACCOUNT RECOVERY
+Account recovery must use legitimate provider mechanisms.
+Recovery cannot become a security bypass.
+
+───
+
+138. ACCOUNT DELETION
+Deletion is consequential.
+WitForge must:
+• identify affected data;
+• warn about consequences;
+• obtain required confirmation;
+• execute through legitimate mechanisms;
+• verify the resulting state.
+
+───
+
+139. ACCOUNT DISCONNECT
+Disconnect should, where supported:
+• revoke tokens;
+• remove capability grants;
+• invalidate local integration state;
+• preserve required audit information.
+
+───
+
+140. LEGAL DOCUMENT SYSTEM
+Legal and policy documents must be:
+• versioned;
+• dated;
+• jurisdiction-aware;
+• auditable;
+• presented at required points.
+WitForge must distinguish system policy from legal advice.
+
+───
+
+141. USER RESPONSIBILITY
+The user remains responsible for decisions requiring personal legal authority, identity, consent, payment authorization, or other personal declarations.
+WitForge assists but does not impersonate legal authority.
+
+───
+
+142. PLATFORM RESPONSIBILITY
+WitForge is responsible for implementing:
+• security boundaries;
+• permission enforcement;
+• truthful status;
+• auditability;
+• safe defaults;
+• failure containment;
+• capability isolation.
+
+───
+
+143. NO UNIVERSAL SECURITY BYPASS
+WitForge must never attempt to defeat:
+• OS security;
+• authentication;
+• access controls;
+• encryption;
+• CAPTCHA;
+• identity verification;
+• application sandboxing;
+• provider security;
+• network security;
+• permission systems.
+No problem-solving capability may override this rule.
+
+───
+
+144. UNIVERSAL CAPABILITY PRINCIPLE
+The system should aim to support any legitimate digital capability.
+The determining factor is not whether the AI can imagine the action.
+The determining factor is:
+Does a legitimate technical interface exist, and does WitForge have authorized access to it?
+
+───
+
+145. AI SELF-IMPROVEMENT
+WitForge may improve:
+• planning;
+• reasoning;
+• prompts;
+• adapters;
+• workflows;
+• diagnostics;
+• performance;
+• error recovery.
+Self-improvement must pass controlled testing and cannot modify security authority without explicit governance.
+
+───
+
+146. FUTURE EXTENSIBILITY
+The architecture must support future:
+• operating systems;
+• devices;
+• AI models;
+• applications;
+• APIs;
+• agents;
+• automation systems;
+• media systems;
+• digital assets;
+• security technologies.
+New capabilities are added through controlled adapters and manifests.
+
+───
+
+147. PROBLEM-SOLVING ABSOLUTE RULE
+WitForge must always attempt to solve legitimate problems intelligently.
+If the first method fails:
+Diagnose → Correct → Retry → Alternative → Recover → Continue
+provided the alternative remains authorized and safe.
+If an action is blocked by security or permission:
+Do not bypass.
+Instead:
+Explain → Request legitimate authorization → Re-plan → Continue if authorized.
+
+───
+
+148. DATA AUTHORITY MODEL
+Authority hierarchy:
+1. system security;
+2. operating-system security;
+3. authenticated user/Owner authority;
+4. explicit capability permissions;
+5. policy;
+6. agent delegation;
+7. task instructions;
+8. external content.
+External content can never outrank trusted authority.
+
+───
+
+149. FAILURE CONTAINMENT
+When something goes wrong:
+1. stop unsafe propagation;
+2. preserve evidence;
+3. determine scope;
+4. isolate affected resources;
+5. diagnose;
+6. repair if safe;
+7. restore if necessary;
+8. verify;
+9. continue where safe;
+10. report honestly.
+
+───
+
+150. SECURITY BOUNDARY TESTING
+Every major capability requires adversarial tests.
+Tests should attempt:
+• unauthorized execution;
+• permission escalation;
+• account crossover;
+• prompt injection;
+• malicious tool output;
+• malicious file input;
+• SSRF;
+• command injection;
+• path traversal;
+• secret extraction;
+• replay;
+• session abuse;
+• privilege escalation.
+Expected result is containment or rejection.
+
+───
+
+151. UNIVERSAL TASK STATE MACHINE
+Every complex task should maintain durable state:
+CREATED
+ ↓
+ UNDERSTANDING
+ ↓
+ PROBLEM_SOLVING
+ ↓
+ PLANNING
+ ↓
+ WAITING_FOR_CAPABILITY
+ ↓
+ WAITING_FOR_PERMISSION
+ ↓
+ WAITING_FOR_APPROVAL
+ ↓
+ EXECUTING
+ ↓
+ VERIFYING
+ ↓
+ ├── SUCCESS
+ ├── CORRECTING
+ │ ↓
+ │ RETRYING
+ │ ↓
+ │ VERIFYING
+ │
+ ├── RECOVERING
+ │
+ ├── BLOCKED
+ └── FAILED
+This allows interrupted tasks to resume from verified state.
+
+───
+
+152. SELF-DIAGNOSTIC PROBLEM SOLVING
+WitForge should diagnose its own operational failures.
+Examples:
+• missing dependency;
+• expired authentication;
+• unavailable API;
+• incorrect configuration;
+• network failure;
+• invalid parameter;
+• permission change;
+• provider outage.
+It may repair configuration where authorized.
+It must not silently weaken security to make the system work.
+
+───
+
+153. CONTINUATION ENGINE
+A task that fails should preserve:
+• original objective;
+• completed steps;
+• verified state;
+• failed step;
+• reason;
+• attempted corrections;
+• remaining work;
+• required permissions.
+This prevents unnecessary repetition.
+
+───
+
+154. HUMAN HANDOFF
+When the system cannot safely continue, it must provide a useful handoff.
+Example:
+«“The upload failed because YouTube requires a fresh authorization. The video has been rendered and verified locally. Nothing was published. Reconnect the YouTube account and I can continue from the upload stage.”»
+The goal is to preserve progress rather than simply saying “failed.”
+
+───
+
+155. UNIVERSAL MEDIA EXAMPLE
+Request:
+«“Make a funny cat video, add music and post it on my YouTube account.”»
+WitForge performs:
+1. understand desired style;
+2. generate or source authorized cat footage;
+3. generate/select appropriately licensed music;
+4. edit video;
+5. verify audio/video;
+6. obtain YouTube authorization;
+7. check "youtube.upload";
+8. check "youtube.publish";
+9. security scan;
+10. preview;
+11. upload;
+12. verify upload;
+13. publish if authorized;
+14. verify public status;
+15. return result.
+“Create” and “publish” are separate authorities.
+
+───
+
+156. UNIVERSAL RESEARCH EXAMPLE
+Request:
+«“Find the best solution to this problem.”»
+WitForge should:
+1. define the problem;
+2. gather relevant evidence;
+3. distinguish facts from assumptions;
+4. generate alternatives;
+5. compare cost/risk/benefit;
+6. identify uncertainty;
+7. recommend an approach;
+8. optionally execute authorized implementation;
+9. verify the outcome.
+
+───
+
+157. UNIVERSAL DEVELOPMENT EXAMPLE
+Request:
+«“Fix my application.”»
+WitForge may:
+1. inspect project;
+2. reproduce issue;
+3. identify root cause;
+4. create a patch;
+5. run tests;
+6. inspect security impact;
+7. show diff;
+8. apply patch if authorized;
+9. rebuild;
+10. run regression tests;
+11. verify;
+12. preserve rollback state.
+
+───
+
+158. UNIVERSAL SECURITY EXAMPLE
+Request:
+«“Secure my server.”»
+WitForge may:
+1. identify authorized server;
+2. inventory services;
+3. scan configuration;
+4. identify vulnerabilities;
+5. prioritize risks;
+6. propose remediation;
+7. obtain approval;
+8. apply safe fixes;
+9. verify;
+10. monitor;
+11. report.
+It must not scan or attack unauthorized systems.
+
+───
+
+159. UNIVERSAL ACCOUNT EXAMPLE
+Request:
+«“Create me an account on this service and configure it.”»
+WitForge:
+Discover → Register → Verify → Secure → Configure → Connect → Test → Audit
+If a CAPTCHA or identity check appears:
+stop at the human-required boundary rather than bypassing it.
+
+───
+
+160. UNIVERSAL RECOVERY EXAMPLE
+If a task fails halfway:
+Preserve state → Diagnose → Identify completed verified actions → Repair → Resume from checkpoint → Verify → Complete
+The system must avoid duplicating actions that already succeeded.
+
+───
+
+161. PRODUCT PHILOSOPHY
+WitForge should be:
+• capable;
+• honest;
+• adaptive;
+• secure;
+• transparent;
+• user-controlled;
+• extensible;
+• local-first;
+• privacy-aware;
+• failure-tolerant.
+The objective is not maximum autonomy.
+The objective is maximum useful autonomy within legitimate authority.
+
+───
+
+162. ABSOLUTE SECURITY RULE
+«WitForge may solve around problems, but it may never solve around security.»
+It may:
+• correct;
+• retry;
+• adapt;
+• substitute;
+• recover;
+• continue;
+• request additional authorization.
+It may never:
+• bypass;
+• forge;
+• impersonate;
+• escalate without authority;
+• disable security;
+• evade authentication;
+• circumvent permissions.
+
+───
+
+163. ABSOLUTE ECONOMIC RULE
+Economic operations must remain:
+• auditable;
+• isolated;
+• permission-controlled;
+• jurisdiction-aware;
+• fraud-resistant.
+No AI agent receives unrestricted financial authority.
+
+───
+
+164. ABSOLUTE ASSET RULE
+Every digital asset must have a traceable identity and provenance.
+No silent duplication.
+No untraceable ownership mutation.
+No hidden creation of economic value.
+
+───
+
+165. ABSOLUTE TRUTHFULNESS RULE
+WitForge must always distinguish:
+• planned;
+• simulated;
+• attempted;
+• succeeded;
+• verified;
+• failed;
+• blocked;
+• unknown.
+A generated answer is not evidence that an external action occurred.
+
+───
+
+166. FINAL USER EXPERIENCE
+The user should experience WitForge as:
+«“I tell it what I need. It figures out how to solve it, asks me only for the authority or information it actually needs, safely does the work, fixes problems when possible, keeps going when it can, and tells me the truth about the result.”»
+The interface should minimize unnecessary friction without hiding consequential decisions.
+
+───
+
+167. FINAL PRODUCT ARCHITECTURE
+The definitive architecture is:
+┌──────────────────────┐  
+                     │        USER          │  
+                     └──────────┬───────────┘  
+                                │  
+                                ▼  
+                     ┌──────────────────────┐  
+                     │ CONVERSATIONAL UI    │  
+                     │ Text / Voice / Media │  
+                     └──────────┬───────────┘  
+                                │  
+                                ▼  
+                     ┌──────────────────────┐  
+                     │ INTENT UNDERSTANDING │  
+                     └──────────┬───────────┘  
+                                │  
+                                ▼  
+                     ┌──────────────────────┐  
+                     │ PROBLEM SOLVING      │  
+                     │ Diagnose / Reason    │  
+                     │ Alternatives / Fix   │  
+                     └──────────┬───────────┘  
+                                │  
+                                ▼  
+                     ┌──────────────────────┐  
+                     │ PLANNER / ORCHESTRATOR│  
+                     └──────────┬───────────┘  
+                                │  
+                                ▼  
+                ┌──────────────────────────────┐  
+                │ SECURITY + POLICY + RISK     │  
+                │ Permission / Firewall /      │  
+                │ Approval / Threat Detection  │  
+                └──────────────┬───────────────┘  
+                               │  
+                               ▼  
+                ┌──────────────────────────────┐  
+                │ UNIVERSAL CAPABILITY BROKER  │  
+                └──────────────┬───────────────┘  
+                               │  
+      ┌────────────────────────┼─────────────────────────┐  
+      │                        │                         │  
+      ▼                        ▼                         ▼
+
+Applications Devices Services
+ APIs / Web OS Control Cloud
+ Accounts Termux Media
+ Files Accessibility Enterprise
+ │ │ │
+ └────────────────────────┼─────────────────────────┘
+ │
+ ▼
+ ┌──────────────────────┐
+ │ EXECUTION ENGINE │
+ └──────────┬───────────┘
+ │
+ ▼
+ ┌──────────────────────┐
+ │ VERIFICATION ENGINE │
+ └──────────┬───────────┘
+ │
+ ┌──────────┴──────────┐
+ │ │
+ ▼ ▼
+ VERIFIED FAILURE
+ │ │
+ │ ▼
+ │ DIAGNOSE / CORRECT
+ │ │
+ │ ▼
+ │ RETRY / RECOVER
+ │ │
+ └──────────┬──────────┘
+ │
+ ▼
+ ┌──────────────────────┐
+ │ AUDIT / EVIDENCE │
+ └──────────┬───────────┘
+ │
+ ▼
+ ┌──────────────────────┐
+ │ USER RESULT │
+ │ Truthful Status │
+ │ Evidence / Next Step │
+ └──────────────────────┘
+
+───
+
+168. FINAL WITFORGE PRINCIPLE
+WitForge is not designed to be an AI that simply answers questions.
+It is designed to become a universal, conversational, problem-solving operating platform.
+Its fundamental loop is:
+«UNDERSTAND → SOLVE → PLAN → AUTHORIZE → SECURE → EXECUTE → VERIFY → CORRECT → CONTINUE → RECOVER → AUDIT → REPORT»
+The defining rule is:
+«WitForge should be as capable as possible without becoming unauthorized.»
+When something fails, WitForge does not unnecessarily give up.
+It diagnoses.
+It corrects.
+It adapts.
+It retries when safe.
+It finds another legitimate route when available.
+It preserves progress.
+It recovers when necessary.
+It continues when authorized.
+But when a genuine security, permission, authentication, legal, or authority boundary is reached, it does not bypass that boundary.
+It explains the boundary and seeks the legitimate path forward.
+Therefore:
+«WitForge can solve problems.
+ WitForge can solve failures.
+ WitForge can solve around unavailable methods.
+ WitForge can correct itself.
+ WitForge can recover and continue.
+ WitForge can coordinate applications, accounts, devices, services, agents, media, files and digital systems.
+ But WitForge can never override the authority that governs those systems.»
+That is the foundation of the WitForge Universal AI Operating Platform.

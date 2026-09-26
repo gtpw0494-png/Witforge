@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#060309">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%237c3aed'/%3E%3Ctext x='32' y='44' font-size='34' font-weight='900' font-family='Arial' text-anchor='middle' fill='white'%3EL%3C/text%3E%3C/svg%3E">
+<meta name="description" content="LIAM — local-first AI control centre. History, search, archive and project context with truthful capability states.">
+<title>LIAM — AI Control Centre</title>
+<link rel="stylesheet" href="/styles.css?v=2.03.0">
+</head>
+<body>
+<div class="app-shell">
+
+  <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+    <div class="brand side-brand">
+      <div class="mark">L</div>
+      <div><b>LIAM</b><span>AI CONTROL CENTRE</span></div>
+    </div>
+    <div class="side-actions">
+      <button class="iconbtn" id="collapseBtn" title="Collapse navigation (Ctrl+B)" aria-label="Collapse navigation">☰</button>
+      <button class="new-chat-side" id="newChatBtn">＋ New chat</button>
+    </div>
+    <nav id="nav" class="nav-list" aria-label="Workspaces"></nav>
+    <div class="sidebar-bottom">
+      <div class="mode-strip" id="modeStrip" title="Universal status strip">
+        <span class="mode-left"><i id="modeDot"></i><span id="modeLabel">Local mode</span></span>
+        <span class="mode-right" id="modeState">checking…</span>
+      </div>
+      <div class="build" id="buildTag"></div>
+    </div>
+  </aside>
+
+  <div class="main-col">
+    <header class="topbar">
+      <button class="iconbtn mobile-only" id="mobileNavBtn" aria-label="Open navigation">☰</button>
+      <div class="crumbs"><span class="crumb-root">LIAM</span><span class="crumb-sep">/</span><b id="crumbCurrent">Conversations</b></div>
+      <div class="top-actions">
+        <button class="search-trigger" id="searchBtn" title="Search (Ctrl+K)">⌕ <span>Search</span><kbd>Ctrl K</kbd></button>
+        <button class="avatar" id="avatarBtn" title="Local session">G</button>
+      </div>
+    </header>
+
+    <main id="main" aria-live="polite"></main>
+  </div>
+</div>
+
+<!-- Command palette -->
+<div class="overlay" id="paletteOverlay" hidden>
+  <div class="palette" role="dialog" aria-modal="true" aria-label="Command palette">
+    <div class="palette-head">⌕ <input id="paletteInput" placeholder="Search pages and commands…" autocomplete="off"><kbd>esc</kbd></div>
+    <div class="palette-list" id="paletteList"></div>
+    <div class="palette-foot"><span>↑↓ navigate</span><span>↵ run</span><span id="paletteHint"></span></div>
+  </div>
+</div>
+
+<!-- Facet slide-over -->
+<div class="overlay side-overlay" id="facetOverlay" hidden>
+  <div class="facet-panel" role="dialog" aria-modal="true" aria-label="Module detail">
+    <div class="facet-head">
+      <div><p class="eyebrow" id="facetEyebrow"></p><h3 id="facetTitle"></h3><p class="muted" id="facetSub"></p></div>
+      <button class="iconbtn" id="facetClose" aria-label="Close">✕</button>
+    </div>
+    <div class="facet-body" id="facetBody"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast" hidden></div>
+
+<script src="/app.js?v=2.03.0"></script>
+</body>
+</html>
