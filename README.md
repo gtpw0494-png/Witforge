@@ -1,3 +1,15 @@
+# LIAM · v2.03.1 — private Owner email binding
+
+**v2.03.1:** the first local account still becomes Owner, with an optional
+private binding to `WITFORGE_OWNER_EMAIL`. First-run creation is loopback-only;
+when configured, the supplied email must match and subsequent login requires
+the email plus password. Only a one-way email hash and masked form enter local
+state—the plaintext address is not committed, logged or returned. Existing
+Owner records bind additively on the next startup with the environment value.
+The default application and health-check port are now consistently `8787`.
+
+---
+
 # LIAM · v2.03 — the Three Laws Covenant
 
 **v2.03.0:** the Owner's Three Laws are preserved as permanent project

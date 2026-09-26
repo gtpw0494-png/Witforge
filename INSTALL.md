@@ -46,6 +46,7 @@ npm install           # succeeds and installs nothing — that is the intended r
 | Variable | Default | Meaning |
 |---|---|---|
 | `PORT` | `8787` | Port the local server binds on `0.0.0.0` |
+| `WITFORGE_OWNER_EMAIL` | *(unset)* | Private local first-Owner binding. Set this before startup; only a matching email can create the first account. The state stores a one-way hash and masked form, not the plaintext address |
 | `PLATFORM_DATA` | `<repo>/data/platform.json` | Authoritative platform store (state, audit, permissions, devices, accounts, assets) |
 | `ARENA_DATA` | `<repo>/data/arena.json` | Arena/avatar/asset store |
 | `GITHUB_TOKEN` | *(unset)* | Optional. Without it the GitHub connector reports **UNAVAILABLE** — honestly, not simulated |
@@ -97,14 +98,15 @@ node -e "const P=require('./platform.js'); P.save(); console.log('platform store
 ## 7. First-run setup
 
 ```bash
+export WITFORGE_OWNER_EMAIL='your-address@example.com'
 npm start
 # open http://localhost:8787
 ```
 
-1. Open **Profile** (or use Chat) and create the Owner account:
-   `create owner account <NAME> password <PASSWORD>` — the first account becomes Owner server-side; a second Owner cannot be created.
-2. Optionally connect a real service, e.g. `connect github with token ghp_…`, then `verify github` (a real API call proves it — configuration alone never counts as connected).
-3. Nothing else is required. The platform is usable offline; external capabilities report UNAVAILABLE until they genuinely exist.
+1. Open **Profile** locally and create the Owner account using the configured email and a strong password. The first matching account becomes Owner server-side; creation is loopback-only and a second Owner cannot be created.
+2. Login requires the bound email plus the password. This is a local identifier binding, not a claim that mailbox ownership was externally verified.
+3. Optionally connect a real service, e.g. `connect github with token ghp_…`, then `verify github` (a real API call proves it — configuration alone never counts as connected).
+4. Nothing else is required. The platform is usable offline; external capabilities report UNAVAILABLE until they genuinely exist.
 
 ## 8. Startup
 

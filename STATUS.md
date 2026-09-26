@@ -1,8 +1,9 @@
 # LIAM Status
 
-## Current release v2.03.0
+## Current release v2.03.1
 
-- **Package:** WitForge / LIAM Control Centre v2.03.0.
+- **Package:** WitForge / LIAM Control Centre v2.03.1.
+- **Owner identity:** the first local account remains Owner, but can now be privately bound to `WITFORGE_OWNER_EMAIL`; creation is loopback-only, login requires the bound email plus password, and only a one-way email hash and masked form are persisted.
 - **Specification registry:** 177 requirements: 116 LIVE, 15 PARTIAL,
   21 EXTERNAL, 4 LOCKED and 21 POLICY.
 - **Requirement probes:** `node analysis/gap-scan.js` reports 91/91 present.

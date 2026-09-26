@@ -41,7 +41,7 @@ const SCOPE_DIMENSIONS = [
   'device', 'resource', 'action', 'time', 'purpose', 'environment'
 ];
 
-const DEFAULT_POLICY_VERSION = 'witforge-policy/2.03.0';
+const DEFAULT_POLICY_VERSION = 'witforge-policy/2.03.1';
 
 /* ── §10 Permission levels ────────────────────────────────────────── */
 

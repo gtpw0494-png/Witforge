@@ -12,9 +12,10 @@ const P = require('./platform.js');
 const kernel = P.kernel, caps = P.caps, taskEngine = P.taskEngine, services = P.services;
 const engagement = P.engagement, ownerSec = P.ownerSec;
 const VERSION = P.VERSION;
+P.bindConfiguredOwnerEmail();
 
 const ROOT = __dirname;
-const PORT = Number(process.env.PORT || 5173);
+const PORT = Number(process.env.PORT || 8787);
 
 /* v1.98 security-audit finding #1 → SHIPPED FIX: the API binds 0.0.0.0 (the
  * preview sandbox needs it), so any host that can reach the port could drive
@@ -30,6 +31,10 @@ const MIME = {
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg',
   '.ico': 'image/x-icon', '.md': 'text/plain; charset=utf-8'
 };
+function isLoopback(req) {
+  const ip = String((req.socket && req.socket.remoteAddress) || '');
+  return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+}
 
 function json(res, code, obj) {
   res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -168,14 +173,15 @@ const server = http.createServer(async (req, res) => {
       reply: 'I do not have an intent for “' + String(b.text || '').slice(0, 80) + '”. Say “help” for everything I can do, “preview <command>” to see what a command would do, or rephrase it as an action (“create task …”, “forge …”, “buy 500 ld”, “open lotto round”, “plans”, “protect me”).'
     });
   }
-  if (p === '/api/auth/status') return json(res, 200, { ok: true, owner: !!P.state.owner, authed });
+  if (p === '/api/auth/status') return json(res, 200, { ok: true, owner: !!P.state.owner, authed, email: P.ownerEmailStatus() });
   if (p === '/api/auth/owner' && req.method === 'POST') {
+    if (!isLoopback(req)) return json(res, 403, { ok: false, error: 'First-run Owner creation is local-device only' });
     const b = await body(req);
-    return json(res, 200, P.createOwner(b.name, b.password));
+    return json(res, 200, P.createOwner(b.name, b.password, b.email));
   }
   if (p === '/api/auth/login' && req.method === 'POST') {
     const b = await body(req);
-    const r = P.login(b.password);
+    const r = P.login(b.password, b.email);
     if (r.ok) { res.setHeader('Set-Cookie', `liam_session=${r.token}; HttpOnly; SameSite=Strict; Path=/`); delete r.token; }
     return json(res, 200, r);
   }

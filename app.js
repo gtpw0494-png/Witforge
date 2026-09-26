@@ -168,7 +168,7 @@ function showOfflineBanner() {
   if ($('#offlineBanner')) return;
   const b = document.createElement('div');
   b.id = 'offlineBanner';
-  b.innerHTML = '⚠ <b>BACKEND OFFLINE — STATIC PREVIEW.</b> This page is hosted without the LIAM server. For live control run <code>node server.js</code> locally and open <code>http://127.0.0.1:5173</code>. Nothing here is simulated or faked — data panels stay empty until a real backend answers.';
+  b.innerHTML = '⚠ <b>BACKEND OFFLINE — STATIC PREVIEW.</b> This page is hosted without the LIAM server. For live control run <code>node server.js</code> locally and open <code>http://127.0.0.1:8787</code>. Nothing here is simulated or faked — data panels stay empty until a real backend answers.';
   document.body.appendChild(b);
 }
 function enterOffline() { if (!OFFLINE) { OFFLINE = true; showOfflineBanner(); refreshStatus(); } }
@@ -325,7 +325,7 @@ async function routeCommand(text) {
 • Control: “status”, “capabilities”, “security”, “grant http.get”, “revoke http.get”, “set emergency HIGH”, “lockdown confirm”, “approve <id>”, “stop <id>”
 • Economy: “balance”, “wager 100 between A and B”, “economy selftest”
 • Arena: “forge avatar <race>”, “fight” (in Arena workspace)
-• Accounts & connectors: “create owner account NAME password PASS”, “login PASS”, “logout”, “connect github with token …”, “verify github”, “connections”, “disconnect github”
+• Accounts & connectors: create the first Owner in Profile with the configured email; “logout”, “connect github with token …”, “verify github”, “connections”, “disconnect github”
 • Forge & market: “forge wings at legendary: <your imaginative prompt>”, “forge cost”, “market”, “buy <id>”, “sell <itemId> for <n>”, “delist <id>”
 • Real payments: “connect stripe with token sk_…”, “verify stripe”, “enable real payments confirm”, “create payment 500 ld”, “confirm payment <id>” · Proton has NO public API — never simulated
 • Connectors (live, key-free): “weather <city>”, “convert 100 aud to usd”, “research <topic>”, “dns <domain>”, “hash <text>”, “uuid”, “capabilities”
@@ -333,12 +333,12 @@ async function routeCommand(text) {
 • v1.62: “every 2 hours stand up” (recurring), “schedules”, “stop schedule <id>”, “talents”, “unlock talent body for <avatar>”
 • Preview & autonomy: “preview fetch <url>”, “autonomous on confirm”, “autonomous off”
 • Optional external: “ask puter <question>” (only if the Puter bridge loads; output labelled untrusted)` };
-  if ((m = low.match(/^(?:create|make)(?: an?)? owner(?: account)?(?: called| named)? ([a-z0-9_-]+) (?:with )?password (.+)$/))) {
-    const r = await post('/api/auth/owner', { name: m[1], password: m[2] });
-    return r.ok ? { text: 'Owner account created for ' + r.owner + '. You can now say “login <password>”. The first-run open mode is closed.' } : { role: 'notice', text: r.error || 'Owner creation failed.' };
+  if ((m = text.match(/^(?:create|make)(?: an?)? owner(?: account)?(?: called| named)? ([a-z0-9_-]+) email (\S+@\S+) (?:with )?password (.+)$/i))) {
+    const r = await post('/api/auth/owner', { name: m[1], email: m[2], password: m[3] });
+    return r.ok ? { text: 'Owner account created for ' + r.owner + ' and bound to ' + (r.email.masked || 'the configured email') + '. The first-run path is now closed.' } : { role: 'notice', text: r.error || 'Owner creation failed.' };
   }
-  if ((m = low.match(/^(?:log ?in|sign in)(?: with| password)? (.+)$/))) {
-    const r = await post('/api/auth/login', { password: m[1] });
+  if ((m = text.match(/^(?:log ?in|sign in) email (\S+@\S+) password (.+)$/i))) {
+    const r = await post('/api/auth/login', { email: m[1], password: m[2] });
     return r.ok ? { text: 'Logged in. Session cookie set (HttpOnly, SameSite). Mutations now require this session.' } : { role: 'notice', text: r.error || 'Login failed.' };
   }
   if (low === 'logout' || low === 'log out') { await post('/api/auth/logout', {}); return { text: 'Logged out; session invalidated server-side.' }; }
@@ -1034,26 +1034,26 @@ async function renderDocs() {
 }
 async function renderProfile() {
   const st = await api('/api/auth/status');
-  $('#main').innerHTML = head('ACCOUNT', 'Profile', 'Owner account with scrypt hashing and HttpOnly sessions. Owner data is protected; no PII is required or stored.') +
+  $('#main').innerHTML = head('ACCOUNT', 'Profile', 'The first local account becomes Owner and is bound to the configured email using a one-way hash. Sessions use scrypt-backed credentials and HttpOnly cookies.') +
   (!st.owner ? `
    <div class="facet-card"><h4>First-run Owner creation</h4>
-     <div class="input-line" style="margin-top:0"><input id="ownerName" placeholder="Owner name"><input id="ownerPass" type="password" placeholder="Password (8+ chars)"><button class="mini-btn" id="ownerCreate">Create Owner</button></div>
-     <p class="empty-note">The first account becomes Owner server-side. Until created, local development mode allows mutations without login.</p></div>`
+     <div class="input-line" style="margin-top:0"><input id="ownerName" placeholder="Owner name"><input id="ownerEmail" type="email" placeholder="Configured owner email"><input id="ownerPass" type="password" placeholder="Password (8+ chars)"><button class="mini-btn" id="ownerCreate">Create Owner</button></div>
+     <p class="empty-note">Creation is accepted only from this local device and only when the email matches WITFORGE_OWNER_EMAIL. The address is stored only as a one-way hash.</p></div>`
   : !st.authed ? `
    <div class="facet-card"><h4>Owner login</h4>
-     <div class="input-line" style="margin-top:0"><input id="loginPass" type="password" placeholder="Password"><button class="mini-btn" id="ownerLogin">Log in</button></div>
+     <div class="input-line" style="margin-top:0"><input id="loginEmail" type="email" placeholder="Owner email"><input id="loginPass" type="password" placeholder="Password"><button class="mini-btn" id="ownerLogin">Log in</button></div>
      <p class="empty-note">Sessions use HttpOnly SameSite cookies. Failures are throttled and audited.</p></div>`
   : `
    <div class="facet-card"><h4>Session</h4>${row('owner', 'Authenticated session active.')}${row('role', 'OWNER — highest application-level administrative role.')}<div class="input-line"><button class="mini-btn" id="ownerLogout">Log out</button></div></div>`) +
-  `<div class="facet-card"><h4>Plain-language account control</h4><p>In Chat: “create owner account NAME password PASS” · “login PASS” · “logout” · “connect github with token …” · “connections” · “disconnect github”. Everything is also available here by button.</p></div>` +
+  `<div class="facet-card"><h4>Plain-language account control</h4><p>Use the Profile form so credentials never enter chat history. Chat also accepts “create owner account NAME email ADDRESS password PASS” and “login email ADDRESS password PASS”.</p></div>` +
   renderAccountsPanel();
   if ($('#ownerCreate')) $('#ownerCreate').onclick = async () => {
-    const r = await post('/api/auth/owner', { name: $('#ownerName').value, password: $('#ownerPass').value });
+    const r = await post('/api/auth/owner', { name: $('#ownerName').value, email: $('#ownerEmail').value, password: $('#ownerPass').value });
     toast(r.ok ? 'Owner created: ' + r.owner : (r.error || 'failed'));
     renderProfile();
   };
   if ($('#ownerLogin')) $('#ownerLogin').onclick = async () => {
-    const r = await post('/api/auth/login', { password: $('#loginPass').value });
+    const r = await post('/api/auth/login', { email: $('#loginEmail').value, password: $('#loginPass').value });
     toast(r.ok ? 'Logged in.' : (r.error || 'failed'));
     renderProfile();
   };
@@ -1458,7 +1458,7 @@ function toggleCollapse() {
 /* ── Global wiring ───────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async () => {
   try { const ui = JSON.parse(localStorage.getItem('liam.ui') || '{}'); if (ui.collapsed && window.innerWidth > 960) document.body.classList.add('sidebar-collapsed'); } catch (e) {}
-  $('#buildTag').textContent = 'LIAM v2.03.0 · 177-REQUIREMENT COVERAGE';
+  $('#buildTag').textContent = 'LIAM v2.03.1 · 177-REQUIREMENT COVERAGE';
   await refreshState();
   renderNav();
   refreshStatus();

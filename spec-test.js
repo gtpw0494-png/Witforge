@@ -33,13 +33,19 @@ const st = r => (r && (r.state || r.status)) || null;
 
   /* 1. authentication ---------------------------------------------------- */
   area(1, 'authentication');
-  const created = P.createOwner('Release Owner', 'a-strong-release-passphrase');
+  process.env.WITFORGE_OWNER_EMAIL = 'owner-test@example.com';
+  const mismatch = P.createOwner('Release Owner', 'a-strong-release-passphrase', 'wrong@example.com');
+  ok(mismatch.ok !== true, 'configured Owner email rejects a different first-account identity');
+  const created = P.createOwner('Release Owner', 'a-strong-release-passphrase', 'owner-test@example.com');
   ok(created.ok === true, 'Owner created with a scrypt-derived credential');
+  ok(P.state.owner.emailHash && !JSON.stringify(P.state.owner).includes('owner-test@example.com'), 'Owner email is bound by one-way hash without storing the plaintext address');
   ok(!JSON.stringify(P.state.owner).includes('a-strong-release-passphrase'), 'no plaintext password is stored');
   ok(P.state.owner.hash.length === 128 && P.state.owner.salt.length === 32, 'Argon2-style salted hash material present (scrypt N=16384 fallback per OWASP guidance)');
-  const badLogin = P.login('not-the-passphrase');
+  const badLogin = P.login('not-the-passphrase', 'owner-test@example.com');
   ok(badLogin.ok !== true, 'wrong password rejected');
-  const goodLogin = P.login('a-strong-release-passphrase');
+  const wrongEmailLogin = P.login('a-strong-release-passphrase', 'wrong@example.com');
+  ok(wrongEmailLogin.ok !== true, 'correct password with the wrong email is rejected');
+  const goodLogin = P.login('a-strong-release-passphrase', 'owner-test@example.com');
   ok(goodLogin.ok === true && P.sessionValid(goodLogin.token) === true, 'correct password issues a valid server-side session');
   P.logout(goodLogin.token);
   ok(P.sessionValid(goodLogin.token) !== true, 'logout invalidates the session server-side');
@@ -47,7 +53,7 @@ const st = r => (r && (r.state || r.status)) || null;
   /* 2. authorization ----------------------------------------------------- */
   area(2, 'authorization');
   ok(P.state.owner.role === undefined || true, 'owner record is authoritative server-side state');
-  const second = P.createOwner('Impostor', 'another-passphrase-here');
+  const second = P.createOwner('Impostor', 'another-passphrase-here', 'owner-test@example.com');
   ok(second.ok !== true, 'first-run Owner creation closes after the first owner (no second owner)');
   ok(typeof P.requireOwner === 'function' ? P.requireOwner('') !== true : true, 'owner-gated calls exist for privileged paths');
 

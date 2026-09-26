@@ -20,7 +20,7 @@ const connectors = require('./connectors.js');
 const { SOCIALS, SOCIAL_POSTABLE, ADAPTERS, socialEntry } = connectors;
 const llm = require('./llm.js');
 
-const VERSION = '2.03.0';
+const VERSION = '2.03.1';
 const THREE_LAWS = Object.freeze([
   Object.freeze({
     id: 1,
@@ -2633,22 +2633,66 @@ function adaptersLive() {
  * this file; decryptRec comes from ./vault.js and is injected through. ── */
 /* ── Owner authentication (scrypt + HttpOnly sessions) ───── */
 let loginFails = 0, loginWindow = Date.now();
-function createOwner(name, password) {
+function normaliseOwnerEmail(email) { return String(email || '').trim().toLowerCase(); }
+function ownerEmailHash(email) { return crypto.createHash('sha256').update(normaliseOwnerEmail(email)).digest('hex'); }
+function safeEqualHex(a, b) {
+  try {
+    const aa = Buffer.from(String(a || ''), 'hex'), bb = Buffer.from(String(b || ''), 'hex');
+    return aa.length === bb.length && aa.length > 0 && crypto.timingSafeEqual(aa, bb);
+  } catch (e) { return false; }
+}
+function maskOwnerEmail(email) {
+  const e = normaliseOwnerEmail(email), at = e.indexOf('@');
+  if (at < 1) return '';
+  return e[0] + '***' + e.slice(Math.max(1, at - 1));
+}
+function configuredOwnerEmail() { return normaliseOwnerEmail(process.env.WITFORGE_OWNER_EMAIL); }
+function ownerEmailStatus() {
+  const configured = configuredOwnerEmail();
+  return {
+    required: !!configured || !!(S.owner && S.owner.emailHash),
+    configured: !!configured,
+    bound: !!(S.owner && S.owner.emailHash),
+    masked: (S.owner && S.owner.emailMasked) || (configured ? maskOwnerEmail(configured) : null),
+    verified: false,
+    note: 'The email identifier is locally bound, not mailbox-verified.'
+  };
+}
+function bindConfiguredOwnerEmail() {
+  const configured = configuredOwnerEmail();
+  if (!configured || !S.owner || S.owner.emailHash) return false;
+  S.owner.emailHash = ownerEmailHash(configured);
+  S.owner.emailMasked = maskOwnerEmail(configured);
+  audit('security', 'OWNER email identifier bound from local environment (address not stored)', 'system');
+  save();
+  return true;
+}
+function createOwner(name, password, email) {
   if (S.owner) return { ok: false, error: 'Owner already exists; first-run creation is closed' };
   const clean = String(name || '').trim().slice(0, 24);
+  const suppliedEmail = normaliseOwnerEmail(email);
+  const configuredEmail = configuredOwnerEmail();
   if (!clean || String(password || '').length < 8) return { ok: false, error: 'Name and a password of 8+ characters required' };
+  if (configuredEmail && !safeEqualHex(ownerEmailHash(suppliedEmail), ownerEmailHash(configuredEmail))) return { ok: false, error: 'Owner email does not match the locally configured owner identity' };
+  if (suppliedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(suppliedEmail)) return { ok: false, error: 'A valid owner email is required' };
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = crypto.scryptSync(String(password), salt, 64, { N: 16384, r: 8, p: 1 }).toString('hex');
   S.owner = { name: clean, salt, hash, created: Date.now() };
+  if (suppliedEmail) { S.owner.emailHash = ownerEmailHash(suppliedEmail); S.owner.emailMasked = maskOwnerEmail(suppliedEmail); }
   audit('security', 'OWNER account created (first-run); role protected', 'system');
   save();
-  return { ok: true, owner: S.owner.name };
+  return { ok: true, owner: S.owner.name, email: ownerEmailStatus() };
 }
-function login(password) {
+function login(password, email) {
   if (!S.owner) return { ok: false, error: 'No owner; use first-run creation' };
   if (loginFails >= 5 && Date.now() - loginWindow < 60000) return { ok: false, error: 'Throttled: too many failures, wait 60s' };
+  if (S.owner.emailHash && !safeEqualHex(ownerEmailHash(email), S.owner.emailHash)) {
+    loginFails++;
+    audit('security', 'OWNER login failure ' + loginFails + ' (email mismatch)', 'system'); save();
+    return { ok: false, error: 'Invalid credentials' };
+  }
   const hash = crypto.scryptSync(String(password || ''), S.owner.salt, 64, { N: 16384, r: 8, p: 1 }).toString('hex');
-  if (hash !== S.owner.hash) {
+  if (!safeEqualHex(hash, S.owner.hash)) {
     if (Date.now() - loginWindow > 60000) { loginFails = 0; loginWindow = Date.now(); }
     loginFails++;
     audit('security', 'OWNER login failure ' + loginFails, 'system'); save();
@@ -3817,7 +3861,7 @@ module.exports = {
   FORGE_COST, forgePiece, marketList, listItem, delist, buy, seedMarket, pieceArt: x => pieceArt.artFor(x),
   createPayment, confirmPayment, settleStripeEvidence, setRealMode,
   verifyAudit, withCid, tokenValid,
-  createOwner, login, logout, sessionValid,
+  createOwner, login, logout, sessionValid, ownerEmailStatus, bindConfiguredOwnerEmail,
   selftestAll, compliance, freshState, migrateLegal, THREE_LAWS,
   exportManifest, importManifest, sealVaultTransfer, openVaultTransfer, rotateVaultKeys, scrubSecrets,
   addReminder, tickReminders,
