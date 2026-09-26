@@ -19,6 +19,8 @@ const ROOT = __dirname;
 const PORT = Number(process.env.PORT || 8787);
 const ALLOW_LAN = String(process.env.WITFORGE_ALLOW_LAN || '').toLowerCase() === 'true';
 const HOST = ALLOW_LAN ? '0.0.0.0' : '127.0.0.1';
+const MAX_BODY_BYTES = 1024 * 1024;
+const ALLOWED_HOSTS = new Set(['127.0.0.1', 'localhost', '::1'].concat(String(process.env.WITFORGE_ALLOWED_HOSTS || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean)));
 
 /* v2.04 security perimeter: loopback is the default. LAN exposure is an
  * explicit two-part decision: WITFORGE_ALLOW_LAN=true plus a non-empty
@@ -42,12 +44,40 @@ function json(res, code, obj) {
   res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
   res.end(JSON.stringify(obj));
 }
-function body(req) {
+function body(req) { return Promise.resolve(req.jsonBody || {}); }
+function readJsonBody(req) {
   return new Promise(resolve => {
-    let raw = '';
-    req.on('data', c => { raw = (raw + c).slice(0, 1e6); });
-    req.on('end', () => { try { resolve(JSON.parse(raw || '{}')); } catch (e) { resolve({}); } });
+    let raw = '', bytes = 0, finished = false;
+    const done = value => { if (!finished) { finished = true; resolve(value); } };
+    req.on('data', chunk => {
+      bytes += chunk.length;
+      if (bytes > MAX_BODY_BYTES) { req.resume(); return done({ ok: false, status: 413, error: 'request-body-too-large' }); }
+      raw += chunk.toString('utf8');
+    });
+    req.on('end', () => {
+      if (finished) return;
+      if (!raw.trim()) return done({ ok: true, data: {} });
+      try {
+        const data = JSON.parse(raw);
+        if (!data || Array.isArray(data) || typeof data !== 'object') return done({ ok: false, status: 400, error: 'json-object-required' });
+        done({ ok: true, data });
+      } catch (e) { done({ ok: false, status: 400, error: 'invalid-json' }); }
+    });
+    req.on('error', () => done({ ok: false, status: 400, error: 'request-read-failed' }));
   });
+}
+function hostnameOf(value) {
+  const h = String(value || '').trim().toLowerCase();
+  if (h.startsWith('[')) { const end = h.indexOf(']'); return end > 0 ? h.slice(1, end) : ''; }
+  return h.split(':')[0];
+}
+function validOrigin(req) {
+  const origin = req.headers.origin;
+  if (!origin) return true;
+  try {
+    const u = new URL(origin);
+    return (u.protocol === 'http:' || u.protocol === 'https:') && ALLOWED_HOSTS.has(u.hostname.toLowerCase()) && u.host.toLowerCase() === String(req.headers.host || '').toLowerCase();
+  } catch (e) { return false; }
 }
 
 const RL = new Map();
@@ -73,12 +103,24 @@ function sessionCookie(req, token, clear) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const p = decodeURIComponent(url.pathname);
+  if (!ALLOWED_HOSTS.has(hostnameOf(req.headers.host))) return json(res, 421, { ok: false, error: 'host-not-allowed' });
+  if (!['GET', 'POST', 'DELETE'].includes(req.method)) {
+    res.setHeader('Allow', 'GET, POST, DELETE');
+    return json(res, 405, { ok: false, error: 'method-not-allowed' });
+  }
+  if (p.startsWith('/api/') && req.method !== 'GET' && !validOrigin(req)) return json(res, 403, { ok: false, error: 'origin-not-allowed' });
   if (API_TOKEN && p.startsWith('/api/') && !PUBLIC_API.has(p)) {
     const auth = req.headers['authorization'] || '';
     if (auth !== 'Bearer ' + API_TOKEN) {
       res.writeHead(401, { 'content-type': 'application/json', 'www-authenticate': 'Bearer realm="liam"' });
       return res.end(JSON.stringify({ ok: false, error: 'unauthorized — LIAM_API_TOKEN bearer required (set on the server with the LIAM_API_TOKEN env var)' }));
     }
+  }
+  let m;
+  // §58 owner session enforcement once an owner exists
+  const authed = P.sessionValid(cookie(req, 'liam_session'));
+  if (P.state.owner && !authed && p.startsWith('/api/') && !PUBLIC_API.has(p)) {
+    return json(res, 401, { ok: false, error: 'auth-required' });
   }
   // §57 application security headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -88,13 +130,15 @@ const server = http.createServer(async (req, res) => {
   if (req.method !== 'GET' && rateLimited(req)) {
     return json(res, 429, { ok: false, error: 'Rate limited (120 req/min)' });
   }
-  let m;
-  // §58 owner session enforcement once an owner exists
-  const authed = P.sessionValid(cookie(req, 'liam_session'));
-  if (P.state.owner && !authed && p.startsWith('/api/') && !PUBLIC_API.has(p)) {
-    return json(res, 401, { ok: false, error: 'auth-required' });
+  if (['POST'].includes(req.method)) {
+    const announced = Number(req.headers['content-length'] || 0);
+    const hasBody = announced > 0 || !!req.headers['transfer-encoding'];
+    if (announced > MAX_BODY_BYTES) return json(res, 413, { ok: false, error: 'request-body-too-large' });
+    if (hasBody && !/^application\/json(?:\s*;|$)/i.test(String(req.headers['content-type'] || ''))) return json(res, 415, { ok: false, error: 'application-json-required' });
+    const parsed = await readJsonBody(req);
+    if (!parsed.ok) return json(res, parsed.status, { ok: false, error: parsed.error });
+    req.jsonBody = parsed.data;
   }
-
   /* ── platform: state & command router ── */
   if (p === '/api/audit' && req.method === 'POST') {
     const b = await body(req);
@@ -521,6 +565,8 @@ const server = http.createServer(async (req, res) => {
   if (p === '/api/health') {
     return json(res, 200, { status: 'ok', product: 'LIAM', version: VERSION, mode: 'local', time: new Date().toISOString() });
   }
+
+  if (p.startsWith('/api/')) return json(res, 404, { ok: false, error: 'api-route-not-found' });
 
   /* ── static files ── */
   const file = p === '/' ? '/index.html' : p;

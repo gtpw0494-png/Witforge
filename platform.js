@@ -20,7 +20,7 @@ const connectors = require('./connectors.js');
 const { SOCIALS, SOCIAL_POSTABLE, ADAPTERS, socialEntry } = connectors;
 const llm = require('./llm.js');
 
-const VERSION = '2.05.0';
+const VERSION = '2.06.0';
 function boundedMs(name, fallback, min, max) {
   const n = Number(process.env[name]);
   return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.floor(n))) : fallback;

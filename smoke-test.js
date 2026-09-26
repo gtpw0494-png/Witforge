@@ -3,6 +3,7 @@
  * and exercises every view, chat commands, tools, permissions, approvals. */
 'use strict';
 const fs = require('fs');
+const http = require('http');
 const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -129,6 +130,23 @@ const driver = `
   ok(dataLeak.status === 404, 'static perimeter denies platform state');
   const keyLeak = await fetch('/data/p.json.vault-key');
   ok(keyLeak.status === 404, 'static perimeter denies vault key material');
+  const malformed = await fetch('/api/auth/owner', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{broken' });
+  ok(malformed.status === 400 && (await malformed.json()).error === 'invalid-json', 'malformed JSON is rejected with 400');
+  const wrongType = await fetch('/api/auth/owner', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: '{}' });
+  ok(wrongType.status === 415, 'non-JSON API body is rejected with 415');
+  const tooLarge = await fetch('/api/auth/owner', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ padding: 'x'.repeat(1024 * 1024) }) });
+  ok(tooLarge.status === 413, 'oversized API body is rejected with 413');
+  const foreignOrigin = await fetch('/api/auth/owner', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'https://evil.example' }, body: '{}' });
+  ok(foreignOrigin.status === 403, 'cross-origin mutation is rejected');
+  const badHostStatus = await new Promise(resolve => {
+    const request = http.request(BASE + '/api/health', { headers: { Host: 'evil.example' } }, response => { response.resume(); resolve(response.statusCode); });
+    request.on('error', () => resolve(0)); request.end();
+  });
+  ok(badHostStatus === 421, 'unapproved Host header is rejected');
+  const badMethod = await fetch('/api/health', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+  ok(badMethod.status === 405 && /GET/.test(badMethod.headers.get('allow') || ''), 'unsupported HTTP method returns 405 and Allow');
+  const missingApi = await fetch('/api/not-a-real-route');
+  ok(missingApi.status === 404 && (await missingApi.json()).error === 'api-route-not-found', 'unknown API routes return structured 404');
   const ownerCreate = await (await fetch('/api/auth/owner', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Smoke Owner', email: 'smoke-owner@example.com', password: 'smoke-owner-password' }) })).json();
   ok(ownerCreate.ok === true, 'first Owner is created locally with configured email binding');
   const privateState = await fetch('/api/state');

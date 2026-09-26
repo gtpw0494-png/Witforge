@@ -1,6 +1,6 @@
 {
   "name": "witforge",
-  "version": "2.05.0",
+  "version": "2.06.0",
   "description": "WitForge — a local-first, security-first conversational AI operating platform (browser control surface + authoritative local server).",
   "keywords": ["local-first", "permissions", "audit", "orchestration", "arena"],
   "license": "UNLICENSED",

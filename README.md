@@ -1,3 +1,15 @@
+# LIAM · v2.06.0 — strict HTTP request boundary
+
+**v2.06.0:** every API request now crosses a strict transport boundary before
+it reaches authentication or business logic. Host headers are allowlisted,
+cross-origin mutations are refused, unsupported methods return `405`, bodies
+over 1 MiB return `413`, non-JSON bodies return `415`, malformed JSON returns
+`400`, and unknown API routes return structured `404` results. Invalid input is
+never silently replaced with an empty object. These controls are exercised
+over the real HTTP server in the smoke suite.
+
+---
+
 # LIAM · v2.05.0 — expiring hashed Owner sessions
 
 **v2.05.0:** Owner session bearer values are never persisted. The server stores

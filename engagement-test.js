@@ -272,7 +272,7 @@ const sum = () => Object.values(P.state.ledger.accounts).reduce((a, v) => a + v,
   ok(P.state.economy.realMode === false, 'real-money mode never turned on');
   ok(P.economyConfig().arenaRealMoneySettlement === false, 'arena real-money settlement stays off');
   ok(sum() >= 0, 'the ledger sum invariant holds');
-  ok(P.releaseInfo().version === '2.05.0', 'the release reports 2.05.0');
+  ok(P.releaseInfo().version === '2.06.0', 'the release reports 2.06.0');
 
   function mathSpread(buyRate, sellRate) { return Math.round((1 - sellRate / buyRate) * 100) / 100; }
 

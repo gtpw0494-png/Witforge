@@ -47,6 +47,7 @@ npm install           # succeeds and installs nothing — that is the intended r
 |---|---|---|
 | `PORT` | `8787` | Port the local server binds on `127.0.0.1` by default |
 | `WITFORGE_ALLOW_LAN` | `false` | Set to `true` only for intentional LAN exposure; startup also requires `LIAM_API_TOKEN` |
+| `WITFORGE_ALLOWED_HOSTS` | *(empty)* | Optional comma-separated additional Host/Origin names for explicitly enabled LAN or reverse-proxy operation; loopback names are always allowed |
 | `LIAM_API_TOKEN` | *(unset)* | Required bearer token for private APIs in LAN mode; not needed for loopback-only use |
 | `WITFORGE_SESSION_TTL_MS` | `43200000` | Absolute Owner-session lifetime (12 hours; bounded from 15 minutes to 30 days) |
 | `WITFORGE_SESSION_IDLE_MS` | `7200000` | Idle Owner-session lifetime (2 hours; bounded from 5 minutes to the absolute lifetime) |
