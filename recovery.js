@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+'use strict';
 /* LIAM recovery console (v1.80.0) — read-only health check for every
  * persisted store. A health checker must be side-effect-free: this module
  * never boots the platform, never writes a byte. It verifies what the
@@ -55,7 +56,15 @@ function checkVault(file, state) {
   const apps = (state && state.oauthApps) || {};
   const services = Object.keys(creds);
   const appIds = Object.keys(apps).filter(id => apps[id] && apps[id].clientSecret);
-  if (!services.length && !appIds.length) return r;
+  if (!services.length && !appIds.length) {
+    try {
+      if (fs.existsSync(file + '.vault-key')) {
+        r.keyFile = 'PRESENT';
+        r.mode = (fs.statSync(file + '.vault-key').mode & 0o777).toString(8);
+      } else r.keyFile = 'NOT-NEEDED';
+    } catch (e) { r.keyFile = 'NOT-NEEDED'; }
+    return r;
+  }
   let secret;
   try {
     secret = String(fs.readFileSync(file + '.vault-key', 'utf8')).trim();
@@ -124,15 +133,100 @@ function checkStore(file) {
   };
 }
 
+/* v2.07 SQLite/WAL recovery is read-only too. Each envelope carries its own
+ * SHA-256, and SQLite's quick_check independently grades the database pages.
+ * The previous valid envelope remains in platform_state_backup. */
+function sqliteApi() {
+  try {
+    const api = require('node:sqlite');
+    return typeof api.DatabaseSync === 'function' ? api : null;
+  } catch (e) { return null; }
+}
+
+function sqliteEnvelope(row) {
+  if (!row) return { state: 'MISSING', json: null, reason: null };
+  if (sha(row.payload) !== row.payload_sha256) return { state: 'CORRUPT', json: null, reason: 'payload SHA-256 mismatch' };
+  try {
+    const json = JSON.parse(row.payload);
+    if (!json || typeof json !== 'object' || Array.isArray(json)) throw new Error('state is not an object');
+    return { state: 'VALID', json, reason: null };
+  } catch (e) { return { state: 'CORRUPT', json: null, reason: String(e.message || e) }; }
+}
+
+function checkSqliteStore(file, opts) {
+  opts = opts || {};
+  const f = path.resolve(file);
+  if (!fs.existsSync(f)) {
+    return { file: f, kind: 'sqlite', primary: 'MISSING', backup: 'MISSING', effective: 'NONE-CREATED-YET', chain: null, chainEntries: 0, chainAnchored: null, vault: null, sqlite: 'MISSING', journalMode: null, needsRepair: false, decryptFails: 0, ok: true, notCreated: true, verdict: 'NOT CREATED YET — minted on first real use' };
+  }
+  const api = sqliteApi();
+  if (!api) {
+    return { file: f, kind: 'sqlite', primary: 'UNSUPPORTED', backup: 'UNKNOWN', effective: 'NONE', chain: null, chainEntries: 0, chainAnchored: null, vault: null, sqlite: 'NOT CHECKED', journalMode: null, needsRepair: true, decryptFails: 0, ok: false, repairNotes: ['use Node 22.5 or newer to inspect the built-in SQLite store'], verdict: 'ACTION REQUIRED — this Node runtime has no node:sqlite' };
+  }
+  let db;
+  try {
+    db = new api.DatabaseSync(f, { readOnly: true });
+    const quickRow = db.prepare('PRAGMA quick_check').get();
+    const quick = quickRow && String(Object.values(quickRow)[0]);
+    const journalRow = db.prepare('PRAGMA journal_mode').get();
+    const journalMode = String((journalRow && Object.values(journalRow)[0]) || '').toLowerCase();
+    const modes = {};
+    for (const candidate of [f, f + '-wal', f + '-shm']) {
+      if (fs.existsSync(candidate)) modes[path.basename(candidate)] = (fs.statSync(candidate).mode & 0o777).toString(8);
+    }
+    const primaryRow = db.prepare('SELECT payload,payload_sha256,revision,updated_at FROM platform_state WHERE id=1').get();
+    const backupRow = db.prepare('SELECT payload,payload_sha256,revision,updated_at FROM platform_state_backup WHERE id=1').get();
+    const p = sqliteEnvelope(primaryRow);
+    const b = sqliteEnvelope(backupRow);
+    const sample = p.json || b.json;
+    const chain = sample && sample.audit ? verifyChain(sample.audit) : null;
+    const vaultBase = path.resolve(opts.vaultBase || f);
+    const vault = sample ? checkVault(vaultBase, sample) : null;
+    const decryptFails = vault ? [].concat(Object.values(vault.creds), Object.values(vault.appSecrets)).filter(v => v !== 'DECRYPTS').length : 0;
+    const notes = [];
+    if (quick !== 'ok') notes.push('SQLite quick_check failed: ' + quick);
+    if (journalMode !== 'wal') notes.push('journal mode is ' + journalMode + ', expected wal');
+    const broadModes = Object.entries(modes).filter(([, mode]) => mode !== '600');
+    if (broadModes.length) notes.push('SQLite files are not owner-only: ' + broadModes.map(([name, mode]) => name + '=' + mode).join(', ') + ' (expected 600)');
+    if (p.state === 'CORRUPT' && b.state === 'VALID') notes.push('primary envelope is damaged; rewrite it from the last-good envelope');
+    if (p.state !== 'VALID' && b.state !== 'VALID') notes.push('no valid state envelope survives — restore an external backup');
+    if (p.json && chain && !chain.ok) notes.push('audit chain BROKEN at an entry — investigate tamper before trusting history');
+    if (vault && vault.keyFile === 'PRESENT' && vault.mode !== '600') notes.push('vault key mode is ' + (vault.mode || '?') + ' — owner-only (600) is required on multi-user systems: chmod 600 "' + vaultBase + '.vault-key"');
+    if (vault && vault.keyFile === 'MISSING') notes.push('vault key file MISSING — stored credentials are undecryptable and must be re-entered');
+    if (decryptFails) notes.push(decryptFails + ' credential(s) failed to decrypt — re-enter via their connect commands');
+    const usable = p.state === 'VALID' || b.state === 'VALID';
+    return {
+      file: f, kind: 'sqlite', primary: p.state, backup: b.state,
+      effective: p.state === 'VALID' ? 'PRIMARY' : (b.state === 'VALID' ? 'BACKUP' : 'NONE'),
+      revision: Number((p.state === 'VALID' ? primaryRow : backupRow || {}).revision) || 0,
+      chain: chain ? chain.ok : null, chainEntries: chain ? chain.entries : 0, chainAnchored: chain ? !!chain.anchored : null,
+      vault, sqlite: quick, journalMode, modes, needsRepair: notes.length > 0, repairNotes: notes, decryptFails,
+      ok: quick === 'ok' && usable,
+      verdict: quick === 'ok' && usable ? (notes.length ? 'HEALTHY — repair notes: ' + notes.join('; ') : 'HEALTHY') : 'ACTION REQUIRED — ' + notes.join('; ')
+    };
+  } catch (e) {
+    return { file: f, kind: 'sqlite', primary: 'CORRUPT', backup: 'UNKNOWN', effective: 'NONE', chain: null, chainEntries: 0, chainAnchored: null, vault: null, sqlite: 'FAIL', journalMode: null, needsRepair: true, decryptFails: 0, ok: false, repairNotes: [String(e.message || e)], verdict: 'ACTION REQUIRED — SQLite store could not be read: ' + String(e.message || e) };
+  } finally {
+    if (db) try { db.close(); } catch (e) { /* read-only checker: nothing to recover on close */ }
+  }
+}
+
 if (require.main === module) {
   const base = path.join(__dirname, 'data');
-  const files = [path.join(base, 'platform.json'), path.join(base, 'arena.json')];
+  const platformDb = path.join(base, 'platform.db');
+  const files = [
+    fs.existsSync(platformDb)
+      ? { file: platformDb, check: () => checkSqliteStore(platformDb, { vaultBase: path.join(base, 'platform.json') }) }
+      : { file: path.join(base, 'platform.json'), check: () => checkStore(path.join(base, 'platform.json')) },
+    { file: path.join(base, 'arena.json'), check: () => checkStore(path.join(base, 'arena.json')) }
+  ];
   let bad = 0;
-  for (const f of files) {
-    const r = checkStore(f);
+  for (const target of files) {
+    const r = target.check();
     if (!r.ok) bad++;
-    console.log('── ' + f);
+    console.log('── ' + target.file);
     console.log('   primary: ' + r.primary + ' · backup: ' + r.backup + ' · would boot from: ' + r.effective);
+    if (r.kind === 'sqlite') console.log('   sqlite: ' + r.sqlite + ' · journal: ' + (r.journalMode || 'unknown') + ' · revision: ' + (r.revision || 0) + ' · modes: ' + JSON.stringify(r.modes || {}));
     if (r.chain !== null) console.log('   audit chain: ' + (r.chain ? 'VERIFIES' : 'BROKEN') + ' (' + r.chainEntries + ' entries' + (r.chainAnchored ? ', rotated-window anchor' : '') + ')');
     if (r.vault) {
       const svcs = Object.keys(r.vault.creds).map(s => s + ':' + r.vault.creds[s]).join(' · ');
@@ -143,4 +237,4 @@ if (require.main === module) {
   process.exit(bad ? 1 : 0);
 }
 
-module.exports = { checkStore, verifyChain };
+module.exports = { checkStore, checkSqliteStore, verifyChain };

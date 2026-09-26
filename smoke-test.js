@@ -152,7 +152,8 @@ const driver = `
   const privateState = await fetch('/api/state');
   ok(privateState.status === 401, 'private GET state requires an authenticated Owner session');
   const publicHealth = await fetch('/api/health');
-  ok(publicHealth.status === 200, 'public health remains available without a session');
+  const publicHealthBody = await publicHealth.json();
+  ok(publicHealth.status === 200 && publicHealthBody.storage && publicHealthBody.storage.engine === 'json', 'public health remains available and reports the active storage engine');
 
   // palette
   openPalette(); $('#paletteInput').value = 'sec'; paintPalette();

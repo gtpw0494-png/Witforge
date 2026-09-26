@@ -188,6 +188,7 @@ const server = http.createServer(async (req, res) => {
       evidenceVault: kernel.vaultVerify(s),
       fraud: services.fraudReport(s),
       release: s.release,
+      storage: P.storageInfo(),
       adapters: P.adaptersLive().map(a => ({ id: a.id, name: a.name, state: a.state, caps: a.caps })),
       /* v1.65 engagement + owner protection */
       engagement: {
@@ -563,7 +564,8 @@ const server = http.createServer(async (req, res) => {
   if ((m = p.match(/^\/api\/avatars\/([^/]+)\/unequip$/)) && req.method === 'POST') { const b = await body(req); return json(res, 200, arena.unequip(m[1], b.slot)); }
 
   if (p === '/api/health') {
-    return json(res, 200, { status: 'ok', product: 'LIAM', version: VERSION, mode: 'local', time: new Date().toISOString() });
+    const storage = P.storageInfo();
+    return json(res, 200, { status: 'ok', product: 'LIAM', version: VERSION, mode: 'local', storage: { engine: storage.engine, journalMode: storage.journalMode }, time: new Date().toISOString() });
   }
 
   if (p.startsWith('/api/')) return json(res, 404, { ok: false, error: 'api-route-not-found' });

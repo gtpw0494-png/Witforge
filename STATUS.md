@@ -1,8 +1,14 @@
 # LIAM Status
 
-## Current release v2.06.0
+## Current release v2.07.0
 
-- **Package:** WitForge / LIAM Control Centre v2.06.0.
+- **Package:** WitForge / LIAM Control Centre v2.07.0.
+- **Durable platform store:** built-in SQLite with WAL, FULL synchronous commits,
+  hashed primary/last-good envelopes and monotonic revisions on supported Node;
+  atomic JSON remains the honest compatibility engine on older runtimes.
+- **Migration:** an existing `platform.json` imports once only into an empty
+  database, remains on disk, preserves nested metadata and is never re-imported
+  after SQLite becomes authoritative.
 - **HTTP boundary:** allowlisted Host/Origin, 1 MiB body ceiling, strict JSON object parsing, explicit content types, bounded methods and structured transport errors are enforced before route execution.
 - **Session lifecycle:** cryptographically random browser tokens are hashed before persistence, absolute/idle expiry is enforced, legacy records migrate additively, logout/revocation remains immediate, and cookies carry bounded lifetime attributes.
 - **Security perimeter:** loopback-only by default; explicit static-asset allowlist; private GET and mutation APIs require the Owner session; LAN mode fails closed unless both explicit enablement and a bearer token are supplied.
@@ -10,14 +16,13 @@
 - **Specification registry:** 177 requirements: 116 LIVE, 15 PARTIAL,
   21 EXTERNAL, 4 LOCKED and 21 POLICY.
 - **Requirement probes:** `node analysis/gap-scan.js` reports 91/91 present.
-- **Release suites:** specification 93, adversarial 78, platform 311, Arena 33,
-  engagement 117 and smoke 58: 690 checks total, 0 failures.
+- **Release suites:** specification 99, storage 19, adversarial 78, platform 311,
+  Arena 33, engagement 117 and smoke 71: 728 checks total, 0 failures.
 - **Gate:** `npm run build`, `npm run lint`, `npm test` and
   `npm run selftest` are the governing release commands.
-- **Maintenance rebuild:** root-state tests are portable across root and
-  non-root hosts; the smoke harness supports Node 24's getter-only navigator;
-  gap scanning no longer mutates Arena state and matches the current 5 paid
-  personal + 2 business + Free plan structure.
+- **Recovery:** `npm run recover` grades SQLite page integrity, WAL mode,
+  envelope hashes, last-good recovery, audit chain and vault access without
+  mutating the store or exposing a credential.
 - **Three Laws Covenant:** owner wording preserved in `THREE-LAWS.md`, durable
   owner doctrine, Documentation and requirement §177. Operational boundaries
   preserve non-harm, consent, security, truthfulness and human dignity.

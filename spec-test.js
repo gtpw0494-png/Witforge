@@ -247,7 +247,7 @@ const st = r => (r && (r.state || r.status)) || null;
   ok(self.checks.every(c => !c.pass || c.result === 'PASS'), 'a boolean pass is only ever reported for a PASS result');
   ok(self.checks.length >= 20, 'the self-test covers the §126 areas (' + self.checks.length + ' checks)');
   const rel = P.releaseInfo();
-  ok(['version', 'buildDate', 'sourceRevision', 'dependencyState', 'testStatus', 'knownLimitations', 'securityStatus'].every(f => f in rel), 'release metadata identifies all seven §129 fields');
+  ok(['version', 'buildDate', 'sourceRevision', 'dependencyState', 'testStatus', 'knownLimitations', 'securityStatus', 'storage'].every(f => f in rel), 'release metadata identifies all seven §129 fields plus the active storage engine');
   ok(/^\d+\.\d+\.\d+$/.test(rel.version), 'the version is semantic (MAJOR.MINOR.PATCH)');
   ok(fs.existsSync(path.join(__dirname, 'INSTALL.md')), 'installation validation document exists (§128)');
   const install = fs.readFileSync(path.join(__dirname, 'INSTALL.md'), 'utf8');

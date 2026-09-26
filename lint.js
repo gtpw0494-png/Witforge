@@ -18,8 +18,8 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = __dirname;
-const SERVER_FILES = ['server.js', 'llm.js', 'oauth.js', 'httpguard.js', 'oauth-server.js', 'vault.js', 'connectors.js', 'brain.js', 'piece-art.js', 'overseer.js', 'action-fabric.js', 'device-adapters.js', 'platform.js', 'kernel.js', 'capabilities.js', 'task-engine.js', 'platform-services.js', 'arena-engine.js', 'races.js', 'spec-coverage.js', 'engagement.js', 'owner-security.js'];
-const ALL_FILES = SERVER_FILES.concat(['app.js', 'build.js', 'lint.js', 'spec-test.js', 'adversarial-test.js', 'platform-test.js', 'arena-test.js', 'engagement-test.js', 'smoke-test.js']);
+const SERVER_FILES = ['server.js', 'llm.js', 'oauth.js', 'httpguard.js', 'oauth-server.js', 'vault.js', 'storage.js', 'recovery.js', 'connectors.js', 'brain.js', 'piece-art.js', 'overseer.js', 'action-fabric.js', 'device-adapters.js', 'platform.js', 'kernel.js', 'capabilities.js', 'task-engine.js', 'platform-services.js', 'arena-engine.js', 'races.js', 'spec-coverage.js', 'engagement.js', 'owner-security.js'];
+const ALL_FILES = SERVER_FILES.concat(['app.js', 'build.js', 'lint.js', 'spec-test.js', 'storage-test.js', 'adversarial-test.js', 'platform-test.js', 'arena-test.js', 'engagement-test.js', 'smoke-test.js']);
 
 const findings = [];
 const add = (file, line, rule, detail) => findings.push({ file, line, rule, detail });
@@ -31,6 +31,7 @@ for (const f of ALL_FILES) {
   const lines = src.split('\n');
   const isTest = /-test\.js$/.test(f);          // tests deliberately contain hostile payloads
   const isLint = f === 'lint.js';
+  const isCli = f === 'recovery.js';            // recovery console intentionally prints its read-only report
   const isServer = SERVER_FILES.includes(f);
 
   const head = src.split('\n').slice(0, 20).join('\n');
@@ -43,7 +44,7 @@ for (const f of ALL_FILES) {
     if (isServer && /localStorage/.test(ln) && !/local mirror/i.test(ln)) add(f, n, 'server-authority', 'server-side modules must not read browser storage');
     if (!isTest && /(sk_live_[A-Za-z0-9]{6,}|ghp_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{12,})/.test(ln)) add(f, n, 'no-committed-secrets', 'a live-looking credential literal is present');
     const serverEntryLog = f === 'server.js' && n > src.split('\n').length - 5;   // the startup banner is the server's own log
-    if (!isTest && !isLint && f !== 'build.js' && !serverEntryLog && !/^\s*\*/.test(ln) && /console\.log\(/.test(ln)) add(f, n, 'no-stray-logging', 'shipped modules log to stdout only through the server');
+    if (!isTest && !isLint && !isCli && f !== 'build.js' && !serverEntryLog && !/^\s*\*/.test(ln) && /console\.log\(/.test(ln)) add(f, n, 'no-stray-logging', 'shipped modules log to stdout only through the server');
   });
 
   /* server.js is the entry point and legitimately exports nothing. */

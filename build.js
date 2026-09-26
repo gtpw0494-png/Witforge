@@ -13,8 +13,8 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const ROOT = __dirname;
-const CODE = ['server.js', 'platform.js', 'kernel.js', 'capabilities.js', 'task-engine.js', 'platform-services.js', 'arena-engine.js', 'races.js', 'spec-coverage.js', 'app.js', 'llm.js', 'oauth.js', 'httpguard.js', 'oauth-server.js', 'vault.js', 'connectors.js', 'brain.js', 'piece-art.js', 'overseer.js', 'action-fabric.js', 'device-adapters.js'];
-const TESTS = ['spec-test.js', 'adversarial-test.js', 'platform-test.js', 'arena-test.js', 'smoke-test.js'];
+const CODE = ['server.js', 'platform.js', 'storage.js', 'recovery.js', 'kernel.js', 'capabilities.js', 'task-engine.js', 'platform-services.js', 'arena-engine.js', 'races.js', 'spec-coverage.js', 'app.js', 'llm.js', 'oauth.js', 'httpguard.js', 'oauth-server.js', 'vault.js', 'connectors.js', 'brain.js', 'piece-art.js', 'overseer.js', 'action-fabric.js', 'device-adapters.js'];
+const TESTS = ['spec-test.js', 'storage-test.js', 'adversarial-test.js', 'platform-test.js', 'arena-test.js', 'engagement-test.js', 'smoke-test.js'];
 const REQUIRED = ['index.html', 'styles.css', 'README.md', 'STATUS.md', 'INSTALL.md', 'package.json', 'spec-coverage.js'];
 
 let problems = 0;

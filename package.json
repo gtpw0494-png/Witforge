@@ -1,6 +1,6 @@
 {
   "name": "witforge",
-  "version": "2.06.0",
+  "version": "2.07.0",
   "description": "WitForge — a local-first, security-first conversational AI operating platform (browser control surface + authoritative local server).",
   "keywords": ["local-first", "permissions", "audit", "orchestration", "arena"],
   "license": "UNLICENSED",
@@ -14,8 +14,9 @@
     "dev": "node server.js",
     "build": "node build.js",
     "lint": "node lint.js",
-    "test": "node spec-test.js && node adversarial-test.js && node platform-test.js && node arena-test.js && node engagement-test.js && node smoke-test.js",
+    "test": "node spec-test.js && node storage-test.js && node adversarial-test.js && node platform-test.js && node arena-test.js && node engagement-test.js && node smoke-test.js",
     "test:spec": "node spec-test.js",
+    "test:storage": "node storage-test.js",
     "test:adversarial": "node adversarial-test.js",
     "test:platform": "node platform-test.js",
     "test:arena": "node arena-test.js",

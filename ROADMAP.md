@@ -4,12 +4,12 @@ The rule of this file: **what is listed as built was verified running in the cur
 
 Legend: ✅ verified live in this build · 🔶 partial/foundation exists · ⛔ not built (honest declaration)
 
-## Remaining productization work — status at v2.06.0
+## Remaining productization work — status at v2.07.0
 
 | §10 item | Status | Where / notes |
 |---|---|---|
 | Visual Action Center (discovery, inspection, preview, authorization, approval, execution, verification, evidence, cancellation, recovery) | ✅ console surface | `actions` / `action <id>` / `cancel action <id>` / `retry action <id>`, backed by durable envelopes (action-fabric.js). Browser-graphical Action Center UI tab: 🔶 console-complete, GUI tab open. |
-| Durable action-envelope persistence + cross-process lifecycle | ✅ v1.99 | `S.envelopes` persisted atomically with platform state; boot `resumeOnBoot()` re-marks stranded EXECUTING/VERIFYING as UNKNOWN (crash-truth §165), retry-legal (UNKNOWN → RECOVERING). |
+| Durable action-envelope persistence + cross-process lifecycle | ✅ v2.07 | `S.envelopes` persists in the SQLite/WAL transactional state envelope on supported Node (atomic JSON compatibility mode otherwise); boot `resumeOnBoot()` re-marks stranded EXECUTING/VERIFYING as UNKNOWN (crash-truth §165), retry-legal (UNKNOWN → RECOVERING). |
 | Real adapters for full breadth of device/OS/service/enterprise capabilities | 🔶 manufactured fleet | 13 adapters manufactured against spec/ADAPTERS-BASELINE.md (linux · android-adb · accessibility · shizuku · termux · macos · windows · ios · chromeos · bluetooth · usb · nfc · biometric), §15 contract + §122 manifests + §25 controls; linux ops VERIFIED LIVE on this host (cross-source §98); everything else reports DECLARED/UNAVAILABLE until its baseline appears — never faked. |
 | Production-grade owner identity/authn, credential brokerage | 🔶 | Vault (AES-256-GCM, machine-bound device key, rotation forensics) ✅; owner login/session ✅; passkeys/WebAuthn + MFA: ⛔. |
 | Full Android/Apple/Windows/Linux/ChromeOS execution adapters | 🔶 | Manufactured + baseline-specified (spec/ADAPTERS-BASELINE.md); CONNECTED only where the host exposes the official interface (linux ✅ here; others DECLARED until their hardware appears). |

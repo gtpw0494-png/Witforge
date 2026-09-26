@@ -1,3 +1,19 @@
+# LIAM · v2.07.0 — durable SQLite/WAL platform storage
+
+**v2.07.0:** on Node runtimes with the built-in `node:sqlite` API, the
+authoritative platform state now lives in `data/platform.db` with WAL journaling,
+`synchronous=FULL`, transactional revisions, a SHA-256-verified primary envelope
+and a last-good envelope. An existing `data/platform.json` is imported once only
+when the database is empty; it is retained rather than deleted, and nested
+training/provenance metadata is regression-tested byte-for-byte through the
+migration. If SQLite is unavailable and no database exists yet, `auto` mode
+uses the established atomic JSON + `.bak` engine. Once a database exists, an
+older runtime fails closed instead of reopening stale JSON or splitting state.
+`npm run recover`, `/api/health`, `/api/state`, release
+metadata and self-test all report the active engine truthfully.
+
+---
+
 # LIAM · v2.06.0 — strict HTTP request boundary
 
 **v2.06.0:** every API request now crosses a strict transport boundary before
@@ -711,18 +727,21 @@ Verification (every command below was executed on this tree):
 ```sh
 npm run build           # source validation pass (no bundler)
 npm run lint            # project lint rules, dependency-free
-npm test                # all six suites
+npm test                # all seven suites
 npm run selftest        # §126 self-test → PASS/FAIL/WARNING/NOT_TESTED
 ```
 
 | Suite | Checks | What it proves |
 |---|---|---|
-| `spec-test.js` | 93 | §125 release areas: authentication → failure continuation |
+| `spec-test.js` | 99 | §125 release areas: authentication → failure continuation |
+| `storage-test.js` | 19 | JSON compatibility, SQLite/WAL migration, restart, idempotency, corruption recovery |
 | `adversarial-test.js` | 78 | §150 the 13 mandated attack classes + audit tampering |
-| `platform-test.js` | 166 | ledger, SSRF, sandbox, allow-list, approvals, router, human gates, LLM ensemble/consensus/proposals, briefing, ask-about-URL, ad agent, local model management, plans/LD packages/social/self-update |
-| `arena-test.js` | 28 | races, naked starts, loadout gate, determinism |
+| `platform-test.js` | 311 | ledger, SSRF, sandbox, allow-list, approvals, router, human gates, models, plans, connectors and recovery |
+| `arena-test.js` | 33 | races, naked starts, loadout gate, determinism and store recovery |
 | `engagement-test.js` | 117 | v1.65: LD costs, LD market, events, lotto, rewards, plans, guardian |
-| `smoke-test.js` | 57 | boots the real server and renders every view; chat-over-HTTP replies and the human-gate round trip |
+| `smoke-test.js` | 71 | boots the real server; renders every view; exercises auth and the HTTP boundary |
+
+Current release total: **728 checks, 0 failures**.
 
 Requirement-level gap analysis against the 168-section master spec:
 `node analysis/gap-scan.js` → **89/89 probed requirements present**.

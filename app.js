@@ -244,7 +244,7 @@ function openFacet(moduleId, facetId) {
   const st = STATE[mod.state];
   let html = '';
   if (facetId === 'overview') html = card('About', `<p>${esc(mod.sub)}</p>`) + card('State', kv([['Capability state', st.pill], ['Data source', mod.source], ['Control model', mod.control], ['Emergency', S.emergency]]));
-  else if (facetId === 'configuration') html = card('Configuration', kv([['Data source', mod.source], ['Control model', mod.control], ['Persistence', 'Server data store (data/platform.json)'], ['External telemetry', 'None']]));
+  else if (facetId === 'configuration') html = card('Configuration', kv([['Data source', mod.source], ['Control model', mod.control], ['Persistence', 'Server store (SQLite/WAL or atomic JSON compatibility mode)'], ['External telemetry', 'None']]));
   else if (facetId === 'permissions') html = card('Effective permissions', kv([['Local read/write', 'GRANTED — user controlled'], ['External network', 'Granted per-request via Chat or Permissions workspace'], ['High-risk actions', 'Approval-gated'], ['Emergency', S.emergency]]));
   else if (facetId === 'activity') {
     const evts = S.audit.filter(a => (a.detail || '').toLowerCase().includes(mod.label.toLowerCase()) || a.type === mod.id).slice(0, 20);
@@ -820,7 +820,7 @@ const CRED_CATALOG = [
   { g: 'SOCIAL', id: 'instagram', name: 'Instagram (Business)', portal: 'developers.facebook.com', portalUrl: 'https://developers.facebook.com', steps: 'Meta app → add the Instagram product → generate token. Requires a Business/Creator account linked to a Facebook Page. This connector verifies identity only.', ph: 'EAA… / IGAA…', risk: 'Verify-only connector' },
   { g: 'SOCIAL', id: 'linkedin', name: 'LinkedIn', portal: 'linkedin.com/developers', portalUrl: 'https://www.linkedin.com/developers/apps', steps: 'Create app → request the Sign In / Share products → OAuth 2.0 member token. This connector verifies identity only.', ph: 'AQX… / AQY…', risk: 'Verify-only connector' },
   { g: 'SOCIAL', id: 'tiktok', name: 'TikTok', portal: 'developers.tiktok.com', portalUrl: 'https://developers.tiktok.com', steps: 'Create app → manage apps → client key + secret as key:secret. This connector verifies identity only.', ph: 'client_key:client_secret', risk: 'Verify-only connector' },
-  { g: 'CORE', id: 'github', name: 'GitHub', portal: 'github.com/settings/tokens', portalUrl: 'https://github.com/settings/tokens', steps: 'Settings → Developer settings → Personal access tokens → fine-grained PAT with Contents read/write on doomed689/WitForge. Unlocks real repo reads and approval-gated writes.', ph: 'github_pat_…' },
+  { g: 'CORE', id: 'github', name: 'GitHub', portal: 'github.com/settings/tokens', portalUrl: 'https://github.com/settings/tokens', steps: 'Settings → Developer settings → Personal access tokens → fine-grained PAT with Contents read/write on gtpw0494-png/Witforge. Unlocks real repo reads and approval-gated writes.', ph: 'github_pat_…' },
   { g: 'CORE', id: 'stripe', name: 'Stripe', portal: 'dashboard.stripe.com/apikeys', portalUrl: 'https://dashboard.stripe.com/apikeys', steps: 'Developers → API keys → a restricted key (rk_…) is recommended — least privilege. Verification + evidence only: real money stays compliance-locked (Charter art. IV).', ph: 'rk_live_… / sk_…' }
 ];
 async function renderCredentials() {
@@ -1458,7 +1458,7 @@ function toggleCollapse() {
 /* ── Global wiring ───────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async () => {
   try { const ui = JSON.parse(localStorage.getItem('liam.ui') || '{}'); if (ui.collapsed && window.innerWidth > 960) document.body.classList.add('sidebar-collapsed'); } catch (e) {}
-  $('#buildTag').textContent = 'LIAM v2.06.0 · 177-REQUIREMENT COVERAGE';
+  $('#buildTag').textContent = 'LIAM v2.07.0 · 177-REQUIREMENT COVERAGE';
   await refreshState();
   renderNav();
   refreshStatus();

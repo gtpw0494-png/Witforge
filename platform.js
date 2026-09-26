@@ -20,7 +20,7 @@ const connectors = require('./connectors.js');
 const { SOCIALS, SOCIAL_POSTABLE, ADAPTERS, socialEntry } = connectors;
 const llm = require('./llm.js');
 
-const VERSION = '2.06.0';
+const VERSION = '2.07.0';
 function boundedMs(name, fallback, min, max) {
   const n = Number(process.env[name]);
   return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.floor(n))) : fallback;
@@ -45,7 +45,20 @@ const THREE_LAWS = Object.freeze([
   })
 ]);
 
-const DATA = process.env.PLATFORM_DATA ? path.resolve(process.env.PLATFORM_DATA) : path.join(__dirname, 'data', 'platform.json');
+const LEGACY_DATA = process.env.PLATFORM_DATA ? path.resolve(process.env.PLATFORM_DATA) : path.join(__dirname, 'data', 'platform.json');
+const SQLITE_DATA = process.env.WITFORGE_SQLITE_PATH ? path.resolve(process.env.WITFORGE_SQLITE_PATH) : path.join(path.dirname(LEGACY_DATA), path.basename(LEGACY_DATA, path.extname(LEGACY_DATA)) + '.db');
+/* v2.07: the platform state is now persisted through one explicit engine.
+ * Modern Node uses built-in SQLite/WAL; an explicit PLATFORM_DATA override
+ * retains the atomic JSON engine for test isolation and older deployments.
+ * The legacy JSON file is also the stable vault-key base, so migration never
+ * strands already-encrypted credentials under a newly named key file. */
+const stateStore = require('./storage.js').createPlatformStore({
+  root: __dirname,
+  jsonFile: LEGACY_DATA,
+  sqliteFile: SQLITE_DATA,
+  preferJson: !!process.env.PLATFORM_DATA
+});
+const DATA = stateStore.vaultBase;
 const USERFILES = path.join(__dirname, 'data', 'userfiles');
 /* v1.83.0: the credential vault itself now lives in ./vault.js — injected with
  * the host's state/persistence/audit, so the key chain has exactly one owner
@@ -73,36 +86,23 @@ const { oauthSetApp, oauthForgetApp, oauthAppSecret, oauthStatusList, oauthStart
 });
 
 let S = null;
-/* v1.79 durability: saves are ATOMIC (write tmp + rename — a crash can
- * truncate the tmp file, never the store) and every boot of a good store
- * keeps a last-good snapshot at <DATA>.bak that load() falls back to if the
- * primary is ever corrupt. Data loss is refused, not just made unlikely. */
+/* v1.79 JSON durability remains available through storage.js; v2.07 adds a
+ * transactionally committed SQLite/WAL envelope with a hashed last-good row.
+ * This compatibility helper remains for older internal callers and forensic
+ * scripts that understand the original atomic-write contract. */
 function atomicWrite(file, text) {
   const tmp = file + '.tmp';
   fs.writeFileSync(tmp, text);
   fs.renameSync(tmp, file);
 }
 function load() {
-  try {
-    fs.mkdirSync(path.dirname(DATA), { recursive: true });
-    fs.mkdirSync(USERFILES, { recursive: true });
-    if (fs.existsSync(DATA)) {
-      try {
-        S = JSON.parse(fs.readFileSync(DATA, 'utf8'));
-        try { fs.copyFileSync(DATA, DATA + '.bak'); } catch (e) { /* snapshot best-effort; never blocks boot */ }
-        return;
-      } catch (e) {
-        /* PRIMARY CORRUPT — recover from the last-good snapshot, on record */
-        try {
-          S = JSON.parse(fs.readFileSync(DATA + '.bak', 'utf8'));
-          console.error('LIAM: primary store unreadable — recovered from ' + DATA + '.bak');
-          return;
-        } catch (e2) { /* no snapshot either: fall through to fresh, recorded below */ }
-      }
-    }
-  } catch (e) { /* fall through to fresh */ }
-  S = freshState();
-  save();
+  fs.mkdirSync(USERFILES, { recursive: true });
+  const loaded = stateStore.load();
+  S = loaded.state;
+  if (!S) {
+    S = freshState();
+    save();
+  }
 }
 function freshState() {
   return {
@@ -173,7 +173,7 @@ function seedLegal() {
     mk('arena', 'Arena Terms', 'Wagers escrow 100 LD per participant (pool 200 LD); settlement pays the winner 198 LD and the treasury 2 LD (1%). Real-money wagering is compliance-locked (§85–§90).')
   ];
 }
-function save() { atomicWrite(DATA, JSON.stringify(S)); }   // v1.79: atomic — see header note above
+function save() { return stateStore.save(S); }
 load();
 Object.assign(S, Object.assign(freshState(), S)); // backfill new fields on old stores
 S.economy = Object.assign({ realMode: false, stripeAccount: null, credited: {} }, S.economy);
@@ -3194,6 +3194,14 @@ function observability() {
     note: 'Logs, metrics, spans and correlation ids; export is OTLP-shaped and privacy-aware (§119).'
   };
 }
+function storageInfo() {
+  const detail = stateStore.info();
+  return Object.assign({}, detail, {
+    /* API/release surfaces need engine truth, not the host's absolute path. */
+    file: path.basename(detail.file),
+    legacyFile: path.basename(detail.legacyFile)
+  });
+}
 function releaseInfo() {
   let rev = 'unknown (no VCS metadata available)';
   try {
@@ -3206,7 +3214,7 @@ function releaseInfo() {
     testStatus: S.release && S.release.testStatus ? S.release.testStatus : 'see test suites',
     securityStatus: 'security layer independent of the model; approval-gated high risk; PROHIBITED actions cannot execute; audit chain verified=' + verifyAudit().ok
   });
-  S.release = Object.assign({}, meta, { generatedTs: Date.now() });
+  S.release = Object.assign({}, meta, { generatedTs: Date.now(), storage: storageInfo() });
   return S.release;
 }
 /* §109 database collections */
@@ -3217,6 +3225,8 @@ function selftestAll() {
   const C = services.check;
   const checks = [];
   const eco = economySelfTest();
+  const storageCheck = stateStore.integrity();
+  checks.push(C('durable platform storage integrity', 'database', storageCheck.ok ? 'PASS' : 'FAIL', storageCheck.engine + (storageCheck.journalMode ? '/' + storageCheck.journalMode : '') + ' primary=' + storageCheck.primary + ' backup=' + storageCheck.backup));
   checks.push(C('ledger invariants (100+100=200, 198+2, sum invariant)', 'database', eco.checks.every(c => c.pass) ? 'PASS' : 'FAIL', eco.checks.map(c => c.check + '=' + c.pass).join('; ')));
   checks.push(C('tamper-evident audit chain verifies', 'audit-system', verifyAudit().ok ? 'PASS' : 'FAIL', verifyAudit().ok ? 'chain intact' : 'BROKEN at ' + verifyAudit().brokenAt));
   checks.push(C('audit records carry the full §96 field set', 'audit-system', S.audit.every(a => a.id && a.action && a.cid !== undefined) ? 'PASS' : 'WARNING', 'newest ' + S.audit.length + ' records'));
@@ -3903,7 +3913,7 @@ module.exports = {
   enableAutonomousPolicy, disableAutonomousPolicies, addDelegation,
   createOrgCmd, subscribeCmd, addAccountCmd, deleteAccountCmd, disconnectAccountCmd, accountBoundaryCheck,
   registerAssetCmd, transferAssetCmd,
-  observability, releaseInfo,
+  observability, releaseInfo, storageInfo,
   EMERGENCIES, setEmergency, grant, revoke, permitted,
   createApproval, decideApproval, approved,
   chatFallback, brain, brainRecall, verifyNumericClaims, overseer, brainClassify, rateGate, rateNote, rateState, rateErrorDetect, llmRegistry: () => llm.PROVIDERS,

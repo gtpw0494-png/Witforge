@@ -1,6 +1,6 @@
 # WitForge — Installation & Operations Validation
 
-**Applies to:** WitForge `1.73.0` (engagement + owner-protection build).
+**Applies to:** WitForge `2.07.0` (SQLite/WAL durable-storage build).
 **Scope:** this document is the §128 installation-validation record. Every command
 below was executed against this tree before it was written. Commands that were not
 run are marked as such — nothing here is claimed on faith.
@@ -22,8 +22,10 @@ run are marked as such — nothing here is claimed on faith.
 ## 2. Supported Node version
 
 * `package.json` declares `"engines": { "node": ">=18.0.0" }`.
-* **Verified on:** Node `v20.20.2` (the version used for every check in this document).
-* No transpiler, bundler or native addon is used, so any maintained Node ≥18 LTS is expected to work.
+* **Verified on:** Node `v24.19.0` (the version used for every check in this release).
+* Node ≥22.5 uses the built-in SQLite/WAL engine. Node 18/20 remains supported
+  through the atomic JSON compatibility engine; no transpiler, package or native
+  addon is required.
 
 ```bash
 node --version        # must print v18.x or newer
@@ -52,7 +54,9 @@ npm install           # succeeds and installs nothing — that is the intended r
 | `WITFORGE_SESSION_TTL_MS` | `43200000` | Absolute Owner-session lifetime (12 hours; bounded from 15 minutes to 30 days) |
 | `WITFORGE_SESSION_IDLE_MS` | `7200000` | Idle Owner-session lifetime (2 hours; bounded from 5 minutes to the absolute lifetime) |
 | `WITFORGE_OWNER_EMAIL` | *(unset)* | Private local first-Owner binding. Set this before startup; only a matching email can create the first account. The state stores a one-way hash and masked form, not the plaintext address |
-| `PLATFORM_DATA` | `<repo>/data/platform.json` | Authoritative platform store (state, audit, permissions, devices, accounts, assets) |
+| `WITFORGE_STORAGE` | `auto` | `auto`, `sqlite`, or `json`. Auto uses built-in SQLite where available and otherwise reports/uses the JSON compatibility engine |
+| `WITFORGE_SQLITE_PATH` | `<repo>/data/platform.db` | SQLite platform-store path. Set `WITFORGE_STORAGE=sqlite` as well when `PLATFORM_DATA` is explicitly set |
+| `PLATFORM_DATA` | `<repo>/data/platform.json` | Legacy import source and stable vault-key base. Explicitly setting it keeps `auto` in JSON compatibility mode for isolated/custom deployments |
 | `ARENA_DATA` | `<repo>/data/arena.json` | Arena/avatar/asset store |
 | `GITHUB_TOKEN` | *(unset)* | Optional. Without it the GitHub connector reports **UNAVAILABLE** — honestly, not simulated |
 | `TERMUX` / `TERMUX_VERSION` | *(unset)* | Detected on Android; enables the Termux capability page |
@@ -88,16 +92,28 @@ or in Chat: `economy`.
 
 ## 6. Database initialization
 
-There is no external database engine; the store is a JSON document per module.
+There is no external database service or package. On Node ≥22.5, the platform
+uses Node's built-in SQLite engine with WAL, `synchronous=FULL`, transactional
+monotonic revisions and SHA-256-verified primary/last-good state envelopes.
+Older supported Node runtimes use the atomic JSON + `.bak` engine.
 
 ```bash
-# explicit initialization (creates the directory and an empty, valid store)
+# explicit initialization (creates/imports and verifies the selected store)
 mkdir -p data
-node -e "const P=require('./platform.js'); P.save(); console.log('platform store created')"
+node -e "const P=require('./platform.js'); P.save(); console.log(P.storageInfo())"
+npm run recover
 ```
 
-* First run creates `data/platform.json`, `data/arena.json`, `data/userfiles/`, `data/quarantine/` as needed.
-* Schema evolution is **additive and automatic**: `load()` back-fills new collections and `migrateLegal()` appends new legal documents on every start. Existing records are never rewritten or dropped.
+* On modern Node, first run creates `data/platform.db`; an existing
+  `data/platform.json` is imported once only if the database has no state row.
+  The JSON source and `platform.json.vault-key` are retained.
+* If `platform.db` already exists, starting on a runtime without `node:sqlite`
+  fails closed; it never reopens the now-stale legacy JSON source.
+* `data/arena.json`, `data/userfiles/`, and `data/quarantine/` remain local and
+  are created as needed.
+* Schema evolution is **additive and automatic**: the migration ledger is
+  idempotent, `load()` back-fills new collections and `migrateLegal()` appends
+  missing legal documents. Existing records are never dropped.
 * Collections (`DB_COLLECTIONS`, §109): users, sessions, projects, tasks, permissions, capabilityTokens, accounts, devices, agents, memory, knowledge, assets, ledger, transactions, securityEvents, audit, integrations, evidenceVault, orgs, subscriptions, approvals.
 
 ## 7. First-run setup
@@ -122,20 +138,21 @@ node server.js   # equivalent
 PORT=9000 node server.js
 ```
 
-The server binds `0.0.0.0:$PORT` and logs:
+The server binds loopback-only by default and logs:
 
 ```
-LIAM control centre listening on http://0.0.0.0:8787
+LIAM control centre listening on http://127.0.0.1:8787
 ```
 
 ## 9. Health check
 
 ```bash
 curl -s localhost:8787/api/health
-# {"status":"ok","product":"LIAM","version":"1.65.0","mode":"local","time":"…"}
+# {"status":"ok","product":"LIAM","version":"2.07.0","mode":"local","storage":{"engine":"sqlite","journalMode":"wal"},"time":"…"}
 
 npm run health           # same check with an exit code (0 = healthy)
 npm run selftest         # §126 internal self-test, PASS/FAIL/WARNING/NOT_TESTED
+npm run recover          # read-only database/envelope/audit/vault grading
 curl -s localhost:8787/api/selftest   # full structured report
 ```
 
@@ -146,8 +163,9 @@ Additional verification endpoints: `/api/version` (§129 release metadata),
 ## 10. Test commands
 
 ```bash
-npm test                     # all five suites, in order
+npm test                     # all seven suites, in order
 npm run test:spec            # §125 release areas (authentication … failure continuation)
+npm run test:storage         # JSON compatibility + SQLite migration/restart/recovery
 npm run test:adversarial     # §150 the 13 mandated attack classes + audit tampering
 npm run test:platform        # platform core: ledger, SSRF, sandbox, allow-list, approvals
 npm run test:arena           # deterministic battle engine, loot, rarity rules
@@ -156,24 +174,26 @@ npm run build                # source validation pass (no bundler)
 npm run lint                 # project lint rules (no dependencies)
 ```
 
-Expected results on this tree (Node v20.20.2):
+Expected results on this tree (Node v24.19.0):
 
 | Suite | Checks | Failures |
 |---|---|---|
-| `spec-test.js` | 93 | 0 |
+| `spec-test.js` | 99 | 0 |
+| `storage-test.js` | 19 | 0 |
 | `adversarial-test.js` | 78 | 0 |
-| `platform-test.js` | 166 | 0 |
-| `arena-test.js` | 28 | 0 |
-| `smoke-test.js` | 57 | 0 |
-| **total** | **539** | **0** |
+| `platform-test.js` | 311 | 0 |
+| `arena-test.js` | 33 | 0 |
+| `engagement-test.js` | 117 | 0 |
+| `smoke-test.js` | 71 | 0 |
+| **total** | **728** | **0** |
 
 Tests are isolated: they create their own temporary data directories and never touch a live `data/` store.
 
 ## 11. Shutdown
 
 ```bash
-Ctrl-C            # SIGINT — exits immediately, no flush needed (state is written on every mutation)
-kill <pid>        # SIGTERM — same behaviour
+Ctrl-C            # SIGINT — state was transactionally committed on every mutation
+kill <pid>        # SIGTERM — SQLite recovers committed WAL entries on restart
 ```
 
 There are no background workers: the reminders/schedules ticker is an in-process
@@ -183,7 +203,8 @@ already on disk in `data/` before shutdown.
 ## 12. Upgrade procedure
 
 ```bash
-# 1. back up first — this is the rollback point
+# 1. stop the server, grade the store, then back up the complete data directory
+npm run recover
 tar czf witforge-backup-$(date +%Y%m%d-%H%M).tgz data/ *.js *.json *.md
 
 # 2. fetch the new source
@@ -213,8 +234,9 @@ kill <pid>
 # 2. restore the previous source revision
 git checkout <previous-tag-or-commit>
 
-# 3. restore the data store captured before the upgrade
-rm -rf data && tar xzf witforge-backup-<stamp>.tgz
+# 3. preserve the current data directory, then restore the captured store
+mv data data-before-rollback-$(date +%Y%m%d-%H%M)
+tar xzf witforge-backup-<stamp>.tgz
 
 # 4. verify the restored build before serving traffic
 npm run build && npm test
@@ -236,10 +258,10 @@ rather than serving a store whose history cannot be proven.
 
 ```bash
 pkg update && pkg install nodejs git
-git clone https://github.com/doomed689/WitForge && cd WitForge
+git clone https://github.com/gtpw0494-png/Witforge && cd Witforge
 npm install     # no-op
 npm run build && npm test
-npm run dev     # serves on 0.0.0.0:8787 — open http://127.0.0.1:8787 in the device browser
+npm run dev     # serves on 127.0.0.1:8787 — open http://127.0.0.1:8787 in the device browser
 ```
 
 The `termux` capability page reports what is genuinely available on the device;
@@ -253,8 +275,10 @@ is connected and trusted through the §40 pairing flow.
   exist. They are never simulated and never counted as connected.
 * Real-money LD economy paths are **COMPLIANCE-LOCKED** (`LD_ECONOMY_MODE=simulation`,
   `REAL_MONEY_WAGERING_ENABLED=false`, `ARENA_WAGER_ENABLED=false`).
-* The store is a local JSON document: single-writer by design, no multi-node replication.
-* Sessions are in-process; restarting the server invalidates them.
+* Platform state is a local transactional envelope, not a normalized relational
+  schema or multi-node database. Arena remains an atomic JSON store.
+* Owner sessions persist as hashes with absolute/idle expiry; distributed
+  session coordination and passkeys/WebAuthn are not implemented.
 * Automated UI coverage is the DOM-stub smoke suite, not a real browser engine.
 
 ---
