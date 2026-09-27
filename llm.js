@@ -83,7 +83,7 @@ const PROVIDERS = [
     free: 'fully local ForgeLM checkpoint served by WitForge; no key and no cloud',
     connect: 'start "python -m model.forgelm.server --checkpoint state/models/forgelm-nano", then "verify forge-native"',
     local: true,
-    capabilities: ['text_generation', 'structured_output', 'sse_streaming', 'kv_cache_telemetry'],
+    capabilities: ['text_generation', 'structured_output', 'sse_streaming', 'kv_cache_telemetry', 'responses_api'],
     contextTokens: 2048
   },
   {
@@ -188,6 +188,49 @@ function dryRun(providerId, args) {
   };
 }
 
+function responsesDryRun(providerId, args) {
+  args = args || {};
+  const p = providerById(args.provider || providerId);
+  if (!p) return { error: 'Unknown provider ' + (args.provider || providerId) };
+  if (p.shape !== 'forge-native') return { error: 'Responses-style API is currently implemented only for forge-native' };
+  const model = String(args.model || p.defaultModel).slice(0, 80);
+  const maxTokens = Math.min(2000, Math.max(16, Number(args.maxTokens) || 400));
+  const temperature = Math.min(2, Math.max(0, Number(args.temperature) == null ? 0.4 : Number(args.temperature)));
+  const msgs = normaliseMessages(args);
+  if (msgs.error) return { error: msgs.error };
+  const systemPrompt = String(args.system ? args.system.slice(0, 6000) : SYSTEM_PROMPT);
+  const input = [{ role: 'system', content: systemPrompt }].concat(msgs.messages);
+  const body = {
+    model,
+    input,
+    max_output_tokens: maxTokens,
+    temperature,
+    top_p: 0.95,
+    stream: args.stream === true
+  };
+  if (args.responseFormat && typeof args.responseFormat === 'object') {
+    try {
+      const rf = JSON.parse(JSON.stringify(args.responseFormat));
+      const spec = rf.type === 'json_schema' && rf.json_schema ? rf.json_schema : null;
+      if (spec && spec.schema) {
+        body.text = {
+          format: {
+            type: 'json_schema',
+            name: String(spec.name || 'response').slice(0, 80),
+            strict: spec.strict !== false,
+            schema: spec.schema
+          }
+        };
+      }
+    } catch (e) { return { error: 'responseFormat must be JSON-serializable' }; }
+  }
+  return {
+    provider: p.id, model, url: p.endpoint + '/v1/responses', method: 'POST', local: true,
+    headers: { 'content-type': 'application/json' },
+    body
+  };
+}
+
 function normaliseMessages(args) {
   if (Array.isArray(args.messages) && args.messages.length) {
     const clean = args.messages.slice(-12).map(m => ({
@@ -223,6 +266,31 @@ function parseReply(shape, payload) {
   return { content: content.slice(0, 8000), usage: (payload.usage) || null };
 }
 
+function parseResponsesReply(payload) {
+  if (!payload || payload.object !== 'response' || payload.status !== 'completed') {
+    throw new Error('ForgeNative Responses API returned an incomplete response');
+  }
+  let content = typeof payload.output_text === 'string' ? payload.output_text.trim() : '';
+  if (!content && Array.isArray(payload.output)) {
+    const texts = [];
+    for (const item of payload.output) {
+      if (!item || !Array.isArray(item.content)) continue;
+      for (const part of item.content) {
+        if (part && part.type === 'output_text' && typeof part.text === 'string') texts.push(part.text);
+      }
+    }
+    content = texts.join('').trim();
+  }
+  if (!content) throw new Error('ForgeNative Responses API returned no output text');
+  return {
+    content: content.slice(0, 8000),
+    usage: payload.usage || null,
+    inference: payload.inference || null,
+    responseId: payload.id || null,
+    status: payload.status
+  };
+}
+
 /* Ollama and ForgeNative are the only local model providers. Each path is
  * explicitly allowlisted so this cannot become a general SSRF escape. */
 function validateLocalUrl(urlStr) {
@@ -236,7 +304,7 @@ function validateLocalUrl(urlStr) {
     return { ok: true, url: u, provider: 'ollama' };
   }
   if (port === String(FORGE_NATIVE_PORT)) {
-    if (!['/health', '/v1/models', '/v1/chat/completions'].includes(u.pathname)) return { error: 'ForgeNative path is not allowlisted' };
+    if (!['/health', '/v1/models', '/v1/chat/completions', '/v1/responses'].includes(u.pathname)) return { error: 'ForgeNative path is not allowlisted' };
     return { ok: true, url: u, provider: 'forge-native' };
   }
   return { error: 'Only configured local-model ports ' + OLLAMA_PORT + ' and ' + FORGE_NATIVE_PORT + ' are allowed' };
@@ -280,6 +348,91 @@ async function chat(providerId, args, deps) {
   } catch (e) {
     return { ok: false, provider: p.id, model: req.model || req.body.model, latencyMs, error: e.message };
   }
+}
+
+async function response(providerId, args, deps) {
+  deps = deps || {};
+  const started = Date.now();
+  const req = responsesDryRun(providerId, args);
+  if (req.error) return { ok: false, error: req.error };
+  if (!deps.localFetch) return { ok: false, provider: req.provider, error: 'Local fetch unavailable in this runtime' };
+  const res = await deps.localFetch(req.url, req.headers, { method: 'POST', body: JSON.stringify(req.body), timeoutMs: 120000 });
+  const latencyMs = Date.now() - started;
+  if (!res || !res.ok) return { ok: false, provider: req.provider, model: req.model, latencyMs, error: String((res && (res.text || res.error)) || 'request failed').slice(0, 300) };
+  let payload;
+  try { payload = JSON.parse(res.text); } catch (e) { return { ok: false, provider: req.provider, model: req.model, latencyMs, error: 'Non-JSON response from ForgeNative Responses API' }; }
+  try {
+    const out = parseResponsesReply(payload);
+    return Object.assign({ ok: true, provider: req.provider, model: req.model, latencyMs, api: 'responses' }, out);
+  } catch (e) {
+    return { ok: false, provider: req.provider, model: req.model, latencyMs, error: e.message };
+  }
+}
+
+async function streamResponse(providerId, args, deps) {
+  deps = deps || {};
+  const started = Date.now();
+  const req = responsesDryRun(providerId, Object.assign({}, args || {}, { stream: true }));
+  if (req.error) return { ok: false, error: req.error };
+  if (!deps.localStream) return { ok: false, provider: req.provider, error: 'Local streaming transport unavailable in this runtime' };
+
+  let content = '';
+  let usage = null;
+  let inference = null;
+  let responseId = null;
+  let eventCount = 0;
+  let tokenEvents = 0;
+  let completed = false;
+
+  const transport = await deps.localStream(
+    req.url,
+    req.headers,
+    { method: 'POST', body: JSON.stringify(req.body), timeoutMs: 120000 },
+    event => {
+      if (!event || typeof event !== 'object') return;
+      eventCount++;
+      if (event.type === 'response.created' && event.response) responseId = event.response.id || responseId;
+      if (event.type === 'response.output_text.delta') {
+        if (typeof event.delta === 'string') content += event.delta;
+        if (Number.isInteger(event.token_id)) tokenEvents++;
+      }
+      if (event.type === 'response.completed' && event.response) {
+        responseId = event.response.id || responseId;
+        usage = event.response.usage || null;
+        inference = event.response.inference || null;
+        if (typeof event.response.output_text === 'string') content = event.response.output_text;
+        completed = event.response.status === 'completed';
+      }
+      if (typeof deps.onEvent === 'function') deps.onEvent(event);
+    }
+  );
+
+  const latencyMs = Date.now() - started;
+  if (!transport || !transport.ok) {
+    return { ok: false, provider: req.provider, model: req.model, latencyMs, error: String((transport && (transport.error || transport.text)) || 'stream request failed').slice(0, 300) };
+  }
+  if (!completed) {
+    return { ok: false, provider: req.provider, model: req.model, latencyMs, error: 'ForgeNative Responses stream ended without response.completed' };
+  }
+  const outputTokens = usage && Number(usage.output_tokens);
+  if (Number.isFinite(outputTokens) && tokenEvents > outputTokens) {
+    return { ok: false, provider: req.provider, model: req.model, latencyMs, error: 'ForgeNative Responses stream emitted more token events than final output token count' };
+  }
+  return {
+    ok: true,
+    provider: req.provider,
+    model: req.model,
+    api: 'responses',
+    responseId,
+    status: 'completed',
+    content: content.slice(0, 8000),
+    usage,
+    inference,
+    streamed: true,
+    latencyMs,
+    eventCount,
+    tokenEvents
+  };
 }
 
 async function streamChat(providerId, args, deps) {
@@ -385,5 +538,5 @@ async function ensemble(providerIds, args, deps) {
 }
 
 module.exports = {
-  RATE_RPM, RATE_TPD, PROVIDERS, PROVIDER_IDS, DEFAULT_ORDER, SYSTEM_PROMPT, providerById, dryRun, parseReply, validateLocalUrl, chat, streamChat, ollamaModels, forgeNativeStatus, ensemble,
+  RATE_RPM, RATE_TPD, PROVIDERS, PROVIDER_IDS, DEFAULT_ORDER, SYSTEM_PROMPT, providerById, dryRun, responsesDryRun, parseReply, parseResponsesReply, validateLocalUrl, chat, response, streamChat, streamResponse, ollamaModels, forgeNativeStatus, ensemble,
   OLLAMA_PORT: () => OLLAMA_PORT, FORGE_NATIVE_PORT: () => FORGE_NATIVE_PORT };
