@@ -11,7 +11,7 @@ import torch
 from .checkpoint import save_checkpoint
 from .configuration_forgelm import ForgeLMConfig
 from .modeling_forgelm import ForgeLMForCausalLM
-from .tokenizer import ByteTokenizer
+from .tokenizer import ByteTokenizer, load_tokenizer
 
 
 def load_documents(paths: Iterable[str]) -> List[str]:
@@ -92,7 +92,7 @@ def train(
     random.seed(seed)
     torch.manual_seed(seed)
     device = resolve_device(device_name)
-    tokenizer = ByteTokenizer(config.vocab_size)
+    tokenizer = load_tokenizer(tokenizer_path) if tokenizer_path else ByteTokenizer(config.vocab_size)\n    if tokenizer.vocab_size != config.vocab_size:\n        raise ValueError(\"tokenizer/model vocabulary mismatch\")
     stream = build_token_stream(tokenizer, docs)
     seq_len = min(int(seq_len), config.max_position_embeddings)
     model = ForgeLMForCausalLM(config).to(device)
