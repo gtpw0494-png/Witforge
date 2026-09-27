@@ -178,7 +178,16 @@ jobs:
       - name: Validate imported UAI suite
         run: |
           if [ -f test.js ]; then
+            cp server.js /tmp/witforge-server.js
+            cp integration/uai-source/server.js server.js
+            set +e
             node test.js
+            status=$?
+            set -e
+            mv /tmp/witforge-server.js server.js
+            if [ "$status" -ne 0 ]; then
+              exit "$status"
+            fi
           fi
 
       - name: Commit and push consolidated main
