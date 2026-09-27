@@ -93,6 +93,39 @@ def main() -> None:
                 raise AssertionError("streaming chat did not emit one live event per generated token")
             if final_event.get("inference", {}).get("cache_strategy") != "dynamic":
                 raise AssertionError("streaming chat omitted cache telemetry")
+
+            status, response = request_json(base + "/v1/responses", {
+                "model": service.model_id,
+                "input": "hello responses",
+                "max_output_tokens": 2,
+                "temperature": 0,
+            })
+            if status != 200 or response.get("object") != "response" or response.get("status") != "completed":
+                raise AssertionError("responses endpoint failed")
+            if response.get("output_text") != response["output"][0]["content"][0]["text"]:
+                raise AssertionError("responses endpoint output_text did not match message output")
+            if int(response["usage"]["output_tokens"]) < 1:
+                raise AssertionError("responses endpoint generated no tokens")
+            if response.get("inference", {}).get("cache_strategy") != "dynamic":
+                raise AssertionError("responses endpoint omitted inference telemetry")
+
+            status, content_type, response_events, response_done = request_sse(base + "/v1/responses", {
+                "model": service.model_id,
+                "input": [{"role": "user", "content": [{"type": "input_text", "text": "stream response"}]}],
+                "max_output_tokens": 3,
+                "temperature": 0,
+                "stream": True,
+            })
+            if status != 200 or "text/event-stream" not in content_type or not response_done:
+                raise AssertionError("responses streaming did not complete as SSE")
+            event_types = [event.get("type") for event in response_events]
+            if not event_types or event_types[0] != "response.created" or event_types[-1] != "response.completed":
+                raise AssertionError("responses stream missing created/completed lifecycle events")
+            if "response.output_text.delta" not in event_types or "response.output_text.done" not in event_types:
+                raise AssertionError("responses stream missing output-text events")
+            completed = response_events[-1]["response"]
+            if int(completed["usage"]["output_tokens"]) < 1 or completed.get("inference", {}).get("cache_strategy") != "dynamic":
+                raise AssertionError("responses completed event omitted usage or inference telemetry")
             status, structured = request_json(base + "/v1/chat/completions", {
                 "model": service.model_id,
                 "messages": [{"role": "user", "content": "choose a mode"}],
