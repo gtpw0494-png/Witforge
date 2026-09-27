@@ -145,7 +145,7 @@ function normaliseSeedArg(value) {
 function normaliseCacheStrategyArg(value) {
   if (value == null) return { cacheStrategy: null };
   const strategy = String(value).toLowerCase();
-  if (!['dynamic', 'none'].includes(strategy)) return { error: 'cacheStrategy must be dynamic or none' };
+  if (!['dynamic', 'static', 'none'].includes(strategy)) return { error: 'cacheStrategy must be dynamic, static or none' };
   return { cacheStrategy: strategy };
 }
 
