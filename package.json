@@ -23,7 +23,7 @@
     "dev": "node server.js",
     "build": "node build.js",
     "lint": "node lint.js",
-    "test": "node forgelm-test.js && node spec-test.js && node storage-test.js && node adversarial-test.js && node platform-test.js && node arena-test.js && node engagement-test.js && node smoke-test.js",
+    "test": "node mental-health-test.js && node snake-lab-test.js && node forgelm-test.js && node spec-test.js && node storage-test.js && node adversarial-test.js && node platform-test.js && node arena-test.js && node engagement-test.js && node smoke-test.js",
     "test:spec": "node spec-test.js",
     "test:storage": "node storage-test.js",
     "test:adversarial": "node adversarial-test.js",
@@ -168,7 +168,11 @@
     "model:bootstrap": "node scripts/bootstrap-forgelm.mjs",
     "test:forgelm-bootstrap": "node verification/forgelm-bootstrap-promotion.test.mjs",
     "test:termux-onechat-recovery": "node verification/termux-onechat-recovery-v073.test.mjs",
-    "start:codespaces": "bash scripts/start-codespace.sh"
+    "start:codespaces": "bash scripts/start-codespace.sh",
+    "test:mental-health": "node mental-health-test.js",
+    "test:snake-lab": "node snake-lab-test.js",
+    "puter:verify": "node scripts/verify-puter-source.mjs",
+    "puter:fetch": "node scripts/fetch-puter-source.mjs"
   },
   "comment": "Node runtime remains zero-dependency by design. ForgeLM native training/chat is an optional Python/PyTorch runtime under model/forgelm.",
   "optionalDependencies": {
@@ -180,6 +184,12 @@
     "sourceRepository": "gtpw0494-png/UAI",
     "sourceCommit": "733ff724d32e2b91a9c4a8c8d930b3d1391fe5f0",
     "strategy": "additive-unrelated-history-merge",
-    "conflictPolicy": "Witforge authoritative; UAI conflicts archived under integration/uai-source"
+    "conflictPolicy": "Witforge authoritative; UAI conflicts archived under integration/uai-source",
+    "historicalAdditivesRestored": [
+      "v2.21 Puter boundary",
+      "v2.24 mental-health specialists",
+      "v2.26 Snake Lab / Snake Overwatch"
+    ],
+    "restoredAt": "2026-09-27"
   }
 }
