@@ -17,7 +17,7 @@
 /* Local Ollama port. Pinned to 11434 in normal operation; the env override
  * exists so the test suite can bind its scripted fake on another loopback
  * port without weakening validation (loopback-only either way). */
-const OLLAMA_PORT = Number(process.env.LIAM_OLLAMA_PORT) || 11434;
+const OLLAMA_PORT = Number(process.env.LIAM_OLLAMA_PORT) || 11434;\nconst FORGE_NATIVE_PORT = Number(process.env.WITFORGE_FORGELM_PORT) || 11435;
 
 const PROVIDERS = [
   {
@@ -76,6 +76,16 @@ const PROVIDERS = [
     connect: 'connect mistral with token <your-key>'
   },
   {
+    id: 'forge-native', name: 'ForgeLM Native (WitForge local model)', shape: 'forge-native', requiresKey: false,
+    keyHint: null, endpoint: 'http://127.0.0.1:' + FORGE_NATIVE_PORT,
+    defaultModel: 'forgelm-nano',
+    free: 'fully local ForgeLM checkpoint served by WitForge; no key and no cloud',
+    connect: 'start "python -m model.forgelm.server --checkpoint state/models/forgelm-nano", then "verify forge-native"',
+    local: true,
+    capabilities: ['text_generation'],
+    contextTokens: 2048
+  },
+  {
     id: 'ollama', name: 'Ollama (your machine, open-source models)', shape: 'ollama', requiresKey: false,
     keyHint: null, endpoint: 'http://127.0.0.1:' + OLLAMA_PORT,
     defaultModel: 'llama3.2',
@@ -85,12 +95,12 @@ const PROVIDERS = [
 ];
 const PROVIDER_IDS = PROVIDERS.map(p => p.id);
 /* Deterministic default order: cloud free tiers first, local last. */
-const DEFAULT_ORDER = ['groq', 'gemini', 'openrouter', 'nvidia-nim', 'together-ai', 'deepseek', 'mistral', 'ollama'];
+const DEFAULT_ORDER = ['groq', 'gemini', 'openrouter', 'nvidia-nim', 'together-ai', 'deepseek', 'mistral', 'ollama', 'forge-native'];
 
 /* v2.02 advisory free-tier rate baselines (public console documentation,
  * shifts upstream — advisory labels, the enforcement below is recorded truth,
  * not a promise): RPM requests/min, TPD requests/day where published. */
-const RATE_RPM = { groq: 30, gemini: 15, openrouter: 8, 'nvidia-nim': 40, 'together-ai': 60, deepseek: 60, mistral: 6, ollama: 60 };
+const RATE_RPM = { groq: 30, gemini: 15, openrouter: 8, 'nvidia-nim': 40, 'together-ai': 60, deepseek: 60, mistral: 6, ollama: 60, 'forge-native': 60 };
 const RATE_TPD = { groq: 14400, openrouter: 50, 'nvidia-nim': 5000, 'together-ai': 500 };
 
 const SYSTEM_PROMPT =
@@ -146,6 +156,20 @@ function dryRun(providerId, args) {
       }
     };
   }
+  if (p.shape === 'forge-native') {
+    return {
+      provider: p.id, model, url: p.endpoint + '/v1/chat/completions', method: 'POST', local: true,
+      headers: { 'content-type': 'application/json' },
+      body: {
+        model,
+        messages: [{ role: 'system', content: systemPrompt }].concat(msgs.messages),
+        max_tokens: maxTokens,
+        temperature,
+        top_p: 0.95,
+        stream: false
+      }
+    };
+  }
   return {
     provider: p.id, url: p.endpoint + '/api/chat', method: 'POST', local: true,
     headers: { 'content-type': 'application/json' },
@@ -195,8 +219,16 @@ function validateLocalUrl(urlStr) {
   try { u = new URL(urlStr); } catch (e) { return { error: 'Invalid URL' }; }
   if (u.protocol !== 'http:') return { error: 'Local model endpoint must be http on loopback' };
   if (!['127.0.0.1', 'localhost', '[::1]', '::1'].includes(u.hostname)) return { error: 'Local model endpoint must be 127.0.0.1/localhost' };
-  if (u.port !== String(OLLAMA_PORT)) return { error: 'Only the configured Ollama port ' + OLLAMA_PORT + ' is allowed' };
-  return { ok: true, url: u };
+  const port = u.port;
+  if (port === String(OLLAMA_PORT)) {
+    if (!/^\/api\/(?:chat|tags|pull|delete)$/.test(u.pathname)) return { error: 'Ollama path is not allowlisted' };
+    return { ok: true, url: u, provider: 'ollama' };
+  }
+  if (port === String(FORGE_NATIVE_PORT)) {
+    if (!['/health', '/v1/models', '/v1/chat/completions'].includes(u.pathname)) return { error: 'ForgeNative path is not allowlisted' };
+    return { ok: true, url: u, provider: 'forge-native' };
+  }
+  return { error: 'Only configured local-model ports ' + OLLAMA_PORT + ' and ' + FORGE_NATIVE_PORT + ' are allowed' };
 }
 
 async function chat(providerId, args, deps) {
@@ -246,6 +278,14 @@ async function ollamaModels(deps) {
   const res = await deps.localFetch('http://127.0.0.1:' + OLLAMA_PORT + '/api/tags', {}, { method: 'GET', timeoutMs: 3000 });
   if (!res.ok) return null;
   try { const j = JSON.parse(res.text); return (j.models || []).map(m => m.name); } catch (e) { return null; }
+}\n\nasync function forgeNativeStatus(deps) {
+  if (!deps || !deps.localFetch) return null;
+  const res = await deps.localFetch('http://127.0.0.1:' + FORGE_NATIVE_PORT + '/health', {}, { method: 'GET', timeoutMs: 3000 });
+  if (!res.ok) return null;
+  try {
+    const j = JSON.parse(res.text);
+    return j && j.ok === true && j.loaded === true ? j : null;
+  } catch (e) { return null; }
 }
 
 /* v1.68: fan one question out to several providers at once ("ask all").
@@ -265,4 +305,5 @@ async function ensemble(providerIds, args, deps) {
 }
 
 module.exports = {
-  RATE_RPM, RATE_TPD, PROVIDERS, PROVIDER_IDS, DEFAULT_ORDER, SYSTEM_PROMPT, providerById, dryRun, parseReply, validateLocalUrl, chat, ollamaModels, ensemble, OLLAMA_PORT: () => OLLAMA_PORT };
+  RATE_RPM, RATE_TPD, PROVIDERS, PROVIDER_IDS, DEFAULT_ORDER, SYSTEM_PROMPT, providerById, dryRun, parseReply, validateLocalUrl, chat, ollamaModels, forgeNativeStatus, ensemble,
+  OLLAMA_PORT: () => OLLAMA_PORT, FORGE_NATIVE_PORT: () => FORGE_NATIVE_PORT };
