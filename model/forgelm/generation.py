@@ -5,10 +5,10 @@ from typing import Callable, Dict, Iterable, Iterator, Optional, Sequence, Tuple
 
 import torch
 
-from .modeling_forgelm import ForgeLMForCausalLM
+from .modeling_forgelm import ForgeLMForCausalLM, StaticKVCache
 
 AllowedTokenFn = Callable[[torch.Tensor], Iterable[int]]
-KVCache = Tuple[torch.Tensor, torch.Tensor]
+KVCache = Tuple[torch.Tensor, torch.Tensor] | StaticKVCache
 
 
 @dataclass(frozen=True)
@@ -47,7 +47,11 @@ def kv_cache_nbytes(past_key_values: Optional[Sequence[KVCache]]) -> int:
     if not past_key_values:
         return 0
     total = 0
-    for key, value in past_key_values:
+    for cache in past_key_values:
+        if isinstance(cache, StaticKVCache):
+            key, value = cache.key, cache.value
+        else:
+            key, value = cache
         total += int(key.numel()) * int(key.element_size())
         total += int(value.numel()) * int(value.element_size())
     return total
@@ -171,8 +175,8 @@ def iter_generate(
         if input_ids.shape[1] > max_context:
             raise ValueError("generation prompt exceeds model context window")
         strategy = str(cache_strategy or "dynamic").lower()
-        if strategy not in {"dynamic", "none"}:
-            raise ValueError("cache_strategy must be one of: dynamic, none")
+        if strategy not in {"dynamic", "static", "none"}:
+            raise ValueError("cache_strategy must be one of: dynamic, static, none")
         stops = _normalise_stop_sequences(stop_token_sequences, int(model.config.vocab_size))
 
         model.eval()
@@ -186,7 +190,7 @@ def iter_generate(
                 sampled_tokens=0,
                 peak_kv_cache_bytes=0,
                 final_kv_cache_bytes=0,
-                cache_layers=int(model.config.num_hidden_layers) if strategy == "dynamic" else 0,
+                cache_layers=int(model.config.num_hidden_layers) if strategy in {"dynamic", "static"} else 0,
                 max_context_tokens=max_context,
                 stop_reason="context" if input_ids.shape[1] >= max_context else "max_tokens",
                 cache_strategy=strategy,
@@ -200,10 +204,27 @@ def iter_generate(
             generator.manual_seed(seed)
 
         use_dynamic_cache = strategy == "dynamic"
-        output = model(context_ids, use_cache=use_dynamic_cache)
-        past = output.past_key_values if use_dynamic_cache else None
+        use_static_cache = strategy == "static"
+        if use_static_cache:
+            cache_dtype = model.embed_tokens.weight.dtype
+            static_cache = [
+                StaticKVCache.allocate(
+                    batch_size=input_ids.shape[0],
+                    num_key_value_heads=model.config.num_key_value_heads,
+                    max_length=max_context,
+                    head_dim=model.config.head_dim,
+                    device=input_ids.device,
+                    dtype=cache_dtype,
+                )
+                for _ in range(model.config.num_hidden_layers)
+            ]
+            output = model(context_ids, past_key_values=static_cache, use_cache=True)
+            past = output.past_key_values
+        else:
+            output = model(context_ids, use_cache=use_dynamic_cache)
+            past = output.past_key_values if use_dynamic_cache else None
         next_logits = output.logits[:, -1, :]
-        peak_cache = kv_cache_nbytes(past) if use_dynamic_cache else 0
+        peak_cache = kv_cache_nbytes(past) if past else 0
         final_cache = peak_cache
         sampled_tokens = 0
         stop_reason = "max_tokens"
@@ -263,7 +284,7 @@ def iter_generate(
                 stop_reason = "context"
                 break
 
-            if use_dynamic_cache:
+            if use_dynamic_cache or use_static_cache:
                 output = model(next_token, past_key_values=past, use_cache=True)
                 past = output.past_key_values
                 final_cache = kv_cache_nbytes(past)
