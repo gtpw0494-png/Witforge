@@ -48,6 +48,34 @@ def main() -> None:
                 raise AssertionError("chat endpoint failed")
             if chat["usage"]["completion_tokens"] < 1:
                 raise AssertionError("chat endpoint generated no tokens")
+            status, structured = request_json(base + "/v1/chat/completions", {
+                "model": service.model_id,
+                "messages": [{"role": "user", "content": "choose a mode"}],
+                "max_tokens": 80,
+                "temperature": 0,
+                "response_format": {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "mode",
+                        "strict": True,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "properties": {
+                                "mode": {"type": "string", "enum": ["RESPOND", "TOOLS"]},
+                                "approved": {"type": "boolean"}
+                            },
+                            "required": ["mode", "approved"]
+                        }
+                    }
+                }
+            })
+            if status != 200 or structured.get("structured") is not True:
+                raise AssertionError("structured chat endpoint failed")
+            parsed = json.loads(structured["choices"][0]["message"]["content"])
+            if parsed.get("mode") not in {"RESPOND", "TOOLS"} or not isinstance(parsed.get("approved"), bool):
+                raise AssertionError("structured response violated schema")
+
         finally:
             server.shutdown()
             server.server_close()
