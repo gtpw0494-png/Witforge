@@ -13,6 +13,15 @@ from .configuration_forgelm import ForgeLMConfig
 from .dataset import verify_governed_dataset
 from .modeling_forgelm import ForgeLMForCausalLM
 from .tokenizer import ByteTokenizer, load_tokenizer
+from .training_utils import (
+    autocast_context,
+    backward_loss,
+    make_grad_scaler,
+    normalize_accumulation_steps,
+    optimizer_step,
+    resolve_device,
+    resolve_precision,
+)
 
 
 def load_documents(paths: Iterable[str]) -> List[str]:
@@ -75,16 +84,6 @@ def sample_batch(stream: torch.Tensor, batch_size: int, seq_len: int, device: to
     return torch.stack(xs).to(device), torch.stack(ys).to(device)
 
 
-def resolve_device(name: str) -> torch.device:
-    if name != "auto":
-        return torch.device(name)
-    if torch.cuda.is_available():
-        return torch.device("cuda")
-    if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
-        return torch.device("mps")
-    return torch.device("cpu")
-
-
 def _same_config(a: ForgeLMConfig, b: ForgeLMConfig) -> bool:
     return a.to_dict() == b.to_dict()
 
@@ -102,16 +101,20 @@ def train(
     seed: int,
     tokenizer_path: str | None = None,
     resume_dir: str | None = None,
+    precision: str = "auto",
+    gradient_accumulation_steps: int = 1,
 ) -> dict:
     random.seed(seed)
     torch.manual_seed(seed)
     device = resolve_device(device_name)
+    runtime = resolve_precision(device, precision)
+    accumulation = normalize_accumulation_steps(gradient_accumulation_steps)
     start_step = 0
     parent_identity = None
     optimizer_state = None
 
     if resume_dir:
-        model, tokenizer, previous_manifest, optimizer_state = load_training_checkpoint(resume_dir, device=device)
+        model, tokenizer, previous_manifest, optimizer_state = load_training_checkpoint(resume_dir, device=runtime.device)
         if not _same_config(model.config, config):
             raise ValueError("resume checkpoint config does not match requested config")
         if tokenizer_path:
@@ -124,7 +127,7 @@ def train(
         tokenizer = load_tokenizer(tokenizer_path) if tokenizer_path else ByteTokenizer(config.vocab_size)
         if tokenizer.vocab_size != config.vocab_size:
             raise ValueError("tokenizer/model vocabulary mismatch")
-        model = ForgeLMForCausalLM(config).to(device)
+        model = ForgeLMForCausalLM(config).to(runtime.device)
 
     stream = build_token_stream(tokenizer, docs)
     seq_len = min(max(1, int(seq_len)), config.max_position_embeddings)
@@ -133,23 +136,37 @@ def train(
         optimizer.load_state_dict(optimizer_state)
         for group in optimizer.param_groups:
             group["lr"] = learning_rate
+    scaler = make_grad_scaler(runtime)
 
     losses = []
     model.train()
     for local_step in range(1, int(steps) + 1):
         global_step = start_step + local_step
-        x, y = sample_batch(stream, int(batch_size), seq_len, device)
         optimizer.zero_grad(set_to_none=True)
-        output = model(x, targets=y)
-        if output.loss is None or not torch.isfinite(output.loss):
-            raise RuntimeError("non-finite training loss")
-        output.loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        optimizer.step()
-        losses.append(float(output.loss.detach().cpu()))
-        print(json.dumps({"step": global_step, "loss": losses[-1], "device": str(device), "stage": "pretrain"}), flush=True)
+        micro_losses: List[float] = []
+        for _ in range(accumulation):
+            x, y = sample_batch(stream, int(batch_size), seq_len, runtime.device)
+            with autocast_context(runtime):
+                output = model(x, targets=y)
+                if output.loss is None or not torch.isfinite(output.loss):
+                    raise RuntimeError("non-finite training loss")
+                scaled_loss = output.loss / accumulation
+            micro_losses.append(float(output.loss.detach().float().cpu()))
+            backward_loss(scaled_loss, scaler)
+        optimizer_step(optimizer, model, scaler, max_grad_norm=1.0)
+        step_loss = sum(micro_losses) / len(micro_losses)
+        losses.append(step_loss)
+        print(json.dumps({
+            "step": global_step,
+            "loss": step_loss,
+            "device": str(runtime.device),
+            "precision": runtime.precision,
+            "grad_accum": accumulation,
+            "stage": "pretrain",
+        }), flush=True)
 
     final_step = start_step + int(steps)
+    runtime_meta = runtime.metadata()
     manifest = save_checkpoint(
         out_dir,
         model,
@@ -157,19 +174,31 @@ def train(
         step=final_step,
         optimizer=optimizer,
         metadata={
-            "trainer": "forgelm-pretrain-v2",
+            "trainer": "forgelm-pretrain-v3",
             "stage": "PRETRAIN",
             "seed": seed,
             "documents": len(docs),
             "tokens": int(stream.numel()),
             "final_loss": losses[-1] if losses else None,
-            "device": str(device),
+            "device": str(runtime.device),
+            "precision": runtime.precision,
+            "precision_runtime": runtime_meta,
+            "gradient_accumulation_steps": accumulation,
+            "micro_batch_size": int(batch_size),
+            "effective_batch_size": int(batch_size) * accumulation,
             "tokenizer_schema": getattr(tokenizer, "schema", "unknown"),
             "resumed_from": resume_dir,
             "parent_manifest_sha256": parent_identity,
         },
     )
-    return {"manifest": manifest, "losses": losses, "device": str(device), "start_step": start_step, "final_step": final_step}
+    return {
+        "manifest": manifest,
+        "losses": losses,
+        "device": str(runtime.device),
+        "precision": runtime.precision,
+        "start_step": start_step,
+        "final_step": final_step,
+    }
 
 
 def main() -> None:
@@ -178,10 +207,12 @@ def main() -> None:
     p.add_argument("--corpus", nargs="+", required=True)
     p.add_argument("--out", default="state/models/forgelm-nano")
     p.add_argument("--steps", type=int, default=100)
-    p.add_argument("--batch-size", type=int, default=2)
+    p.add_argument("--batch-size", type=int, default=2, help="micro-batch size")
+    p.add_argument("--grad-accum", type=int, default=1, help="gradient accumulation micro-steps per optimizer step")
     p.add_argument("--seq-len", type=int, default=128)
     p.add_argument("--lr", type=float, default=3e-4)
     p.add_argument("--device", default="auto")
+    p.add_argument("--precision", choices=["auto", "fp32", "bf16", "fp16"], default="auto")
     p.add_argument("--seed", type=int, default=1337)
     p.add_argument("--tokenizer", help="ForgeLM tokenizer.json (byte or trained BPE)")
     p.add_argument("--dataset-report", help="Governed dataset report; requires exactly one corpus and verifies its SHA-256 before training")
@@ -208,11 +239,14 @@ def main() -> None:
         seed=args.seed,
         tokenizer_path=args.tokenizer,
         resume_dir=args.resume,
+        precision=args.precision,
+        gradient_accumulation_steps=args.grad_accum,
     )
     print(json.dumps({
         "ok": True,
         "checkpoint": args.out,
         "parameter_count": result["manifest"]["parameter_count"],
+        "precision": result["precision"],
         "start_step": result["start_step"],
         "final_step": result["final_step"],
     }, indent=2))
