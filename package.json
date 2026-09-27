@@ -61,4 +61,4 @@
   "dependencies": {},
   "devDependencies": {},
   "comment": "Node runtime remains zero-dependency by design. ForgeLM native training/chat is an optional Python/PyTorch runtime under model/forgelm."
-}\n
+}
