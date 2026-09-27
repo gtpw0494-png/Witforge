@@ -41,7 +41,7 @@ The information-only classes cannot grant authority.
 
 ## Native ForgeLM runtime
 
-Implemented through WitForge 2.11.0:
+Implemented through WitForge 2.12.0:
 
 - `model/forgelm/configuration_forgelm.py` — validated Nano and smoke configurations.
 - `model/forgelm/modeling_forgelm.py` — decoder-only Transformer with GQA, RoPE, RMSNorm and SwiGLU.
@@ -67,6 +67,15 @@ Implemented through WitForge 2.11.0:
 - `model/forgelm/promotion.py` — external release approval and HMAC-SHA256 manifest signing; the model cannot self-promote.
 - `model/forgelm/advanced_smoke_test.py` — resume → SFT/tool-SFT → DPO → schema → trace → eval → promotion CI path.
 - ForgeNative accepts finite strict `response_format` schemas and remains loopback-only for actual inference.
+- `model/forgelm/training_utils.py` — shared device/precision policy, CUDA bf16/fp16 autocast, fp16 scaling and gradient accumulation; CPU/Termux `auto` resolves to fp32.
+- Pretraining, SFT and DPO support `--grad-accum` plus `--precision auto|fp32|bf16|fp16` and record the effective batch/precision in checkpoint metadata.
+- `model/forgelm/quantization.py` — optional CPU dynamic-int8 Linear quantization with truthful runtime reporting; it is not presented as a new checkpoint format.
+- `model/forgelm/benchmark.py` — measured local prompt/generation latency, throughput, checkpoint bytes and process-memory report.
+- `model/forgelm/quality_eval.py` — checkpoint-bound quality evaluation over approved exact/contains/regex/finite-schema cases.
+- Production promotion now requires both runtime evals and a passing quality report; runtime-only promotion is explicitly dev-only.
+- `model/forgelm/promotion.py` verifies signed release manifests against checkpoint/config/tokenizer/weight identities.
+- ForgeNative can run with `--require-promoted --release-manifest ...` so serving may be restricted to a verified promoted release.
+- `model/forgelm/bundle.py` creates and verifies portable promoted checkpoint bundles without claiming unsupported GGUF/vLLM compatibility.
 
 The Node control plane remains dependency-free. Python/PyTorch is an optional model runtime and does not gain permissions, credentials, execution authority or verification authority.
 
@@ -74,8 +83,8 @@ The Node control plane remains dependency-free. Python/PyTorch is an optional mo
 
 - scale BPE training and governed corpus tooling for large datasets;
 - broaden strict structured decoding beyond finite schemas with a tested grammar backend;
-- add gradient accumulation, mixed precision, checkpoint sharding and distributed training;
-- expand quality, tool-use, prompt-injection, hallucination and regression evaluation sets;
+- add checkpoint sharding and distributed multi-device training;
+- expand real quality, tool-use, prompt-injection, hallucination and regression evaluation datasets;
 - add verified GGUF conversion/runtime compatibility;
 - add verified vLLM registration/serving compatibility;
-- add quantization, KV-cache variants and Android/Termux performance profiles.
+- add KV-cache variants and deeper Android/Termux performance tuning beyond current dynamic-int8 CPU serving.
