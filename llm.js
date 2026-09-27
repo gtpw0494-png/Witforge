@@ -122,6 +122,20 @@ const SYSTEM_PROMPT =
 
 function providerById(id) { return PROVIDERS.find(p => p.id === id) || null; }
 
+function normaliseStopArg(value) {
+  if (value == null) return { stop: null };
+  const raw = typeof value === 'string' ? [value] : value;
+  if (!Array.isArray(raw)) return { error: 'stop must be a string or array of strings' };
+  if (raw.length > 8) return { error: 'stop supports at most 8 strings' };
+  const out = [];
+  for (const item of raw) {
+    if (typeof item !== 'string' || !item.length) return { error: 'stop values must be non-empty strings' };
+    if (item.length > 256) return { error: 'each stop string must be at most 256 characters' };
+    out.push(item);
+  }
+  return { stop: typeof value === 'string' ? out[0] : out };
+}
+
 
 /* Build the exact request a provider would receive — exported and used dry
  * by the tests, so the wire format is checked without any network call. */
@@ -175,6 +189,9 @@ function dryRun(providerId, args) {
       stream: args.stream === true
     };
     if (responseFormat) body.response_format = responseFormat;
+    const stop = normaliseStopArg(args.stop);
+    if (stop.error) return { error: stop.error };
+    if (stop.stop != null) body.stop = stop.stop;
     return {
       provider: p.id, model, url: p.endpoint + '/v1/chat/completions', method: 'POST', local: true,
       headers: { 'content-type': 'application/json' },
@@ -224,6 +241,9 @@ function responsesDryRun(providerId, args) {
       }
     } catch (e) { return { error: 'responseFormat must be JSON-serializable' }; }
   }
+  const stop = normaliseStopArg(args.stop);
+  if (stop.error) return { error: stop.error };
+  if (stop.stop != null) body.stop = stop.stop;
   return {
     provider: p.id, model, url: p.endpoint + '/v1/responses', method: 'POST', local: true,
     headers: { 'content-type': 'application/json' },
@@ -538,5 +558,5 @@ async function ensemble(providerIds, args, deps) {
 }
 
 module.exports = {
-  RATE_RPM, RATE_TPD, PROVIDERS, PROVIDER_IDS, DEFAULT_ORDER, SYSTEM_PROMPT, providerById, dryRun, responsesDryRun, parseReply, parseResponsesReply, validateLocalUrl, chat, response, streamChat, streamResponse, ollamaModels, forgeNativeStatus, ensemble,
+  RATE_RPM, RATE_TPD, PROVIDERS, PROVIDER_IDS, DEFAULT_ORDER, SYSTEM_PROMPT, providerById, normaliseStopArg, dryRun, responsesDryRun, parseReply, parseResponsesReply, validateLocalUrl, chat, response, streamChat, streamResponse, ollamaModels, forgeNativeStatus, ensemble,
   OLLAMA_PORT: () => OLLAMA_PORT, FORGE_NATIVE_PORT: () => FORGE_NATIVE_PORT };
