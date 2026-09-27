@@ -862,14 +862,19 @@ const TOOLS = {
   'llm.status': { cap: 'llm.status', risk: 'low', verification: 'credential-store lookup; live loopback probes for Ollama and ForgeNative', run: async () => {
       const rows = llm.PROVIDERS.map(p => ({
         id: p.id, name: p.name, shape: p.shape, defaultModel: p.defaultModel, free: p.free, connect: p.connect,
-        configured: p.requiresKey ? !!decryptToken(p.id) : (p.id === 'forge-native' ? false : true),
+        configured: p.requiresKey ? !!decryptToken(p.id) : false,
         requiresKey: p.requiresKey,
         reachable: null,
         loaded: null
       }));
       const local = await llm.ollamaModels({ localFetch: llmLocalFetch });
       const oRow = rows.find(r => r.id === 'ollama');
-      if (oRow) { oRow.models = local || null; oRow.reachable = !!local; oRow.loaded = !!(local && local.length); }
+      if (oRow) {
+        oRow.configured = !!local;
+        oRow.models = local || null;
+        oRow.reachable = !!local;
+        oRow.loaded = !!(local && local.length);
+      }
       const forge = await llm.forgeNativeStatus({ localFetch: llmLocalFetch });
       const fRow = rows.find(r => r.id === 'forge-native');
       if (fRow) {
@@ -902,9 +907,25 @@ const TOOLS = {
       if (!r.ok) return { error: 'Verify FAILED against ' + p.id + ' (real call): ' + r.error, truthful: true };
       return { provider: r.provider, model: r.model, latencyMs: r.latencyMs, sample: r.content.slice(0, 40), verified: true };
     } },
-  'llm.ensemble': { cap: 'llm.ensemble', risk: 'medium', verification: 'one labelled answer per configured provider; failures reported, never swallowed', run: async a => {
-      const ids = llm.PROVIDER_IDS.filter(id => { const pr = llm.providerById(id); return !pr.requiresKey || decryptToken(id); });
-      if (!ids.length) return { error: 'No AI provider is configured yet — “ask all” fans one question out to every connected provider. Free keys: ' + llm.PROVIDERS.filter(x => x.requiresKey).map(x => x.id).join(', ') + '; ollama needs no key.', truthful: true };
+  'llm.ensemble': { cap: 'llm.ensemble', risk: 'medium', verification: 'one labelled answer per actually available provider; failures reported, never swallowed', run: async a => {
+      const ids = [];
+      for (const id of llm.PROVIDER_IDS) {
+        const pr = llm.providerById(id);
+        if (!pr) continue;
+        if (pr.requiresKey) {
+          if (decryptToken(id)) ids.push(id);
+          continue;
+        }
+        if (id === 'ollama') {
+          const models = await llm.ollamaModels({ localFetch: llmLocalFetch });
+          if (models && models.length) ids.push(id);
+          continue;
+        }
+        if (id === 'forge-native') {
+          if (await llm.forgeNativeStatus({ localFetch: llmLocalFetch })) ids.push(id);
+        }
+      }
+      if (!ids.length) return { error: 'No AI provider is available yet — “ask all” uses only providers that are authenticated or live-probed. Configure a cloud provider, start Ollama, or start ForgeNative.', truthful: true };
       const r = await llm.ensemble(ids, a, { remoteFetch: guardedFetch, localFetch: llmLocalFetch, apiKey: id => (llm.providerById(id).requiresKey ? decryptToken(id) : null) });
       if (S.llm) { S.llm.calls = (S.llm.calls || 0) + r.answers.length; save(); }
       return { providersAsked: ids, answers: r.answers.map(x => ({ provider: x.provider, model: x.model, latencyMs: x.latencyMs, reply: x.content })), failures: r.failures };
