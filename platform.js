@@ -24,7 +24,7 @@ const forgeContext = require('./forge-context.js');
 const forgeMemoryModule = require('./forge-memory.js');
 const forgeRuntime = require('./forge-runtime.js');
 
-const VERSION = '2.12.0';
+const VERSION = '2.13.0';
 function boundedMs(name, fallback, min, max) {
   const n = Number(process.env[name]);
   return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.floor(n))) : fallback;
