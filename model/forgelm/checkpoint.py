@@ -9,7 +9,7 @@ import torch
 
 from .configuration_forgelm import ForgeLMConfig
 from .modeling_forgelm import ForgeLMForCausalLM
-from .tokenizer import ByteTokenizer
+from .tokenizer import load_tokenizer
 
 
 def sha256_file(path: Path) -> str:
@@ -23,7 +23,7 @@ def sha256_file(path: Path) -> str:
 def save_checkpoint(
     directory: str | Path,
     model: ForgeLMForCausalLM,
-    tokenizer: ByteTokenizer,
+    tokenizer,
     *,
     step: int = 0,
     optimizer: Optional[torch.optim.Optimizer] = None,
@@ -48,7 +48,7 @@ def save_checkpoint(
         "step": int(step),
         "parameter_count": int(model.num_parameters()),
         "config_sha256": sha256_file(config_path),
-        "tokenizer_sha256": sha256_file(tokenizer_path),
+        "tokenizer_sha256": sha256_file(tokenizer_path),\n        "tokenizer_schema": getattr(tokenizer, "schema", "unknown"),
         "weights_sha256": sha256_file(weights_path),
         "optimizer_sha256": sha256_file(optimizer_path) if optimizer_path else None,
         "metadata": metadata or {},
@@ -70,13 +70,13 @@ def verify_checkpoint(directory: str | Path) -> Dict[str, Any]:
     return {"ok": all(checks.values()), "checks": checks, "manifest": manifest}
 
 
-def load_checkpoint(directory: str | Path, *, device: str | torch.device = "cpu") -> Tuple[ForgeLMForCausalLM, ByteTokenizer, Dict[str, Any]]:
+def load_checkpoint(directory: str | Path, *, device: str | torch.device = "cpu") -> Tuple[ForgeLMForCausalLM, Any, Dict[str, Any]]:
     target = Path(directory)
     verification = verify_checkpoint(target)
     if not verification["ok"]:
         raise ValueError(f"checkpoint hash verification failed: {verification['checks']}")
     config = ForgeLMConfig.load_json(target / "config.json")
-    tokenizer = ByteTokenizer.load(target / "tokenizer.json")
+    tokenizer = load_tokenizer(target / "tokenizer.json")
     if tokenizer.vocab_size != config.vocab_size:
         raise ValueError("tokenizer/model vocabulary mismatch")
     model = ForgeLMForCausalLM(config)
