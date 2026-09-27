@@ -10,7 +10,7 @@ from typing import Any, Dict, List
 import torch
 
 from .checkpoint import load_checkpoint
-from .generation import generate
+from .generation import generate_with_stats
 from .structured import TokenTrieConstraint, UnsupportedSchema, compile_finite_json_schema
 from .quantization import apply_inference_quantization, quantization_report
 from .promotion import verify_release_manifest
@@ -73,7 +73,8 @@ class ForgeNativeService:
             "step": self.manifest.get("step"),
             "context_length": self.model.config.max_position_embeddings,
             "tokenizer_schema": getattr(self.tokenizer, "schema", "unknown"),
-            "capabilities": ["text_generation", "structured_output"],
+            "capabilities": ["text_generation", "structured_output", "kv_cache_telemetry"],
+            "cache_strategy": "dynamic",
             "quantization": self.quantization,
             "release_verified": bool(self.release_verification and self.release_verification.get("ok")),
             "release_version": self.release_verification["release"].get("release_version") if self.release_verification else None,
@@ -127,7 +128,7 @@ class ForgeNativeService:
             allowed_token_fn = constraint.allowed
 
         started = time.time()
-        out = generate(
+        generation = generate_with_stats(
             self.model,
             input_ids,
             max_new_tokens=max_tokens,
@@ -138,6 +139,7 @@ class ForgeNativeService:
             repetition_penalty=repetition_penalty,
             allowed_token_fn=allowed_token_fn,
         )
+        out = generation.output_ids
         generated_ids = out[0, input_ids.shape[1]:].tolist()
         content = self.tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
         if structured_candidates is not None:
@@ -152,7 +154,7 @@ class ForgeNativeService:
             "choices": [{
                 "index": 0,
                 "message": {"role": "assistant", "content": content},
-                "finish_reason": "stop" if len(generated_ids) < max_tokens else "length",
+                "finish_reason": "stop" if generation.stats.stop_reason == "eos" else "length",
             }],
             "usage": {
                 "prompt_tokens": len(ids),
@@ -161,6 +163,16 @@ class ForgeNativeService:
             },
             "latency_ms": round((time.time() - started) * 1000, 3),
             "structured": structured_candidates is not None,
+            "inference": {
+                "cache_strategy": "dynamic",
+                "kv_cache": {
+                    "peak_bytes": generation.stats.peak_kv_cache_bytes,
+                    "final_bytes": generation.stats.final_kv_cache_bytes,
+                    "layers": generation.stats.cache_layers,
+                },
+                "stop_reason": generation.stats.stop_reason,
+                "max_context_tokens": generation.stats.max_context_tokens,
+            },
         }
 
 
