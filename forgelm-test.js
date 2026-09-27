@@ -81,6 +81,12 @@ ok(Array.isArray(forgeResponseDry.body.input) && forgeResponseDry.body.input[for
 const forgeResponseStructured=llm.responsesDryRun('forge-native',{prompt:'choose',responseFormat:strictFormat,maxTokens:80,temperature:0});
 ok(forgeResponseStructured.body.text && forgeResponseStructured.body.text.format.type==='json_schema', 'Responses request maps strict JSON schema into text.format');
 
+const forgeStopDry=llm.dryRun('forge-native',{prompt:'stop test',stop:['END','STOP'],maxTokens:32,temperature:0});
+ok(Array.isArray(forgeStopDry.body.stop) && forgeStopDry.body.stop.length===2, 'ForgeNative chat dry run preserves validated stop strings');
+const forgeResponseStopDry=llm.responsesDryRun('forge-native',{prompt:'stop response',stop:'END',maxTokens:32,temperature:0});
+ok(forgeResponseStopDry.body.stop==='END', 'ForgeNative Responses dry run preserves a stop string');
+ok(/at most 8/.test(llm.dryRun('forge-native',{prompt:'bad stop',stop:['1','2','3','4','5','6','7','8','9']}).error||''), 'ForgeNative rejects oversized stop lists before transport');
+
 const forgeStreamDry=llm.dryRun('forge-native',{prompt:'stream',stream:true,maxTokens:4,temperature:0});
 ok(forgeStreamDry.body.stream===true, 'ForgeNative dry run preserves explicit streaming intent');
 ok(forgeProvider.capabilities.includes('sse_streaming'), 'ForgeNative declares verified streaming capability');
