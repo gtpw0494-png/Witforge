@@ -75,7 +75,7 @@ class ForgeNativeService:
             "tokenizer_schema": getattr(self.tokenizer, "schema", "unknown"),
             "capabilities": ["text_generation", "structured_output", "kv_cache_telemetry", "sse_streaming", "responses_api", "stop_sequences", "deterministic_seed", "cache_strategy_control"],
             "cache_strategy": "dynamic",
-            "cache_strategies": ["dynamic", "none"],
+            "cache_strategies": ["dynamic", "static", "none"],
             "quantization": self.quantization,
             "release_verified": bool(self.release_verification and self.release_verification.get("ok")),
             "release_version": self.release_verification["release"].get("release_version") if self.release_verification else None,
@@ -110,8 +110,8 @@ class ForgeNativeService:
         top_k = int(payload.get("top_k", 50))
         repetition_penalty = float(payload.get("repetition_penalty", 1.05))
         cache_strategy = str(payload.get("cache_strategy", "dynamic")).lower()
-        if cache_strategy not in {"dynamic", "none"}:
-            raise ValueError("cache_strategy must be one of: dynamic, none")
+        if cache_strategy not in {"dynamic", "static", "none"}:
+            raise ValueError("cache_strategy must be one of: dynamic, static, none")
         seed = payload.get("seed")
         if seed is not None:
             if isinstance(seed, bool) or not isinstance(seed, int):
