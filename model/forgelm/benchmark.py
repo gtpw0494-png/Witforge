@@ -33,6 +33,7 @@ def benchmark_checkpoint(
     max_new_tokens: int = 16,
     device: str = "cpu",
     quantization: str = "none",
+    cache_strategy: str = "dynamic",
     warmup_tokens: int = 1,
 ) -> Dict[str, Any]:
     checkpoint = Path(checkpoint)
@@ -50,6 +51,7 @@ def benchmark_checkpoint(
             max_new_tokens=min(int(warmup_tokens), max(1, int(max_new_tokens))),
             eos_token_id=tokenizer.eos_token_id,
             temperature=0.0,
+            cache_strategy=cache_strategy,
         )
 
     started = time.perf_counter()
@@ -59,6 +61,7 @@ def benchmark_checkpoint(
         max_new_tokens=max(1, int(max_new_tokens)),
         eos_token_id=tokenizer.eos_token_id,
         temperature=0.0,
+        cache_strategy=cache_strategy,
     )
     elapsed = max(time.perf_counter() - started, 1e-9)
     generated_tokens = int(result.output_ids.shape[1] - input_ids.shape[1])
@@ -68,6 +71,7 @@ def benchmark_checkpoint(
         "parameter_count": manifest.get("parameter_count"),
         "weights_format": manifest.get("weights_format", "pytorch_state_dict"),
         "device": str(model_device),
+        "cache_strategy": cache_strategy,
         "quantization": quantization_report(model, quantization),
         "prompt_tokens": len(prompt_ids),
         "generated_tokens": generated_tokens,
@@ -87,6 +91,7 @@ def main() -> None:
     p.add_argument("--max-new-tokens", type=int, default=16)
     p.add_argument("--device", default="cpu")
     p.add_argument("--quantization", choices=["none", "dynamic-int8"], default="none")
+    p.add_argument("--cache-strategy", choices=["dynamic", "none"], default="dynamic")
     p.add_argument("--out")
     args = p.parse_args()
     report = benchmark_checkpoint(
@@ -95,6 +100,7 @@ def main() -> None:
         max_new_tokens=args.max_new_tokens,
         device=args.device,
         quantization=args.quantization,
+        cache_strategy=args.cache_strategy,
     )
     payload = json.dumps(report, indent=2, sort_keys=True) + "\n"
     if args.out:
