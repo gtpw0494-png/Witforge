@@ -56,3 +56,9 @@ jobs:
 
       - name: Native ForgeLM train/save/load/generate smoke test
         run: python -m model.forgelm.smoke_test
+
+      - name: ForgeLM governed dataset and BPE pipeline
+        run: python -m model.forgelm.pipeline_smoke_test
+
+      - name: ForgeNative localhost inference server
+        run: python -m model.forgelm.server_smoke_test
