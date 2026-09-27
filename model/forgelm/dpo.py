@@ -20,6 +20,7 @@ from .training_utils import (
     optimizer_step,
     resolve_device,
     resolve_precision,
+    shard_bytes_from_mb,
 )
 
 
@@ -105,6 +106,7 @@ def train_dpo(
     seed: int = 1337,
     precision: str = "auto",
     gradient_accumulation_steps: int = 1,
+    max_shard_bytes: int | None = None,
 ) -> Dict[str, Any]:
     random.seed(seed)
     torch.manual_seed(seed)
@@ -167,7 +169,9 @@ def train_dpo(
             "parent_manifest_sha256": checkpoint_identity(checkpoint),
             "reference_checkpoint": reference_checkpoint or checkpoint,
             "reference_manifest_sha256": checkpoint_identity(reference_checkpoint or checkpoint),
+            "max_shard_bytes": max_shard_bytes,
         },
+        max_shard_bytes=max_shard_bytes,
     )
     return {"manifest": next_manifest, "losses": losses, "precision": runtime.precision}
 
@@ -185,6 +189,7 @@ def main() -> None:
     p.add_argument("--max-length", type=int)
     p.add_argument("--device", default="cpu")
     p.add_argument("--precision", choices=["auto", "fp32", "bf16", "fp16"], default="auto")
+    p.add_argument("--max-shard-mb", type=float, help="optional maximum model weight shard size in MiB")
     p.add_argument("--seed", type=int, default=1337)
     args = p.parse_args()
     result = train_dpo(
@@ -200,6 +205,7 @@ def main() -> None:
         seed=args.seed,
         precision=args.precision,
         gradient_accumulation_steps=args.grad_accum,
+        max_shard_bytes=shard_bytes_from_mb(args.max_shard_mb),
     )
     print(json.dumps({
         "ok": True,
