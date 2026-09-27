@@ -9,7 +9,8 @@ const path = require('path');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'liam-plat-'));
 process.env.PLATFORM_DATA = path.join(tmp, 'platform.json');
 process.env.WITFORGE_DEVICE_KEY = path.join(tmp, 'device-key');   // v1.85: suites never touch the real device pepper
-process.env.LIAM_OLLAMA_PORT = '11435';   // the scripted local-model fake binds here, never on the real 11434
+process.env.LIAM_OLLAMA_PORT = '11435';   // the scripted Ollama fake binds here, never on the real 11434
+process.env.WITFORGE_FORGELM_PORT = '11436'; // keep ForgeNative independently probeable in this suite
 delete require.cache[require.resolve('./platform.js')];
 const P = require('./platform.js');
 
@@ -302,8 +303,8 @@ const run = (t, a) => P.runTool(t, a || {}, {});
   /* ── v1.67: multi-provider LLM layer — dry shapes, truthful errors,
    * and a full local round trip against a fake Ollama on 11434 ── */
   const llmMod = require('./llm.js');
-  ok(llmMod.PROVIDERS.length === 8 && llmMod.PROVIDER_IDS.includes('ollama') && llmMod.PROVIDER_IDS.includes('nvidia-nim') && llmMod.PROVIDER_IDS.includes('together-ai'), 'LLM registry carries all eight providers (six originals + the two v2.02 free-tier fallbacks)');
-  ok(llmMod.PROVIDERS.filter(p => !p.requiresKey).length === 1, 'Ollama is the only key-free provider');
+  ok(llmMod.PROVIDERS.length === 9 && llmMod.PROVIDER_IDS.includes('ollama') && llmMod.PROVIDER_IDS.includes('forge-native') && llmMod.PROVIDER_IDS.includes('nvidia-nim') && llmMod.PROVIDER_IDS.includes('together-ai'), 'LLM registry carries nine providers including Ollama and the separately probed ForgeNative runtime');
+  ok(llmMod.PROVIDERS.filter(p => !p.requiresKey).length === 2 && llmMod.PROVIDER_IDS.includes('forge-native'), 'Ollama and ForgeNative are the two key-free local providers');
   const d1 = llmMod.dryRun('groq', { prompt: 'hi' });
   ok(d1.url.includes('groq.com') && d1.body.model === 'llama-3.3-70b-versatile' && d1.body.messages[0].role === 'system' && d1.body.max_tokens === 400, 'openai-shape request is well formed');
   const d2 = llmMod.dryRun('gemini', { prompt: 'hi' });
@@ -316,7 +317,7 @@ const run = (t, a) => P.runTool(t, a || {}, {});
   ok(!!llmMod.validateLocalUrl('http://127.0.0.1:9999/api/chat').error, 'local model endpoint: non-Ollama port rejected');
   ok(!!llmMod.validateLocalUrl('https://example.com/api/chat').error, 'local model endpoint: remote host rejected');
   const lst = await P.runTool('llm.status', {}, {});
-  ok(lst.result.providers.length === 8 && lst.result.providers.find(x => x.id === 'groq').configured === false, 'status reports unconfigured providers truthfully');
+  ok(lst.result.providers.length === 9 && lst.result.providers.find(x => x.id === 'groq').configured === false && lst.result.providers.find(x => x.id === 'forge-native').configured === false, 'status reports cloud credentials and offline ForgeNative truthfully');
   const nokey = await P.runTool('llm.chat', { prompt: 'hello', provider: 'groq' }, {});
   ok(nokey.ok === false && /connect groq with token/.test(nokey.error), 'chat without a key reports UNAVAILABLE with the exact connect command');
   const unk = await P.runTool('llm.chat', { prompt: 'x', provider: 'nope' }, {});
