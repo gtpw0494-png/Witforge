@@ -51,6 +51,7 @@ def main() -> None:
             seed=3,
             precision="auto",
             gradient_accumulation_steps=2,
+            max_shard_bytes=4096,
         )
         r2 = train(
             cfg,
@@ -67,6 +68,7 @@ def main() -> None:
             gradient_accumulation_steps=2,
         )
         check(r1["precision"] == "fp32", "CPU auto precision resolves truthfully to fp32")
+        check(r1["manifest"]["weights_format"] == "pytorch_state_dict_sharded", "pretraining can emit sharded checkpoints")
         check(r1["manifest"]["metadata"]["effective_batch_size"] == 2, "pretraining records effective accumulated batch size")
         check(r1["final_step"] == 1 and r2["start_step"] == 1 and r2["final_step"] == 2, "pretraining resumes with cumulative steps")
 
@@ -104,7 +106,9 @@ def main() -> None:
             seed=5,
             precision="auto",
             gradient_accumulation_steps=2,
+            max_shard_bytes=4096,
         )
+        check(sft_result["manifest"]["weights_format"] == "pytorch_state_dict_sharded", "SFT can emit sharded checkpoints")
         check(sft_result["manifest"]["metadata"]["tool_records"] == 1, "tool-use SFT count is recorded")
         check(sft_result["manifest"]["metadata"]["effective_batch_size"] == 2, "SFT records accumulated effective batch size")
 
@@ -133,7 +137,9 @@ def main() -> None:
             seed=7,
             precision="auto",
             gradient_accumulation_steps=2,
+            max_shard_bytes=4096,
         )
+        check(dpo_result["manifest"]["weights_format"] == "pytorch_state_dict_sharded", "DPO can emit sharded checkpoints")
         check(dpo_result["manifest"]["metadata"]["stage"] == "DPO", "DPO checkpoint records its stage")
         check(dpo_result["manifest"]["metadata"]["gradient_accumulation_steps"] == 2, "DPO records gradient accumulation")
 
