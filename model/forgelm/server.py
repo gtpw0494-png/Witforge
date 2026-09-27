@@ -11,7 +11,7 @@ import torch
 
 from .checkpoint import load_checkpoint
 from .generation import generate
-from .structured import TokenTrieConstraint, UnsupportedSchema, compile_finite_json_schema
+from .structured import TokenTrieConstraint, UnsupportedSchema, compile_finite_json_schema\nfrom .quantization import apply_inference_quantization, quantization_report
 
 MAX_BODY_BYTES = 1024 * 1024
 LOOPBACKS = {"127.0.0.1", "localhost", "::1"}
@@ -38,9 +38,11 @@ def render_messages(messages: List[Dict[str, Any]]) -> str:
 
 
 class ForgeNativeService:
-    def __init__(self, checkpoint: str | Path, device: str = "cpu"):
+    def __init__(self, checkpoint: str | Path, device: str = "cpu", quantization: str = "none"):
         self.checkpoint = Path(checkpoint)
         self.model, self.tokenizer, self.manifest = load_checkpoint(self.checkpoint, device=device)
+        self.model = apply_inference_quantization(self.model, quantization)
+        self.quantization = quantization_report(self.model, quantization)
         self.device = next(self.model.parameters()).device
         self.model_id = self.checkpoint.name or "forgelm"
         self.started_at = time.time()
@@ -56,7 +58,7 @@ class ForgeNativeService:
             "step": self.manifest.get("step"),
             "context_length": self.model.config.max_position_embeddings,
             "tokenizer_schema": getattr(self.tokenizer, "schema", "unknown"),
-            "capabilities": ["text_generation", "structured_output"],
+            "capabilities": ["text_generation", "structured_output"],\n            "quantization": self.quantization,
             "uptime_seconds": round(time.time() - self.started_at, 3),
         }
 
@@ -202,9 +204,9 @@ def main() -> None:
     p.add_argument("--checkpoint", required=True)
     p.add_argument("--device", default="cpu")
     p.add_argument("--host", default="127.0.0.1")
-    p.add_argument("--port", type=int, default=11435)
+    p.add_argument("--port", type=int, default=11435)\n    p.add_argument("--quantization", choices=["none", "dynamic-int8"], default="none")
     args = p.parse_args()
-    service = ForgeNativeService(args.checkpoint, device=args.device)
+    service = ForgeNativeService(args.checkpoint, device=args.device, quantization=args.quantization)
     server = make_server(service, args.host, args.port)
     print(json.dumps({"ok": True, "listen": f"http://{args.host}:{server.server_port}", "health": service.health()}, ensure_ascii=False), flush=True)
     try:
