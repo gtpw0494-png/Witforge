@@ -11,7 +11,7 @@ import torch
 
 from .checkpoint import load_checkpoint
 from .generation import generate
-from .structured import TokenTrieConstraint, UnsupportedSchema, compile_finite_json_schema\nfrom .quantization import apply_inference_quantization, quantization_report
+from .structured import TokenTrieConstraint, UnsupportedSchema, compile_finite_json_schema\nfrom .quantization import apply_inference_quantization, quantization_report\nfrom .promotion import verify_release_manifest
 
 MAX_BODY_BYTES = 1024 * 1024
 LOOPBACKS = {"127.0.0.1", "localhost", "::1"}
@@ -38,12 +38,25 @@ def render_messages(messages: List[Dict[str, Any]]) -> str:
 
 
 class ForgeNativeService:
-    def __init__(self, checkpoint: str | Path, device: str = "cpu", quantization: str = "none"):
+    def __init__(self, checkpoint: str | Path, device: str = "cpu", quantization: str = "none", release_manifest: str | Path | None = None, require_promoted: bool = False, release_key: str | None = None):
         self.checkpoint = Path(checkpoint)
         self.model, self.tokenizer, self.manifest = load_checkpoint(self.checkpoint, device=device)
         self.model = apply_inference_quantization(self.model, quantization)
         self.quantization = quantization_report(self.model, quantization)
         self.device = next(self.model.parameters()).device
+        self.release_verification = None
+        if release_manifest is not None:
+            self.release_verification = verify_release_manifest(
+                release_manifest,
+                self.checkpoint,
+                signing_key=release_key,
+                allow_unsigned_dev=not require_promoted,
+            )
+            if not self.release_verification["ok"]:
+                raise ValueError("release manifest verification failed")
+        elif require_promoted:
+            raise ValueError("--require-promoted requires --release-manifest")
+        self.require_promoted = bool(require_promoted)
         self.model_id = self.checkpoint.name or "forgelm"
         self.started_at = time.time()
 
@@ -58,7 +71,7 @@ class ForgeNativeService:
             "step": self.manifest.get("step"),
             "context_length": self.model.config.max_position_embeddings,
             "tokenizer_schema": getattr(self.tokenizer, "schema", "unknown"),
-            "capabilities": ["text_generation", "structured_output"],\n            "quantization": self.quantization,
+            "capabilities": ["text_generation", "structured_output"],\n            "quantization": self.quantization,\n            "release_verified": bool(self.release_verification and self.release_verification.get("ok")),\n            "release_version": self.release_verification["release"].get("release_version") if self.release_verification else None,\n            "promotion_required": self.require_promoted,
             "uptime_seconds": round(time.time() - self.started_at, 3),
         }
 
@@ -204,9 +217,9 @@ def main() -> None:
     p.add_argument("--checkpoint", required=True)
     p.add_argument("--device", default="cpu")
     p.add_argument("--host", default="127.0.0.1")
-    p.add_argument("--port", type=int, default=11435)\n    p.add_argument("--quantization", choices=["none", "dynamic-int8"], default="none")
+    p.add_argument("--port", type=int, default=11435)\n    p.add_argument("--quantization", choices=["none", "dynamic-int8"], default="none")\n    p.add_argument("--release-manifest")\n    p.add_argument("--require-promoted", action="store_true")
     args = p.parse_args()
-    service = ForgeNativeService(args.checkpoint, device=args.device, quantization=args.quantization)
+    service = ForgeNativeService(args.checkpoint, device=args.device, quantization=args.quantization, release_manifest=args.release_manifest, require_promoted=args.require_promoted)
     server = make_server(service, args.host, args.port)
     print(json.dumps({"ok": True, "listen": f"http://{args.host}:{server.server_port}", "health": service.health()}, ensure_ascii=False), flush=True)
     try:
