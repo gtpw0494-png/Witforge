@@ -11,7 +11,8 @@ from typing import Any, Dict
 from .promotion import verify_release_manifest
 
 
-CHECKPOINT_FILES = ("config.json", "tokenizer.json", "model.pt", "manifest.json")\nOPTIONAL_CHECKPOINT_FILES = ("optimizer.pt",)
+CHECKPOINT_FILES = ("config.json", "tokenizer.json", "model.pt", "manifest.json")
+OPTIONAL_CHECKPOINT_FILES = ("optimizer.pt",)
 
 
 def sha256_file(path: Path) -> str:
