@@ -80,6 +80,20 @@ def main() -> None:
         check(uncached.stats.peak_kv_cache_bytes == 0 and uncached.stats.final_kv_cache_bytes == 0, "no-cache generation allocates no KV cache")
         check(uncached.stats.cache_layers == 0, "no-cache generation reports zero cache layers")
 
+        static = generate_with_stats(
+            loaded,
+            prompt,
+            max_new_tokens=3,
+            eos_token_id=tok.eos_token_id,
+            temperature=0.0,
+            cache_strategy="static",
+        )
+        check(torch.equal(static.output_ids, measured.output_ids), "static-cache greedy generation matches dynamic-cache output exactly")
+        check(static.stats.cache_strategy == "static", "static-cache generation reports its strategy")
+        check(static.stats.peak_kv_cache_bytes > 0 and static.stats.final_kv_cache_bytes > 0, "static-cache generation reports allocated KV-cache bytes")
+        check(static.stats.cache_layers == cfg.num_hidden_layers, "static-cache generation allocates every layer")
+        check(static.stats.peak_kv_cache_bytes >= measured.stats.peak_kv_cache_bytes, "static-cache telemetry reflects full preallocated capacity")
+
         stream_events = list(iter_generate(loaded, prompt, max_new_tokens=3, eos_token_id=tok.eos_token_id, temperature=0.0))
         token_events = [event for event in stream_events if event.token_id is not None]
         final_events = [event for event in stream_events if event.done]
