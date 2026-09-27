@@ -82,8 +82,8 @@ Implemented through WitForge 2.13.0 development:
 - `model/forgelm/inference_export.py` derives a verified inference-only checkpoint, strips optimizer state, preserves source lineage, and explicitly requires fresh evaluation/promotion.
 - `model/forgelm/device_profile.py` observes local CPU/RAM/Torch/Android/Termux capability and emits conservative labeled heuristics; performance claims still require benchmarks.
 - `model/forgelm/autotune.py` runs subprocess-isolated local benchmark matrices across cache and quantization modes, records measured throughput/RSS/KV-cache evidence, and emits an advisory recommendation without silently changing serving configuration.
-- ForgeNative supports deterministic seeded inference, buffered stop sequences that are suppressed from streamed output, and request-selectable `dynamic` or `none` cache strategies.
-- `dynamic` remains the default fast path; `none` recomputes the full prefix each step and truthfully reports zero KV-cache bytes for low-memory/debug comparisons.
+- ForgeNative supports deterministic seeded inference, buffered stop sequences that are suppressed from streamed output, and request-selectable `dynamic`, `static`, or `none` cache strategies.
+- `dynamic` remains the default growing-cache path; `static` preallocates full-context K/V tensors and appends in place; `none` recomputes the full prefix each step and truthfully reports zero KV-cache bytes.
 - `model/forgelm/regression_eval.py` provides checkpoint-bound category-aware regression gates for prompt injection, tool truth, hallucination and conversational regressions.
 
 The Node control plane remains dependency-free. Python/PyTorch is an optional model runtime and does not gain permissions, credentials, execution authority or verification authority.
@@ -96,4 +96,4 @@ The Node control plane remains dependency-free. Python/PyTorch is an optional mo
 - expand real quality, tool-use, prompt-injection, hallucination and regression evaluation datasets;
 - add verified GGUF conversion/runtime compatibility;
 - add verified vLLM registration/serving compatibility;
-- add static, quantized and offloaded KV-cache storage variants beyond the implemented dynamic and no-cache strategies; measured Android/Termux tuning now has an autotune evidence path and still needs wider real-device profiles.
+- add quantized and offloaded KV-cache storage variants beyond the implemented dynamic, static and no-cache strategies; measured Android/Termux tuning now has an autotune evidence path and still needs wider real-device profiles.
