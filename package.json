@@ -56,9 +56,11 @@
     "forgelm:device-profile": "python -m model.forgelm.device_profile",
     "test:forgelm-mobile": "python -m model.forgelm.mobile_smoke_test",
     "forgelm:regression-eval": "python -m model.forgelm.regression_eval",
-    "test:forgelm-regression": "python -m model.forgelm.regression_smoke_test"
+    "test:forgelm-regression": "python -m model.forgelm.regression_smoke_test",
+    "forgelm:autotune": "python -m model.forgelm.autotune",
+    "test:forgelm-autotune": "python -m model.forgelm.autotune_smoke_test"
   },
   "dependencies": {},
   "devDependencies": {},
   "comment": "Node runtime remains zero-dependency by design. ForgeLM native training/chat is an optional Python/PyTorch runtime under model/forgelm."
-}
+}\n
