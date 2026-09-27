@@ -8,7 +8,7 @@ import torch
 
 from .checkpoint import load_checkpoint, save_checkpoint, verify_checkpoint
 from .configuration_forgelm import ForgeLMConfig
-from .generation import generate, generate_with_stats, kv_cache_nbytes
+from .generation import generate, generate_with_stats, iter_generate, kv_cache_nbytes
 from .modeling_forgelm import ForgeLMForCausalLM
 from .tokenizer import ByteTokenizer
 
@@ -66,6 +66,12 @@ def main() -> None:
         check(measured.stats.cache_layers == cfg.num_hidden_layers, "generation telemetry reports every cache layer")
         cache_probe = loaded(prompt, use_cache=True).past_key_values
         check(kv_cache_nbytes(cache_probe) > 0, "KV-cache byte accounting is non-zero for a real prompt")
+
+        stream_events = list(iter_generate(loaded, prompt, max_new_tokens=3, eos_token_id=tok.eos_token_id, temperature=0.0))
+        token_events = [event for event in stream_events if event.token_id is not None]
+        final_events = [event for event in stream_events if event.done]
+        check(len(final_events) == 1 and final_events[0].stats is not None, "stream generator emits exactly one final stats event")
+        check(len(token_events) == final_events[0].stats.generated_tokens, "stream generator emits one event per generated token")
 
     nano = ForgeLMConfig.nano()
     check(nano.hidden_size == 384 and nano.num_hidden_layers == 8 and nano.num_attention_heads == 6 and nano.num_key_value_heads == 2, "Nano profile matches WitForge contract")
