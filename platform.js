@@ -484,6 +484,11 @@ function cancelHumanStep(id) {
  * only traffic allowed to loopback — validated by llm.validateLocalUrl,
  * never a general SSRF exemption. A provider without a credential is
  * reported UNAVAILABLE with the exact free-key path; never faked. */
+const HOSTED_RUNTIME = Boolean(
+  process.env.CODESPACES ||
+  process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN ||
+  process.env.WITFORGE_HOSTED === '1'
+);
 const llmLocalFetch = async (url, headers, opts) => {
   const v = llm.validateLocalUrl(url);
   if (v.error) { audit('security', 'LOCAL-LLM BLOCKED ' + url, 'system', { result: 'BLOCKED', reason: v.error }); return { ok: false, error: v.error, blocked: 'local-llm' }; }
@@ -498,8 +503,10 @@ const llmLocalFetch = async (url, headers, opts) => {
       if (e.code === 'ECONNREFUSED') {
         const isForge = String(url).includes(':' + llm.FORGE_NATIVE_PORT() + '/');
         message = isForge
-          ? 'ForgeNative is not reachable on 127.0.0.1:' + llm.FORGE_NATIVE_PORT() + ' — start "python -m model.forgelm.server --checkpoint state/models/forgelm-nano"'
-          : 'Ollama is not reachable on 127.0.0.1:' + llm.OLLAMA_PORT() + ' — install it, "ollama serve", then "ollama pull ' + llm.providerById('ollama').defaultModel + '"';
+          ? 'ForgeNative is not reachable on 127.0.0.1:' + llm.FORGE_NATIVE_PORT() + ' — start the ForgeNative service for this WitForge host or configure a verified cloud provider'
+          : (HOSTED_RUNTIME
+              ? 'Ollama is not running in this hosted WitForge environment. Ollama is optional; use ForgeNative or a verified cloud provider, or explicitly run Ollama inside the host if you want that provider.'
+              : 'Ollama is not reachable on 127.0.0.1:' + llm.OLLAMA_PORT() + ' — start Ollama only if you explicitly want the Ollama provider');
       }
       resolve({ ok: false, error: message });
     });
@@ -890,7 +897,7 @@ const TOOLS = {
     } },
   'llm.chat': { cap: 'llm.chat', risk: 'medium', verification: 'provider reply parsed, non-empty; provider+model+latency recorded', run: async a => {
       const p = llmResolveProvider(a.provider);
-      if (!p) return { error: 'No AI provider is configured yet. Free options: ' + llm.PROVIDERS.filter(x => x.requiresKey).map(x => x.id + ' (' + x.free + ')').join('; ') + ' — or Ollama locally, no key needed (install, "ollama pull llama3.2"). Then “ask …”.', truthful: true };
+      if (!p) return { error: 'No verified AI runtime is currently available. Start ForgeNative for this host or connect and verify a supported cloud provider. Ollama is optional and only used when explicitly selected.', truthful: true };
       if (p.error) return p;
       const r = await llm.chat(p.id, a, { remoteFetch: guardedFetch, localFetch: llmLocalFetch, apiKey: p.requiresKey ? decryptToken(p.id) : null });
       if (r.ok) { S.llm.calls = (S.llm.calls || 0) + 1; save(); return { provider: r.provider, model: r.model, reply: r.content, usage: r.usage, latencyMs: r.latencyMs }; }
