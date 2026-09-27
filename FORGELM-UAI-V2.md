@@ -41,33 +41,41 @@ The information-only classes cannot grant authority.
 
 ## Native ForgeLM runtime
 
-Implemented through WitForge 2.10.0:
+Implemented through WitForge 2.11.0:
 
 - `model/forgelm/configuration_forgelm.py` — validated Nano and smoke configurations.
 - `model/forgelm/modeling_forgelm.py` — decoder-only Transformer with GQA, RoPE, RMSNorm and SwiGLU.
 - `model/forgelm/generation.py` — KV-cache autoregressive generation with temperature, top-k, top-p, repetition penalty and an allowed-token constraint hook.
-- `model/forgelm/tokenizer.py` — deterministic UTF-8 byte bootstrap tokenizer with stable reserved action/memory/evidence token IDs. Byte-level BPE remains the next tokenizer upgrade.
+- `model/forgelm/tokenizer.py` — deterministic UTF-8 byte bootstrap tokenizer plus trainable byte-level BPE with immutable reserved action/memory/evidence token IDs.
 - `model/forgelm/checkpoint.py` — save/load plus SHA-256 manifest verification and exact parameter counts.
 - `model/forgelm/train.py` — local causal-language-model trainer for text and JSONL conversational corpora.
 - `model/forgelm/chat.py` — local interactive or one-shot chat against a saved checkpoint.
 - `model/forgelm/smoke_test.py` — real forward/backward optimizer step, KV-cache test, checkpoint round-trip and generation test.
 - `config/forgelm-nano.json` — the 25,172,352-parameter ForgeLM-Nano architecture target.
-- `requirements/forgelm.txt` — optional PyTorch runtime requirement.\n- `model/forgelm/dataset.py` — provenance/consent/license/privacy/secret/verified-trace/dedup/holdout gates with a SHA-256 dataset report.
+- `requirements/forgelm.txt` — optional PyTorch runtime requirement.
+- `model/forgelm/dataset.py` — provenance/consent/license/privacy/secret/verified-trace/dedup/holdout gates with a SHA-256 dataset report.
 - `model/forgelm/server.py` — loopback-only ForgeNative HTTP service exposing `/health`, `/v1/models` and `/v1/chat/completions`.
 - `model/forgelm/pipeline_smoke_test.py` — governed dataset and BPE round-trip tests.
 - `model/forgelm/server_smoke_test.py` — real ephemeral localhost server round trip in CI.
 - `llm.js` — explicit `forge-native` provider on `127.0.0.1:11435`, path allowlist, live health probe and OpenAI-style chat adapter.
 - `config/training-sources.example.json` — source-manifest contract for approved training material.
+- `model/forgelm/sft.py` — assistant-only supervised fine-tuning with governed chat and tool-call records.
+- `model/forgelm/dpo.py` — Direct Preference Optimization against a verified reference checkpoint.
+- `model/forgelm/structured.py` — token-trie constrained decoding for finite strict JSON Schemas; unsupported open schemas fail explicitly.
+- `model/forgelm/traces.py` — verified, training-eligible action/correction trace conversion into SFT and preference datasets.
+- `model/forgelm/evals.py` — checkpoint/runtime/tokenizer/structured-output release gates bound to checkpoint identity.
+- `model/forgelm/promotion.py` — external release approval and HMAC-SHA256 manifest signing; the model cannot self-promote.
+- `model/forgelm/advanced_smoke_test.py` — resume → SFT/tool-SFT → DPO → schema → trace → eval → promotion CI path.
+- ForgeNative accepts finite strict `response_format` schemas and remains loopback-only for actual inference.
 
 The Node control plane remains dependency-free. Python/PyTorch is an optional model runtime and does not gain permissions, credentials, execution authority or verification authority.
 
 ## Remaining model work
 
-- train the byte-level BPE tokenizer while preserving the reserved IDs;
-- structured JSON grammar/schema decoding on top of the allowed-token constraint hook;
-- SFT/DPO, preference datasets and richer verified-trace transforms;
-- resumable/distributed training and evaluation suites;
-- ForgeNative localhost model server and Node provider adapter;
-- GGUF conversion/runtime compatibility work;
-- vLLM registration/serving compatibility;
-- quantization and mobile performance profiles.
+- scale BPE training and governed corpus tooling for large datasets;
+- broaden strict structured decoding beyond finite schemas with a tested grammar backend;
+- add gradient accumulation, mixed precision, checkpoint sharding and distributed training;
+- expand quality, tool-use, prompt-injection, hallucination and regression evaluation sets;
+- add verified GGUF conversion/runtime compatibility;
+- add verified vLLM registration/serving compatibility;
+- add quantization, KV-cache variants and Android/Termux performance profiles.
