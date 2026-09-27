@@ -76,6 +76,19 @@ def main() -> None:
             if parsed.get("mode") not in {"RESPOND", "TOOLS"} or not isinstance(parsed.get("approved"), bool):
                 raise AssertionError("structured response violated schema")
 
+            quantized = ForgeNativeService(td, quantization="dynamic-int8")
+            qhealth = quantized.health()
+            if qhealth["quantization"]["mode"] != "dynamic-int8":
+                raise AssertionError("dynamic-int8 health truth is missing")
+            qchat = quantized.chat({
+                "model": quantized.model_id,
+                "messages": [{"role": "user", "content": "hello"}],
+                "max_tokens": 1,
+                "temperature": 0,
+            })
+            if qchat["usage"]["completion_tokens"] < 1:
+                raise AssertionError("dynamic-int8 inference produced no token")
+
         finally:
             server.shutdown()
             server.server_close()
