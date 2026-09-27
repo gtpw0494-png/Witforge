@@ -91,7 +91,7 @@ def main() -> None:
     p.add_argument("--max-new-tokens", type=int, default=16)
     p.add_argument("--device", default="cpu")
     p.add_argument("--quantization", choices=["none", "dynamic-int8"], default="none")
-    p.add_argument("--cache-strategy", choices=["dynamic", "none"], default="dynamic")
+    p.add_argument("--cache-strategy", choices=["dynamic", "static", "none"], default="dynamic")
     p.add_argument("--warmup-tokens", type=int, default=1)
     p.add_argument("--out")
     args = p.parse_args()
