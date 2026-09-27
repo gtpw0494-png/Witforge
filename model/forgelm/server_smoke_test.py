@@ -93,6 +93,37 @@ def main() -> None:
             })
             if mapped.get("stop") != "END":
                 raise AssertionError("responses API did not propagate stop configuration")
+
+            invalid_cases = [
+                ({"temperature": float("nan")}, "temperature"),
+                ({"top_p": 0}, "top_p"),
+                ({"top_k": -1}, "top_k"),
+                ({"repetition_penalty": 0}, "repetition_penalty"),
+                ({"max_tokens": 0}, "max_tokens"),
+            ]
+            for extra, label in invalid_cases:
+                payload = {
+                    "model": service.model_id,
+                    "messages": [{"role": "user", "content": "validate"}],
+                    "max_tokens": 1,
+                }
+                payload.update(extra)
+                try:
+                    service._prepare_chat(payload)
+                except ValueError as exc:
+                    if label not in str(exc):
+                        raise AssertionError(f"invalid {label} did not report the correct field")
+                else:
+                    raise AssertionError(f"invalid {label} was accepted")
+            invalid_status, invalid_payload = request_error_json(base + "/v1/chat/completions", {
+                "model": service.model_id,
+                "messages": [{"role": "user", "content": "invalid top_p"}],
+                "max_tokens": 1,
+                "top_p": 0,
+            })
+            if invalid_status != 400 or (invalid_payload.get("error") or {}).get("code") != "invalid_request":
+                raise AssertionError("invalid generation controls did not fail as HTTP 400 invalid_request")
+
             status, chat = request_json(base + "/v1/chat/completions", {
                 "model": service.model_id,
                 "messages": [{"role": "user", "content": "hello"}],
