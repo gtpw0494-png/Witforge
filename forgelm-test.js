@@ -74,6 +74,10 @@ const strictFormat={
 };
 const forgeStructured=llm.dryRun('forge-native',{prompt:'choose',responseFormat:strictFormat,maxTokens:80,temperature:0});
 ok(forgeStructured.body.response_format && forgeStructured.body.response_format.type==='json_schema', 'ForgeNative forwards strict response_format without granting authority');
+
+const forgeStreamDry=llm.dryRun('forge-native',{prompt:'stream',stream:true,maxTokens:4,temperature:0});
+ok(forgeStreamDry.body.stream===true, 'ForgeNative dry run preserves explicit streaming intent');
+ok(forgeProvider.capabilities.includes('sse_streaming'), 'ForgeNative declares verified streaming capability');
 let localCalls=0, remoteCalls=0;
 (async()=>{
   const live=await llm.chat('forge-native',{prompt:'hello'},{
@@ -81,6 +85,33 @@ let localCalls=0, remoteCalls=0;
     remoteFetch:async()=>{ remoteCalls++; return {ok:false,error:'remote transport must not be used'}; }
   });
   ok(live.ok===true && live.content==='local reply' && localCalls===1 && remoteCalls===0, 'ForgeNative chat uses only the loopback transport');
+
+  const streamedEvents=[];
+  const streamed=await llm.streamChat('forge-native',{prompt:'hello',maxTokens:2,temperature:0},{
+    localStream:async(url,headers,opts,onEvent)=>{
+      ok(url.endsWith('/v1/chat/completions'), 'streaming uses only the ForgeNative chat path');
+      const body=JSON.parse(opts.body);
+      ok(body.stream===true, 'streaming transport sends stream=true');
+      const chunks=[
+        {choices:[{delta:{role:'assistant'},finish_reason:null}]},
+        {token_id:65,choices:[{delta:{content:'A'},finish_reason:null}]},
+        {token_id:66,choices:[{delta:{content:'B'},finish_reason:null}]},
+        {choices:[{delta:{},finish_reason:'length'}],usage:{prompt_tokens:5,completion_tokens:2,total_tokens:7},inference:{cache_strategy:'dynamic',kv_cache:{peak_bytes:128}}}
+      ];
+      chunks.forEach(onEvent);
+      return {ok:true,status:200,done:true};
+    },
+    onEvent:event=>streamedEvents.push(event)
+  });
+  ok(streamed.ok===true && streamed.content==='AB' && streamed.tokenEvents===2, 'ForgeNative stream aggregates real token deltas and counts token events');
+  ok(streamed.usage.completion_tokens===2 && streamed.inference.cache_strategy==='dynamic', 'ForgeNative stream preserves final usage and cache telemetry');
+  ok(streamedEvents.length===4, 'ForgeNative stream forwards each SSE event to the caller');
+
+  const badStream=await llm.streamChat('forge-native',{prompt:'hello'},{
+    localStream:async(url,headers,opts,onEvent)=>{ onEvent({token_id:1,choices:[{delta:{content:'x'},finish_reason:null}]}); return {ok:true,status:200,done:true}; }
+  });
+  ok(badStream.ok===false && /final usage event/.test(badStream.error), 'ForgeNative stream rejects incomplete SSE termination');
+
   console.log('ForgeLM/UAI v2 foundation: ' + checks + ' checks passed.');
 })().catch(err=>{ console.error(err); process.exit(1); });
 
