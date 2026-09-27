@@ -1,6 +1,6 @@
 {
   "name": "witforge",
-  "version": "2.08.0",
+  "version": "2.09.0",
   "description": "WitForge — a local-first, security-first conversational AI operating platform (browser control surface + authoritative local server).",
   "keywords": [
     "local-first",
@@ -34,9 +34,12 @@
     "recover": "node recovery.js",
     "selftest": "node -e \"const P=require('./platform.js');const r=P.selftestAll();console.log(JSON.stringify(r.counts,null,2));process.exit(r.counts.FAIL?1:0)\"",
     "health": "node -e \"const http=require('http');const port=process.env.PORT||8787;http.get({host:'127.0.0.1',port,path:'/api/health'},r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>{console.log(d);process.exit(r.statusCode===200?0:1)})}).on('error',e=>{console.error('health check failed: '+e.message);process.exit(1)})\"",
-    "test:forgelm": "node forgelm-test.js"
+    "test:forgelm": "node forgelm-test.js",
+    "test:forgelm-native": "python -m model.forgelm.smoke_test",
+    "forgelm:train": "python -m model.forgelm.train",
+    "forgelm:chat": "python -m model.forgelm.chat"
   },
   "dependencies": {},
   "devDependencies": {},
-  "comment": "Zero runtime dependencies by design. The scripts above are the commands documented in INSTALL.md and README.md; 'build' and 'lint' are real, dependency-free validation passes over the source tree, not placeholder no-ops."
+  "comment": "Node runtime remains zero-dependency by design. ForgeLM native training/chat is an optional Python/PyTorch runtime under model/forgelm."
 }
