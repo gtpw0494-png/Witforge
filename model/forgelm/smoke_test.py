@@ -67,6 +67,19 @@ def main() -> None:
         cache_probe = loaded(prompt, use_cache=True).past_key_values
         check(kv_cache_nbytes(cache_probe) > 0, "KV-cache byte accounting is non-zero for a real prompt")
 
+        uncached = generate_with_stats(
+            loaded,
+            prompt,
+            max_new_tokens=3,
+            eos_token_id=tok.eos_token_id,
+            temperature=0.0,
+            cache_strategy="none",
+        )
+        check(torch.equal(uncached.output_ids, measured.output_ids), "no-cache greedy generation matches dynamic-cache output exactly")
+        check(uncached.stats.cache_strategy == "none", "no-cache generation reports its strategy")
+        check(uncached.stats.peak_kv_cache_bytes == 0 and uncached.stats.final_kv_cache_bytes == 0, "no-cache generation allocates no KV cache")
+        check(uncached.stats.cache_layers == 0, "no-cache generation reports zero cache layers")
+
         stream_events = list(iter_generate(loaded, prompt, max_new_tokens=3, eos_token_id=tok.eos_token_id, temperature=0.0))
         token_events = [event for event in stream_events if event.token_id is not None]
         final_events = [event for event in stream_events if event.done]
