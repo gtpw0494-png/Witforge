@@ -55,9 +55,26 @@ def main() -> None:
             status, health = request_json(base + "/health")
             if status != 200 or not health.get("loaded"):
                 raise AssertionError("health endpoint did not report a loaded model")
+            if "stop_sequences" not in health.get("capabilities", []):
+                raise AssertionError("health endpoint did not report stop-sequence capability")
             status, models = request_json(base + "/v1/models")
             if status != 200 or not models.get("data"):
                 raise AssertionError("models endpoint returned no model")
+
+            prepared = service._prepare_chat({
+                "model": service.model_id,
+                "messages": [{"role": "user", "content": "stop normalization"}],
+                "stop": ["END", "STOP"],
+            })
+            if prepared["stop_strings"] != ["END", "STOP"] or len(prepared["stop_token_sequences"]) != 2:
+                raise AssertionError("chat preparation did not normalize stop strings")
+            mapped = service._responses_payload_to_chat({
+                "model": service.model_id,
+                "input": "responses stop",
+                "stop": "END",
+            })
+            if mapped.get("stop") != "END":
+                raise AssertionError("responses API did not propagate stop configuration")
             status, chat = request_json(base + "/v1/chat/completions", {
                 "model": service.model_id,
                 "messages": [{"role": "user", "content": "hello"}],
@@ -73,6 +90,10 @@ def main() -> None:
             kv = inference.get("kv_cache") or {}
             if inference.get("cache_strategy") != "dynamic" or int(kv.get("peak_bytes", 0)) <= 0:
                 raise AssertionError("chat endpoint did not expose measured dynamic KV-cache telemetry")
+            if int(inference.get("sampled_tokens", 0)) < int(chat["usage"]["completion_tokens"]):
+                raise AssertionError("chat sampled-token telemetry is inconsistent")
+            if "matched_stop_index" not in inference:
+                raise AssertionError("chat inference telemetry omitted matched_stop_index")
 
             status, content_type, stream_events, stream_done = request_sse(base + "/v1/chat/completions", {
                 "model": service.model_id,
