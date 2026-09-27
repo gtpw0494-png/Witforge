@@ -5,6 +5,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
 import time
+import threading
 from typing import Any, Dict, Iterator, List
 
 import torch
@@ -17,6 +18,10 @@ from .promotion import verify_release_manifest
 
 MAX_BODY_BYTES = 1024 * 1024
 LOOPBACKS = {"127.0.0.1", "localhost", "::1"}
+
+
+class InferenceBusy(RuntimeError):
+    pass
 
 
 def render_messages(messages: List[Dict[str, Any]]) -> str:
@@ -40,7 +45,17 @@ def render_messages(messages: List[Dict[str, Any]]) -> str:
 
 
 class ForgeNativeService:
-    def __init__(self, checkpoint: str | Path, device: str = "cpu", quantization: str = "none", release_manifest: str | Path | None = None, require_promoted: bool = False, release_key: str | None = None):
+    def __init__(
+        self,
+        checkpoint: str | Path,
+        device: str = "cpu",
+        quantization: str = "none",
+        release_manifest: str | Path | None = None,
+        require_promoted: bool = False,
+        release_key: str | None = None,
+        max_concurrent: int = 1,
+        queue_timeout_seconds: float = 5.0,
+    ):
         self.checkpoint = Path(checkpoint)
         self.model, self.tokenizer, self.manifest = load_checkpoint(self.checkpoint, device=device)
         self.model = apply_inference_quantization(self.model, quantization)
@@ -61,6 +76,60 @@ class ForgeNativeService:
         self.require_promoted = bool(require_promoted)
         self.model_id = self.checkpoint.name or "forgelm"
         self.started_at = time.time()
+        self.max_concurrent = max(1, min(32, int(max_concurrent)))
+        self.queue_timeout_seconds = max(0.0, min(300.0, float(queue_timeout_seconds)))
+        self._inference_gate = threading.BoundedSemaphore(self.max_concurrent)
+        self._metrics_lock = threading.Lock()
+        self._runtime_metrics = {
+            "active": 0,
+            "queued": 0,
+            "completed": 0,
+            "failed": 0,
+            "rejected": 0,
+            "queue_wait_ms_total": 0.0,
+            "inference_ms_total": 0.0,
+        }
+
+    def _runtime_snapshot(self) -> Dict[str, Any]:
+        with self._metrics_lock:
+            metrics = dict(self._runtime_metrics)
+        finished = metrics["completed"] + metrics["failed"]
+        return {
+            "max_concurrent": self.max_concurrent,
+            "queue_timeout_seconds": self.queue_timeout_seconds,
+            "active": metrics["active"],
+            "queued": metrics["queued"],
+            "completed": metrics["completed"],
+            "failed": metrics["failed"],
+            "rejected": metrics["rejected"],
+            "average_queue_wait_ms": round(metrics["queue_wait_ms_total"] / finished, 3) if finished else 0.0,
+            "average_inference_ms": round(metrics["inference_ms_total"] / finished, 3) if finished else 0.0,
+        }
+
+    def _acquire_inference_slot(self) -> Dict[str, float]:
+        queued_at = time.perf_counter()
+        with self._metrics_lock:
+            self._runtime_metrics["queued"] += 1
+        acquired = self._inference_gate.acquire(timeout=self.queue_timeout_seconds)
+        wait_ms = (time.perf_counter() - queued_at) * 1000.0
+        with self._metrics_lock:
+            self._runtime_metrics["queued"] -= 1
+            if not acquired:
+                self._runtime_metrics["rejected"] += 1
+            else:
+                self._runtime_metrics["active"] += 1
+                self._runtime_metrics["queue_wait_ms_total"] += wait_ms
+        if not acquired:
+            raise InferenceBusy("ForgeNative inference queue is full; retry later")
+        return {"acquired_at": time.perf_counter(), "queue_wait_ms": wait_ms}
+
+    def _release_inference_slot(self, lease: Dict[str, float], *, success: bool) -> None:
+        elapsed_ms = max(0.0, (time.perf_counter() - lease["acquired_at"]) * 1000.0)
+        with self._metrics_lock:
+            self._runtime_metrics["active"] = max(0, self._runtime_metrics["active"] - 1)
+            self._runtime_metrics["completed" if success else "failed"] += 1
+            self._runtime_metrics["inference_ms_total"] += elapsed_ms
+        self._inference_gate.release()
 
     def health(self) -> Dict[str, Any]:
         return {
@@ -80,6 +149,7 @@ class ForgeNativeService:
             "release_verified": bool(self.release_verification and self.release_verification.get("ok")),
             "release_version": self.release_verification["release"].get("release_version") if self.release_verification else None,
             "promotion_required": self.require_promoted,
+            "inference_runtime": self._runtime_snapshot(),
             "uptime_seconds": round(time.time() - self.started_at, 3),
         }
 
@@ -348,8 +418,11 @@ class ForgeNativeService:
 
     def chat(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         prep = self._prepare_chat(payload)
+        lease = self._acquire_inference_slot()
         started = time.time()
-        generation = generate_with_stats(
+        success = False
+        try:
+            generation = generate_with_stats(
             self.model,
             prep["input_ids"],
             max_new_tokens=prep["max_tokens"],
@@ -361,12 +434,13 @@ class ForgeNativeService:
             seed=prep["seed"],
             allowed_token_fn=prep["allowed_token_fn"],
             stop_token_sequences=prep["stop_token_sequences"],
-            cache_strategy=prep["cache_strategy"],
-        )
-        generated_ids = generation.output_ids[0, prep["input_ids"].shape[1]:].tolist()
-        content = self.tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
-        self._validate_structured(content, prep["structured_candidates"])
-        return {
+                cache_strategy=prep["cache_strategy"],
+            )
+            generated_ids = generation.output_ids[0, prep["input_ids"].shape[1]:].tolist()
+            content = self.tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
+            self._validate_structured(content, prep["structured_candidates"])
+            success = True
+            return {
             "id": f"forge-{int(time.time() * 1000)}",
             "object": "chat.completion",
             "created": int(time.time()),
@@ -394,105 +468,113 @@ class ForgeNativeService:
                 "matched_stop_index": generation.stats.matched_stop_index,
                 "sampled_tokens": generation.stats.sampled_tokens,
                 "seed": prep["seed"],
-                "max_context_tokens": generation.stats.max_context_tokens,
-            },
-        }
+                    "max_context_tokens": generation.stats.max_context_tokens,
+                },
+            }
+        finally:
+            self._release_inference_slot(lease, success=success)
 
     def stream_chat(self, payload: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
         prep = self._prepare_chat(payload)
+        lease = self._acquire_inference_slot()
         request_id = f"forge-{int(time.time() * 1000)}"
         created = int(time.time())
         started = time.time()
 
         def events() -> Iterator[Dict[str, Any]]:
+            success = False
+            try:
             generated_ids: List[int] = []
             emitted_text = ""
-            yield {
-                "id": request_id,
-                "object": "chat.completion.chunk",
-                "created": created,
-                "model": self.model_id,
-                "choices": [{"index": 0, "delta": {"role": "assistant"}, "finish_reason": None}],
-            }
-            final_stats = None
-            for event in iter_generate(
-                self.model,
-                prep["input_ids"],
-                max_new_tokens=prep["max_tokens"],
-                eos_token_id=self.tokenizer.eos_token_id,
-                temperature=prep["temperature"],
-                top_k=prep["top_k"],
-                top_p=prep["top_p"],
-                repetition_penalty=prep["repetition_penalty"],
-                seed=prep["seed"],
-                allowed_token_fn=prep["allowed_token_fn"],
-                stop_token_sequences=prep["stop_token_sequences"],
-                cache_strategy=prep["cache_strategy"],
-            ):
-                if event.token_id is not None:
-                    generated_ids.append(event.token_id)
-                    decoded = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
-                    stable = decoded.rstrip("\ufffd")
-                    delta = stable[len(emitted_text):] if stable.startswith(emitted_text) else ""
-                    if delta:
-                        emitted_text = stable
-                    yield {
-                        "id": request_id,
-                        "object": "chat.completion.chunk",
-                        "created": created,
-                        "model": self.model_id,
-                        "token_id": event.token_id,
-                        "choices": [{"index": 0, "delta": {"content": delta}, "finish_reason": None}],
-                    }
-                if event.done:
-                    final_stats = event.stats
+                yield {
+                    "id": request_id,
+                    "object": "chat.completion.chunk",
+                    "created": created,
+                    "model": self.model_id,
+                    "choices": [{"index": 0, "delta": {"role": "assistant"}, "finish_reason": None}],
+                }
+                final_stats = None
+                for event in iter_generate(
+                    self.model,
+                    prep["input_ids"],
+                    max_new_tokens=prep["max_tokens"],
+                    eos_token_id=self.tokenizer.eos_token_id,
+                    temperature=prep["temperature"],
+                    top_k=prep["top_k"],
+                    top_p=prep["top_p"],
+                    repetition_penalty=prep["repetition_penalty"],
+                    seed=prep["seed"],
+                    allowed_token_fn=prep["allowed_token_fn"],
+                    stop_token_sequences=prep["stop_token_sequences"],
+                    cache_strategy=prep["cache_strategy"],
+                ):
+                    if event.token_id is not None:
+                        generated_ids.append(event.token_id)
+                        decoded = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
+                        stable = decoded.rstrip("\ufffd")
+                        delta = stable[len(emitted_text):] if stable.startswith(emitted_text) else ""
+                        if delta:
+                            emitted_text = stable
+                        yield {
+                            "id": request_id,
+                            "object": "chat.completion.chunk",
+                            "created": created,
+                            "model": self.model_id,
+                            "token_id": event.token_id,
+                            "choices": [{"index": 0, "delta": {"content": delta}, "finish_reason": None}],
+                        }
+                    if event.done:
+                        final_stats = event.stats
 
-            if final_stats is None:
-                raise RuntimeError("stream generation ended without final stats")
-            final_raw = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
-            if final_raw.startswith(emitted_text):
-                tail = final_raw[len(emitted_text):]
-                if tail:
-                    emitted_text = final_raw
-                    yield {
-                        "id": request_id,
-                        "object": "chat.completion.chunk",
-                        "created": created,
-                        "model": self.model_id,
-                        "choices": [{"index": 0, "delta": {"content": tail}, "finish_reason": None}],
-                    }
-            self._validate_structured(final_raw, prep["structured_candidates"])
-            yield {
-                "id": request_id,
-                "object": "chat.completion.chunk",
-                "created": created,
-                "model": self.model_id,
-                "choices": [{
-                    "index": 0,
-                    "delta": {},
-                    "finish_reason": "stop" if final_stats.stop_reason in {"eos", "stop_sequence"} else "length",
-                }],
-                "usage": {
-                    "prompt_tokens": len(prep["ids"]),
-                    "completion_tokens": len(generated_ids),
-                    "total_tokens": len(prep["ids"]) + len(generated_ids),
-                },
-                "latency_ms": round((time.time() - started) * 1000, 3),
-                "structured": prep["structured_candidates"] is not None,
-                "inference": {
-                    "cache_strategy": prep["cache_strategy"],
-                    "kv_cache": {
-                        "peak_bytes": final_stats.peak_kv_cache_bytes,
-                        "final_bytes": final_stats.final_kv_cache_bytes,
-                        "layers": final_stats.cache_layers,
+                if final_stats is None:
+                    raise RuntimeError("stream generation ended without final stats")
+                final_raw = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
+                if final_raw.startswith(emitted_text):
+                    tail = final_raw[len(emitted_text):]
+                    if tail:
+                        emitted_text = final_raw
+                        yield {
+                            "id": request_id,
+                            "object": "chat.completion.chunk",
+                            "created": created,
+                            "model": self.model_id,
+                            "choices": [{"index": 0, "delta": {"content": tail}, "finish_reason": None}],
+                        }
+                self._validate_structured(final_raw, prep["structured_candidates"])
+                yield {
+                    "id": request_id,
+                    "object": "chat.completion.chunk",
+                    "created": created,
+                    "model": self.model_id,
+                    "choices": [{
+                        "index": 0,
+                        "delta": {},
+                        "finish_reason": "stop" if final_stats.stop_reason in {"eos", "stop_sequence"} else "length",
+                    }],
+                    "usage": {
+                        "prompt_tokens": len(prep["ids"]),
+                        "completion_tokens": len(generated_ids),
+                        "total_tokens": len(prep["ids"]) + len(generated_ids),
                     },
-                    "stop_reason": final_stats.stop_reason,
-                    "matched_stop_index": final_stats.matched_stop_index,
-                    "sampled_tokens": final_stats.sampled_tokens,
-                    "seed": prep["seed"],
-                    "max_context_tokens": final_stats.max_context_tokens,
-                },
-            }
+                    "latency_ms": round((time.time() - started) * 1000, 3),
+                    "structured": prep["structured_candidates"] is not None,
+                    "inference": {
+                        "cache_strategy": prep["cache_strategy"],
+                        "kv_cache": {
+                            "peak_bytes": final_stats.peak_kv_cache_bytes,
+                            "final_bytes": final_stats.final_kv_cache_bytes,
+                            "layers": final_stats.cache_layers,
+                        },
+                        "stop_reason": final_stats.stop_reason,
+                        "matched_stop_index": final_stats.matched_stop_index,
+                        "sampled_tokens": final_stats.sampled_tokens,
+                        "seed": prep["seed"],
+                        "max_context_tokens": final_stats.max_context_tokens,
+                    },
+                }
+            success = True
+            finally:
+                self._release_inference_slot(lease, success=success)
 
         return events()
 
@@ -536,6 +618,10 @@ def make_handler(service: ForgeNativeService):
                     self.wfile.flush()
                 except (BrokenPipeError, ConnectionResetError):
                     return
+            finally:
+                close = getattr(iterator, "close", None)
+                if callable(close):
+                    close()
 
         def do_GET(self) -> None:
             if self.path == "/health":
@@ -566,6 +652,8 @@ def make_handler(service: ForgeNativeService):
                 if payload.get("stream") is True:
                     return self._sse(service.stream_chat(payload))
                 return self._json(200, service.chat(payload))
+            except InferenceBusy as exc:
+                return self._json(503, {"error": {"code": "inference_busy", "message": str(exc), "retryable": True}})
             except ValueError as exc:
                 return self._json(400, {"error": {"code": "invalid_request", "message": str(exc)}})
             except Exception as exc:
@@ -589,8 +677,18 @@ def main() -> None:
     p.add_argument("--quantization", choices=["none", "dynamic-int8"], default="none")
     p.add_argument("--release-manifest")
     p.add_argument("--require-promoted", action="store_true")
+    p.add_argument("--max-concurrent", type=int, default=1)
+    p.add_argument("--queue-timeout-seconds", type=float, default=5.0)
     args = p.parse_args()
-    service = ForgeNativeService(args.checkpoint, device=args.device, quantization=args.quantization, release_manifest=args.release_manifest, require_promoted=args.require_promoted)
+    service = ForgeNativeService(
+        args.checkpoint,
+        device=args.device,
+        quantization=args.quantization,
+        release_manifest=args.release_manifest,
+        require_promoted=args.require_promoted,
+        max_concurrent=args.max_concurrent,
+        queue_timeout_seconds=args.queue_timeout_seconds,
+    )
     server = make_server(service, args.host, args.port)
     print(json.dumps({"ok": True, "listen": f"http://{args.host}:{server.server_port}", "health": service.health()}, ensure_ascii=False), flush=True)
     try:
