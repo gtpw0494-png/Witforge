@@ -48,6 +48,11 @@ def main() -> None:
                 raise AssertionError("chat endpoint failed")
             if chat["usage"]["completion_tokens"] < 1:
                 raise AssertionError("chat endpoint generated no tokens")
+
+            inference = chat.get("inference") or {}
+            kv = inference.get("kv_cache") or {}
+            if inference.get("cache_strategy") != "dynamic" or int(kv.get("peak_bytes", 0)) <= 0:
+                raise AssertionError("chat endpoint did not expose measured dynamic KV-cache telemetry")
             status, structured = request_json(base + "/v1/chat/completions", {
                 "model": service.model_id,
                 "messages": [{"role": "user", "content": "choose a mode"}],
