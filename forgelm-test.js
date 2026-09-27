@@ -4,7 +4,7 @@ const assert = require('assert');
 const context = require('./forge-context.js');
 const memoryMod = require('./forge-memory.js');
 const runtime = require('./forge-runtime.js');
-const contracts = require('./forge-contracts.js');
+const contracts = require('./forge-contracts.js');\nconst llm = require('./llm.js');
 
 let checks=0;
 function ok(cond,msg){ checks++; assert.ok(cond,msg); }
@@ -52,5 +52,13 @@ const routed=runtime.route([
   {id:'local',local:true,contextTokens:4096,capabilities:['structured_output','tool_proposal'],availability:{registered:true,reachable:true,compatible:true,authenticated:true},quality:0.7}
 ], {minimumContextTokens:2048,structuredOutput:true,toolCalling:true,localOnly:true});
 ok(routed.ok && routed.model.id==='local', 'router never selects unavailable provider');
+
+const forgeProvider=llm.providerById('forge-native');
+ok(!!forgeProvider && forgeProvider.requiresKey===false && forgeProvider.shape==='forge-native', 'ForgeNative is registered as an explicit local provider');
+const forgeDry=llm.dryRun('forge-native',{prompt:'hello',maxTokens:32,temperature:0});
+ok(forgeDry.local===true && forgeDry.url.endsWith('/v1/chat/completions'), 'ForgeNative dry run targets only its local chat endpoint');
+ok(llm.validateLocalUrl('http://127.0.0.1:'+llm.FORGE_NATIVE_PORT()+'/health').ok===true, 'ForgeNative health path is loopback-allowlisted');
+ok(llm.validateLocalUrl('http://127.0.0.1:'+llm.FORGE_NATIVE_PORT()+'/admin').error, 'ForgeNative arbitrary local paths remain blocked');
+ok(llm.validateLocalUrl('http://example.com:'+llm.FORGE_NATIVE_PORT()+'/health').error, 'ForgeNative cannot become a general SSRF escape');
 
 console.log('ForgeLM/UAI v2 foundation: ' + checks + ' checks passed.');
