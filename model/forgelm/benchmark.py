@@ -92,6 +92,7 @@ def main() -> None:
     p.add_argument("--device", default="cpu")
     p.add_argument("--quantization", choices=["none", "dynamic-int8"], default="none")
     p.add_argument("--cache-strategy", choices=["dynamic", "none"], default="dynamic")
+    p.add_argument("--warmup-tokens", type=int, default=1)
     p.add_argument("--out")
     args = p.parse_args()
     report = benchmark_checkpoint(
@@ -101,6 +102,7 @@ def main() -> None:
         device=args.device,
         quantization=args.quantization,
         cache_strategy=args.cache_strategy,
+        warmup_tokens=args.warmup_tokens,
     )
     payload = json.dumps(report, indent=2, sort_keys=True) + "\n"
     if args.out:
