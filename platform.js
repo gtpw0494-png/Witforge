@@ -24,7 +24,7 @@ const forgeContext = require('./forge-context.js');
 const forgeMemoryModule = require('./forge-memory.js');
 const forgeRuntime = require('./forge-runtime.js');
 
-const VERSION = '2.09.0';
+const VERSION = '2.10.0';
 function boundedMs(name, fallback, min, max) {
   const n = Number(process.env[name]);
   return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.floor(n))) : fallback;
@@ -493,7 +493,16 @@ const llmLocalFetch = async (url, headers, opts) => {
       let text = ''; rs.on('data', c => { text += c; if (text.length > 400000) rq.destroy(); });
       rs.on('end', () => resolve({ ok: rs.statusCode >= 200 && rs.statusCode < 300, status: rs.statusCode, text: text.slice(0, 400000) }));
     });
-    rq.on('error', e => resolve({ ok: false, error: e.code === 'ECONNREFUSED' ? 'Ollama is not reachable on 127.0.0.1:' + llm.OLLAMA_PORT() + ' — install it, "ollama serve", then "ollama pull ' + llm.providerById('ollama').defaultModel + '"' : e.message }));
+    rq.on('error', e => {
+      let message = e.message;
+      if (e.code === 'ECONNREFUSED') {
+        const isForge = String(url).includes(':' + llm.FORGE_NATIVE_PORT() + '/');
+        message = isForge
+          ? 'ForgeNative is not reachable on 127.0.0.1:' + llm.FORGE_NATIVE_PORT() + ' — start "python -m model.forgelm.server --checkpoint state/models/forgelm-nano"'
+          : 'Ollama is not reachable on 127.0.0.1:' + llm.OLLAMA_PORT() + ' — install it, "ollama serve", then "ollama pull ' + llm.providerById('ollama').defaultModel + '"';
+      }
+      resolve({ ok: false, error: message });
+    });
     rq.setTimeout(opts.timeoutMs || 120000, () => { rq.destroy(new Error('timeout')); });
     if (opts.body) rq.write(opts.body);
     rq.end();
@@ -850,16 +859,29 @@ const TOOLS = {
       return { service: a.service, disconnected: results.map(r => r.account), grantsRevoked: results.reduce((n2, r) => n2 + r.revokedGrants.length, 0) };
     } },
   /* ── v1.67: multi-provider AI chat — truth-stated, key-in-header ── */
-  'llm.status': { cap: 'llm.status', risk: 'low', verification: 'credential-store lookup; live local probe for Ollama only', run: async () => {
+  'llm.status': { cap: 'llm.status', risk: 'low', verification: 'credential-store lookup; live loopback probes for Ollama and ForgeNative', run: async () => {
       const rows = llm.PROVIDERS.map(p => ({
         id: p.id, name: p.name, shape: p.shape, defaultModel: p.defaultModel, free: p.free, connect: p.connect,
-        configured: p.requiresKey ? !!decryptToken(p.id) : true,
-        requiresKey: p.requiresKey
+        configured: p.requiresKey ? !!decryptToken(p.id) : (p.id === 'forge-native' ? false : true),
+        requiresKey: p.requiresKey,
+        reachable: null,
+        loaded: null
       }));
       const local = await llm.ollamaModels({ localFetch: llmLocalFetch });
       const oRow = rows.find(r => r.id === 'ollama');
-      if (local) oRow.models = local; else oRow.models = null;
-      return { defaultProvider: (S.llm && S.llm.default) || null, providers: rows, note: 'configured ≠ verified — say “verify <provider>” for a real round trip' };
+      if (oRow) { oRow.models = local || null; oRow.reachable = !!local; oRow.loaded = !!(local && local.length); }
+      const forge = await llm.forgeNativeStatus({ localFetch: llmLocalFetch });
+      const fRow = rows.find(r => r.id === 'forge-native');
+      if (fRow) {
+        fRow.configured = !!forge;
+        fRow.reachable = !!forge;
+        fRow.loaded = !!forge;
+        fRow.models = forge ? [forge.model] : null;
+        fRow.contextLength = forge ? forge.context_length : null;
+        fRow.parameterCount = forge ? forge.parameter_count : null;
+        fRow.tokenizerSchema = forge ? forge.tokenizer_schema : null;
+      }
+      return { defaultProvider: (S.llm && S.llm.default) || null, providers: rows, note: 'registered ≠ available; ForgeNative and Ollama are live-probed on loopback, cloud providers require a real verify round trip' };
     } },
   'llm.chat': { cap: 'llm.chat', risk: 'medium', verification: 'provider reply parsed, non-empty; provider+model+latency recorded', run: async a => {
       const p = llmResolveProvider(a.provider);
@@ -871,7 +893,7 @@ const TOOLS = {
     } },
   'llm.verify': { cap: 'llm.verify', risk: 'medium', verification: 'a real minimal round trip with the stored credential', run: async a => {
       const p = llmResolveProvider(a.provider);
-      if (!p) return { error: 'Nothing to verify yet — say “connect <provider> with token <key>” first (groq/gemini/openrouter/deepseek/mistral are free-tier; ollama needs no key).', truthful: true };
+      if (!p) return { error: 'Nothing to verify yet — say “connect <provider> with token <key>” first (groq/gemini/openrouter/deepseek/mistral are free-tier; ollama and forge-native need no key).', truthful: true };
       if (p.error) return p;
       /* v1.78.0: 64 output tokens, not 8 — thinking models (gemini-3.x) spend
        * output tokens on reasoning before any text arrives, so an 8-token
@@ -2278,7 +2300,7 @@ async function command(text, opts) {
   if (low === 'rate limits' || low === 'rate fabric') {
     const rows = Object.keys(llm.RATE_RPM).map(id => {
       const st = rateState(id);
-      const conn = id === 'ollama' ? true : !!decryptToken(id);
+      const conn = (id === 'ollama' || id === 'forge-native') ? true : !!decryptToken(id);
       const tpd = llm.RATE_TPD[id] ? ', ' + llm.RATE_TPD[id] + '/day' : '';
       return '• ' + id + ' — ' + llm.RATE_RPM[id] + ' rpm advisory' + tpd + ' — ' + (conn ? 'CONNECTED' : 'no key — DECLARED') + ' · used this minute ' + st.used + ' · rate-hits ' + (st.hits || 0) + (st.coolUntilTs > Date.now() ? ' · COOLING ' + Math.ceil((st.coolUntilTs - Date.now()) / 1000) + 's' : '');
     });
@@ -2287,21 +2309,22 @@ async function command(text, opts) {
 
   if (low === 'ai models' || low === 'ai providers') {
     const st = S.brainStats || { turns: 0, instant: 0, proposed: 0, repaired: 0, byProvider: {} };
+    const forgeLive = await llm.forgeNativeStatus({ localFetch: llmLocalFetch });
     const rows2 = llm.PROVIDERS.map(x => {
-      const conn = x.requiresKey ? !!decryptToken(x.id) : true;
+      const conn = x.id === 'forge-native' ? !!forgeLive : (x.requiresKey ? !!decryptToken(x.id) : true);
       const stat2 = st.byProvider[x.id];
       return (conn ? '●' : '○') + ' ' + x.id + (S.llm && S.llm.default === x.id ? ' (default)' : '') + ' — ' + (conn ? (x.free || 'connected') : 'no key') + (stat2 ? ' · planner turns ' + stat2.turns + ' · last ' + (stat2.lastModel || '?') : '');
     }).join('\n');
     return R('AI providers (connected ● / not connected ○):\n' + rows2 + '\n\nPlanner telemetry: ' + st.turns + ' turns · ' + st.instant + ' executed through the router · ' + st.proposed + ' routed to proposals · ' + (st.repaired || 0) + ' schema repairs · ' + (st.cachedHits || 0) + ' cached replies (zero provider spend) · ' + (st.localOffers || 0) + ' local-matcher offers.');
   }
-  if ((m = low.match(/^ai provider (\w+)$/))) {
+  if ((m = low.match(/^ai provider ([\w-]+)$/))) {
     const p = llm.providerById(m[1]);
     if (!p) return R('Unknown provider “' + m[1] + '”. Known: ' + llm.PROVIDER_IDS.join(', ') + '.');
     if (p.requiresKey && !decryptToken(p.id)) return R(p.name + ' has no stored credential yet. Say “' + p.connect + '” first.');
     S.llm.default = p.id; save(); audit('tool', 'LLM default provider set to ' + p.id, 'user', {});
     return R('Default AI provider is now ' + p.id + (p.requiresKey ? '.' : ' — local, nothing leaves this machine.') + ' Say “ask …” anytime.');
   }
-  if ((m = low.match(/^(?:verify|check) (groq|gemini|openrouter|deepseek|mistral|ollama|ai)$/))) {
+  if ((m = low.match(/^(?:verify|check) (groq|gemini|openrouter|deepseek|mistral|ollama|forge-native|ai)$/))) {
     const r = await runTool('llm.verify', { provider: m[1] === 'ai' ? undefined : m[1] }, {});
     return r.ok ? R('AI provider VERIFIED with a real round trip: ' + r.evidence.provider + ' · ' + r.evidence.model + ' (' + r.evidence.latencyMs + 'ms). It now answers “ask …”.') : R(r.error || 'Verification failed.');
   }
@@ -2642,7 +2665,7 @@ async function chatFallback(text) {
       ok: false, kind: 'ai-unconfigured',
       reply: '•' + fuzzy + '\n\nI have no AI provider connected, so I will not guess — but my LOCAL MATCHER (deterministic token overlap, no model, no spend) found a likely ability above. Say “do ' + fpr.id + '” to run it through the audited router, or “help” for every ability.\n\nI have no rule-based intent for “' + q0.slice(0, 80) + '” and no AI provider is connected. Free options:\n' +
         llm.PROVIDERS.filter(p => p.requiresKey).map(p => '• ' + p.id + ' — ' + p.free + ' → “' + p.connect + '”').join('\n') +
-        '\n• ollama — fully local, no key: install Ollama, “ollama pull llama3.2”, then “verify ollama”.'
+        '\n• ollama — fully local, no key: install Ollama, “ollama pull llama3.2”, then “verify ollama”.\n• forge-native — your trained ForgeLM: start the local server, then “verify forge-native” and “ai provider forge-native”.'
     };
   }
   return {
