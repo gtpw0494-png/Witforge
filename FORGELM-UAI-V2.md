@@ -55,6 +55,7 @@ Implemented through WitForge 2.13.0 development:
 - `requirements/forgelm.txt` — optional PyTorch runtime requirement.
 - `model/forgelm/dataset.py` — provenance/consent/license/privacy/secret/verified-trace/dedup/holdout gates with a SHA-256 dataset report.
 - `model/forgelm/server.py` — loopback-only ForgeNative HTTP service exposing `/health`, `/v1/models`, `/v1/chat/completions` and `/v1/responses`, including true SSE streaming.
+- ForgeNative inference is concurrency-bounded (default one decode at a time) with configurable queue timeout, retryable busy state, stream-slot cleanup, and measured active/queued/completed/failed/rejected counters in `/health`.
 - `model/forgelm/pipeline_smoke_test.py` — governed dataset and BPE round-trip tests.
 - `model/forgelm/server_smoke_test.py` — real ephemeral localhost server round trip in CI.
 - `llm.js` — explicit `forge-native` provider on `127.0.0.1:11435`, strict loopback path allowlist, Chat Completions and Responses adapters, SSE aggregation, stop/seed/cache-strategy propagation, and live health probing.
