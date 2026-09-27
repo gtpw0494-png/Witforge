@@ -11,7 +11,7 @@ from typing import Any, Dict
 import torch
 
 from .checkpoint import load_checkpoint
-from .generation import generate
+from .generation import generate, generate_with_stats
 from .quantization import apply_inference_quantization, quantization_report
 
 
@@ -53,7 +53,7 @@ def benchmark_checkpoint(
         )
 
     started = time.perf_counter()
-    out = generate(
+    result = generate_with_stats(
         model,
         input_ids,
         max_new_tokens=max(1, int(max_new_tokens)),
@@ -61,11 +61,12 @@ def benchmark_checkpoint(
         temperature=0.0,
     )
     elapsed = max(time.perf_counter() - started, 1e-9)
-    generated_tokens = int(out.shape[1] - input_ids.shape[1])
+    generated_tokens = int(result.output_ids.shape[1] - input_ids.shape[1])
     report = {
-        "schema": "witforge.forgelm.benchmark.v1",
+        "schema": "witforge.forgelm.benchmark.v2",
         "checkpoint": str(checkpoint),
         "parameter_count": manifest.get("parameter_count"),
+        "weights_format": manifest.get("weights_format", "pytorch_state_dict"),
         "device": str(model_device),
         "quantization": quantization_report(model, quantization),
         "prompt_tokens": len(prompt_ids),
@@ -74,6 +75,7 @@ def benchmark_checkpoint(
         "tokens_per_second": generated_tokens / elapsed,
         "checkpoint_bytes": _checkpoint_bytes(checkpoint),
         "process_memory": _rss(),
+        "generation": result.stats.to_dict(),
     }
     return report
 
