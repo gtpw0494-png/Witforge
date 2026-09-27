@@ -183,7 +183,10 @@ def verify_checkpoint(directory: str | Path) -> Dict[str, Any]:
                 ok = path.is_file() and path.stat().st_size == size and sha256_file(path) == expected
                 checks["weight:" + name] = ok
                 normalized.append({"name": name, "sha256": expected, "bytes": size})
-            checks["weights_digest"] = _weight_digest(normalized) == manifest.get("weights_sha256")
+            if len(normalized) == 1 and manifest.get("weights_format") != "pytorch_state_dict_sharded":
+                checks["weights_digest"] = normalized[0]["sha256"] == manifest.get("weights_sha256")
+            else:
+                checks["weights_digest"] = _weight_digest(normalized) == manifest.get("weights_sha256")
         except Exception:
             checks["weights_manifest"] = False
     else:
