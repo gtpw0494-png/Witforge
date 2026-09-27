@@ -75,6 +75,12 @@ const strictFormat={
 const forgeStructured=llm.dryRun('forge-native',{prompt:'choose',responseFormat:strictFormat,maxTokens:80,temperature:0});
 ok(forgeStructured.body.response_format && forgeStructured.body.response_format.type==='json_schema', 'ForgeNative forwards strict response_format without granting authority');
 
+const forgeResponseDry=llm.responsesDryRun('forge-native',{prompt:'respond',maxTokens:24,temperature:0});
+ok(forgeResponseDry.local===true && forgeResponseDry.url.endsWith('/v1/responses'), 'ForgeNative Responses dry run targets only the local Responses endpoint');
+ok(Array.isArray(forgeResponseDry.body.input) && forgeResponseDry.body.input[forgeResponseDry.body.input.length-1].content==='respond', 'Responses request preserves normalized user input');
+const forgeResponseStructured=llm.responsesDryRun('forge-native',{prompt:'choose',responseFormat:strictFormat,maxTokens:80,temperature:0});
+ok(forgeResponseStructured.body.text && forgeResponseStructured.body.text.format.type==='json_schema', 'Responses request maps strict JSON schema into text.format');
+
 const forgeStreamDry=llm.dryRun('forge-native',{prompt:'stream',stream:true,maxTokens:4,temperature:0});
 ok(forgeStreamDry.body.stream===true, 'ForgeNative dry run preserves explicit streaming intent');
 ok(forgeProvider.capabilities.includes('sse_streaming'), 'ForgeNative declares verified streaming capability');
@@ -85,6 +91,47 @@ let localCalls=0, remoteCalls=0;
     remoteFetch:async()=>{ remoteCalls++; return {ok:false,error:'remote transport must not be used'}; }
   });
   ok(live.ok===true && live.content==='local reply' && localCalls===1 && remoteCalls===0, 'ForgeNative chat uses only the loopback transport');
+
+  const responseCall=await llm.response('forge-native',{prompt:'hello responses'},{
+    localFetch:async(url,headers,opts)=>{
+      ok(url.endsWith('/v1/responses'), 'Responses call uses only the ForgeNative Responses path');
+      const body=JSON.parse(opts.body);
+      ok(body.input[body.input.length-1].content==='hello responses', 'Responses call serializes normalized input');
+      return {ok:true,status:200,text:JSON.stringify({
+        id:'resp-test',object:'response',status:'completed',output_text:'response reply',
+        usage:{input_tokens:5,output_tokens:2,total_tokens:7},
+        inference:{cache_strategy:'dynamic'}
+      })};
+    }
+  });
+  ok(responseCall.ok===true && responseCall.content==='response reply' && responseCall.api==='responses', 'Node provider parses ForgeNative Responses output');
+  ok(responseCall.usage.output_tokens===2 && responseCall.responseId==='resp-test', 'Responses call preserves usage and response identity');
+
+  const responseEvents=[];
+  const streamedResponse=await llm.streamResponse('forge-native',{prompt:'stream response',maxTokens:2,temperature:0},{
+    localStream:async(url,headers,opts,onEvent)=>{
+      ok(url.endsWith('/v1/responses'), 'Responses streaming uses only the allowlisted Responses path');
+      const body=JSON.parse(opts.body);
+      ok(body.stream===true, 'Responses streaming sends stream=true');
+      const events=[
+        {type:'response.created',sequence_number:0,response:{id:'resp-stream',status:'in_progress'}},
+        {type:'response.output_text.delta',sequence_number:1,response_id:'resp-stream',delta:'A',token_id:65},
+        {type:'response.output_text.delta',sequence_number:2,response_id:'resp-stream',delta:'B',token_id:66},
+        {type:'response.output_text.done',sequence_number:3,response_id:'resp-stream',text:'AB'},
+        {type:'response.completed',sequence_number:4,response:{
+          id:'resp-stream',status:'completed',output_text:'AB',
+          usage:{input_tokens:5,output_tokens:2,total_tokens:7},
+          inference:{cache_strategy:'dynamic'}
+        }}
+      ];
+      events.forEach(onEvent);
+      return {ok:true,status:200,done:true};
+    },
+    onEvent:event=>responseEvents.push(event)
+  });
+  ok(streamedResponse.ok===true && streamedResponse.content==='AB' && streamedResponse.status==='completed', 'Node provider aggregates Responses SSE lifecycle');
+  ok(streamedResponse.usage.output_tokens===2 && streamedResponse.tokenEvents===2, 'Responses SSE preserves output-token usage and token event count');
+  ok(responseEvents.length===5, 'Responses SSE forwards every lifecycle event to the caller');
 
   const streamedEvents=[];
   const streamed=await llm.streamChat('forge-native',{prompt:'hello',maxTokens:2,temperature:0},{
@@ -116,6 +163,7 @@ let localCalls=0, remoteCalls=0;
 })().catch(err=>{ console.error(err); process.exit(1); });
 
 ok(llm.validateLocalUrl('http://127.0.0.1:'+llm.FORGE_NATIVE_PORT()+'/health').ok===true, 'ForgeNative health path is loopback-allowlisted');
+ok(llm.validateLocalUrl('http://127.0.0.1:'+llm.FORGE_NATIVE_PORT()+'/v1/responses').ok===true, 'ForgeNative Responses path is loopback-allowlisted');
 ok(llm.validateLocalUrl('http://127.0.0.1:'+llm.FORGE_NATIVE_PORT()+'/admin').error, 'ForgeNative arbitrary local paths remain blocked');
 ok(llm.validateLocalUrl('http://example.com:'+llm.FORGE_NATIVE_PORT()+'/health').error, 'ForgeNative cannot become a general SSRF escape');
 
