@@ -1,0 +1,39 @@
+name: WitForge CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install
+        run: npm install --ignore-scripts
+
+      - name: ForgeLM/UAI v2 foundation
+        run: npm run test:forgelm
+
+      - name: Full test suite
+        run: npm test
+
+      - name: Build validation
+        run: npm run build
+
+      - name: Lint validation
+        run: npm run lint
