@@ -63,6 +63,9 @@ jobs:
       - name: ForgeLM inference export and device profile
         run: python -m model.forgelm.mobile_smoke_test
 
+      - name: ForgeLM regression and injection evaluation
+        run: python -m model.forgelm.regression_smoke_test
+
       - name: ForgeLM governed dataset and BPE pipeline
         run: python -m model.forgelm.pipeline_smoke_test
 
