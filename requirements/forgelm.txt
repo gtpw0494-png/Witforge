@@ -1,0 +1,4 @@
+# Desktop/Linux/macOS: install a platform-appropriate PyTorch build.
+# Termux: prefer the native package: pkg install python-torch
+# CI installs the CPU wheel from the official PyTorch wheel index.
+torch>=2.2
