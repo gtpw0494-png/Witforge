@@ -188,6 +188,28 @@ def main() -> None:
             if qchat["usage"]["completion_tokens"] < 1:
                 raise AssertionError("dynamic-int8 inference produced no token")
 
+            seeded_payload = {
+                "model": service.model_id,
+                "messages": [{"role": "user", "content": "seeded reproducibility"}],
+                "max_tokens": 5,
+                "temperature": 0.9,
+                "top_p": 0.9,
+                "seed": 424242,
+            }
+            seeded_a = service.chat(seeded_payload)
+            seeded_b = service.chat(seeded_payload)
+            if seeded_a["choices"][0]["message"]["content"] != seeded_b["choices"][0]["message"]["content"]:
+                raise AssertionError("identical seeded chat requests were not reproducible")
+            if seeded_a["inference"].get("seed") != 424242 or seeded_b["inference"].get("seed") != 424242:
+                raise AssertionError("seeded inference telemetry omitted the requested seed")
+            response_seed = service._responses_payload_to_chat({
+                "model": service.model_id,
+                "input": "seed response",
+                "seed": 77,
+            })
+            if response_seed.get("seed") != 77:
+                raise AssertionError("responses API did not propagate seed")
+
         finally:
             server.shutdown()
             server.server_close()
