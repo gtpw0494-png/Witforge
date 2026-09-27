@@ -73,8 +73,9 @@ class ForgeNativeService:
             "step": self.manifest.get("step"),
             "context_length": self.model.config.max_position_embeddings,
             "tokenizer_schema": getattr(self.tokenizer, "schema", "unknown"),
-            "capabilities": ["text_generation", "structured_output", "kv_cache_telemetry", "sse_streaming", "responses_api", "stop_sequences", "deterministic_seed"],
+            "capabilities": ["text_generation", "structured_output", "kv_cache_telemetry", "sse_streaming", "responses_api", "stop_sequences", "deterministic_seed", "cache_strategy_control"],
             "cache_strategy": "dynamic",
+            "cache_strategies": ["dynamic", "none"],
             "quantization": self.quantization,
             "release_verified": bool(self.release_verification and self.release_verification.get("ok")),
             "release_version": self.release_verification["release"].get("release_version") if self.release_verification else None,
@@ -108,6 +109,9 @@ class ForgeNativeService:
         top_p = float(payload.get("top_p", 0.95))
         top_k = int(payload.get("top_k", 50))
         repetition_penalty = float(payload.get("repetition_penalty", 1.05))
+        cache_strategy = str(payload.get("cache_strategy", "dynamic")).lower()
+        if cache_strategy not in {"dynamic", "none"}:
+            raise ValueError("cache_strategy must be one of: dynamic, none")
         seed = payload.get("seed")
         if seed is not None:
             if isinstance(seed, bool) or not isinstance(seed, int):
@@ -162,6 +166,7 @@ class ForgeNativeService:
             "top_p": top_p,
             "top_k": top_k,
             "repetition_penalty": repetition_penalty,
+            "cache_strategy": cache_strategy,
             "seed": seed,
             "allowed_token_fn": allowed_token_fn,
             "structured_candidates": structured_candidates,
@@ -216,6 +221,8 @@ class ForgeNativeService:
             "top_k": payload.get("top_k", 50),
             "repetition_penalty": payload.get("repetition_penalty", 1.05),
         }
+        if "cache_strategy" in payload:
+            chat_payload["cache_strategy"] = payload.get("cache_strategy")
         if "seed" in payload:
             chat_payload["seed"] = payload.get("seed")
         if "stop" in payload:
@@ -354,6 +361,7 @@ class ForgeNativeService:
             seed=prep["seed"],
             allowed_token_fn=prep["allowed_token_fn"],
             stop_token_sequences=prep["stop_token_sequences"],
+            cache_strategy=prep["cache_strategy"],
         )
         generated_ids = generation.output_ids[0, prep["input_ids"].shape[1]:].tolist()
         content = self.tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
@@ -376,7 +384,7 @@ class ForgeNativeService:
             "latency_ms": round((time.time() - started) * 1000, 3),
             "structured": prep["structured_candidates"] is not None,
             "inference": {
-                "cache_strategy": "dynamic",
+                "cache_strategy": prep["cache_strategy"],
                 "kv_cache": {
                     "peak_bytes": generation.stats.peak_kv_cache_bytes,
                     "final_bytes": generation.stats.final_kv_cache_bytes,
@@ -419,6 +427,7 @@ class ForgeNativeService:
                 seed=prep["seed"],
                 allowed_token_fn=prep["allowed_token_fn"],
                 stop_token_sequences=prep["stop_token_sequences"],
+                cache_strategy=prep["cache_strategy"],
             ):
                 if event.token_id is not None:
                     generated_ids.append(event.token_id)
@@ -471,7 +480,7 @@ class ForgeNativeService:
                 "latency_ms": round((time.time() - started) * 1000, 3),
                 "structured": prep["structured_candidates"] is not None,
                 "inference": {
-                    "cache_strategy": "dynamic",
+                    "cache_strategy": prep["cache_strategy"],
                     "kv_cache": {
                         "peak_bytes": final_stats.peak_kv_cache_bytes,
                         "final_bytes": final_stats.final_kv_cache_bytes,
