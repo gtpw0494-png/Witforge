@@ -40,7 +40,7 @@ def load_preferences(paths: Iterable[str]) -> List[Dict[str, str]]:
     return rows
 
 
-def encode_response(tokenizer, prompt: str, response: str, max_length: int) -> Tuple[torch.Tensor, torch.Tensor]:
+def encode_response(tokenizer, prompt: str, response: str, max_length: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     p = tokenizer.encode(prompt + "\n<|assistant|>\n", add_bos=True)
     r = tokenizer.encode(response + "\n<|end_turn|>", add_eos=True)
     ids = (p + r)[:max(2, int(max_length))]
@@ -52,17 +52,14 @@ def encode_response(tokenizer, prompt: str, response: str, max_length: int) -> T
         mask[:, start:] = True
     if not bool(mask.any().item()):
         raise ValueError("preference response was truncated away")
-    return x, mask
+    return x, y, mask
 
 
 def sequence_logprob(model, tokenizer, prompt: str, response: str, max_length: int) -> torch.Tensor:
-    x, mask = encode_response(tokenizer, prompt, response, max_length)
-    x = x.to(next(model.parameters()).device)
-    mask = mask.to(x.device)
-    logits = model(x).logits[:, :-1, :] if False else model(x).logits
-    targets = torch.cat([x[:, 1:], torch.full((1, 1), tokenizer.eos_token_id, device=x.device, dtype=x.dtype)], dim=1)
-    targets = targets[:, :logits.shape[1]]
-    mask = mask[:, :logits.shape[1]]
+    x, targets, mask = encode_response(tokenizer, prompt, response, max_length)
+    device = next(model.parameters()).device
+    x, targets, mask = x.to(device), targets.to(device), mask.to(device)
+    logits = model(x).logits
     logp = F.log_softmax(logits, dim=-1).gather(-1, targets.unsqueeze(-1)).squeeze(-1)
     return (logp * mask).sum(dim=-1).mean()
 
