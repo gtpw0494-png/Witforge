@@ -73,7 +73,7 @@ class ForgeNativeService:
             "step": self.manifest.get("step"),
             "context_length": self.model.config.max_position_embeddings,
             "tokenizer_schema": getattr(self.tokenizer, "schema", "unknown"),
-            "capabilities": ["text_generation", "structured_output", "kv_cache_telemetry", "sse_streaming", "responses_api", "stop_sequences"],
+            "capabilities": ["text_generation", "structured_output", "kv_cache_telemetry", "sse_streaming", "responses_api", "stop_sequences", "deterministic_seed"],
             "cache_strategy": "dynamic",
             "quantization": self.quantization,
             "release_verified": bool(self.release_verification and self.release_verification.get("ok")),
@@ -108,6 +108,12 @@ class ForgeNativeService:
         top_p = float(payload.get("top_p", 0.95))
         top_k = int(payload.get("top_k", 50))
         repetition_penalty = float(payload.get("repetition_penalty", 1.05))
+        seed = payload.get("seed")
+        if seed is not None:
+            if isinstance(seed, bool) or not isinstance(seed, int):
+                raise ValueError("seed must be an integer")
+            if seed < 0 or seed >= 2 ** 63:
+                raise ValueError("seed must be in [0, 2^63)")
         input_ids = torch.tensor([ids], dtype=torch.long, device=self.device)
 
         raw_stop = payload.get("stop")
@@ -156,6 +162,7 @@ class ForgeNativeService:
             "top_p": top_p,
             "top_k": top_k,
             "repetition_penalty": repetition_penalty,
+            "seed": seed,
             "allowed_token_fn": allowed_token_fn,
             "structured_candidates": structured_candidates,
             "stop_strings": stop_strings,
@@ -209,6 +216,8 @@ class ForgeNativeService:
             "top_k": payload.get("top_k", 50),
             "repetition_penalty": payload.get("repetition_penalty", 1.05),
         }
+        if "seed" in payload:
+            chat_payload["seed"] = payload.get("seed")
         if "stop" in payload:
             chat_payload["stop"] = payload.get("stop")
         text = payload.get("text")
@@ -342,6 +351,7 @@ class ForgeNativeService:
             top_k=prep["top_k"],
             top_p=prep["top_p"],
             repetition_penalty=prep["repetition_penalty"],
+            seed=prep["seed"],
             allowed_token_fn=prep["allowed_token_fn"],
             stop_token_sequences=prep["stop_token_sequences"],
         )
@@ -375,6 +385,7 @@ class ForgeNativeService:
                 "stop_reason": generation.stats.stop_reason,
                 "matched_stop_index": generation.stats.matched_stop_index,
                 "sampled_tokens": generation.stats.sampled_tokens,
+                "seed": prep["seed"],
                 "max_context_tokens": generation.stats.max_context_tokens,
             },
         }
@@ -405,6 +416,7 @@ class ForgeNativeService:
                 top_k=prep["top_k"],
                 top_p=prep["top_p"],
                 repetition_penalty=prep["repetition_penalty"],
+                seed=prep["seed"],
                 allowed_token_fn=prep["allowed_token_fn"],
                 stop_token_sequences=prep["stop_token_sequences"],
             ):
@@ -468,6 +480,7 @@ class ForgeNativeService:
                     "stop_reason": final_stats.stop_reason,
                     "matched_stop_index": final_stats.matched_stop_index,
                     "sampled_tokens": final_stats.sampled_tokens,
+                    "seed": prep["seed"],
                     "max_context_tokens": final_stats.max_context_tokens,
                 },
             }
