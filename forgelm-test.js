@@ -58,8 +58,33 @@ const forgeProvider=llm.providerById('forge-native');
 ok(!!forgeProvider && forgeProvider.requiresKey===false && forgeProvider.shape==='forge-native', 'ForgeNative is registered as an explicit local provider');
 const forgeDry=llm.dryRun('forge-native',{prompt:'hello',maxTokens:32,temperature:0});
 ok(forgeDry.local===true && forgeDry.url.endsWith('/v1/chat/completions'), 'ForgeNative dry run targets only its local chat endpoint');
+
+const strictFormat={
+  type:'json_schema',
+  json_schema:{
+    name:'decision',
+    strict:true,
+    schema:{
+      type:'object',
+      additionalProperties:false,
+      properties:{mode:{type:'string',enum:['RESPOND','TOOLS']},approved:{type:'boolean'}},
+      required:['mode','approved']
+    }
+  }
+};
+const forgeStructured=llm.dryRun('forge-native',{prompt:'choose',responseFormat:strictFormat,maxTokens:80,temperature:0});
+ok(forgeStructured.body.response_format && forgeStructured.body.response_format.type==='json_schema', 'ForgeNative forwards strict response_format without granting authority');
+let localCalls=0, remoteCalls=0;
+(async()=>{
+  const live=await llm.chat('forge-native',{prompt:'hello'},{
+    localFetch:async(url,headers,opts)=>{ localCalls++; return {ok:true,status:200,text:JSON.stringify({choices:[{message:{content:'local reply'}}],usage:{completion_tokens:2}})}; },
+    remoteFetch:async()=>{ remoteCalls++; return {ok:false,error:'remote transport must not be used'}; }
+  });
+  ok(live.ok===true && live.content==='local reply' && localCalls===1 && remoteCalls===0, 'ForgeNative chat uses only the loopback transport');
+  console.log('ForgeLM/UAI v2 foundation: ' + checks + ' checks passed.');
+})().catch(err=>{ console.error(err); process.exit(1); });
+
 ok(llm.validateLocalUrl('http://127.0.0.1:'+llm.FORGE_NATIVE_PORT()+'/health').ok===true, 'ForgeNative health path is loopback-allowlisted');
 ok(llm.validateLocalUrl('http://127.0.0.1:'+llm.FORGE_NATIVE_PORT()+'/admin').error, 'ForgeNative arbitrary local paths remain blocked');
 ok(llm.validateLocalUrl('http://example.com:'+llm.FORGE_NATIVE_PORT()+'/health').error, 'ForgeNative cannot become a general SSRF escape');
 
-console.log('ForgeLM/UAI v2 foundation: ' + checks + ' checks passed.');
