@@ -8,7 +8,7 @@ import torch
 
 from .checkpoint import load_checkpoint, save_checkpoint, verify_checkpoint
 from .configuration_forgelm import ForgeLMConfig
-from .generation import generate
+from .generation import generate, generate_with_stats, kv_cache_nbytes
 from .modeling_forgelm import ForgeLMForCausalLM
 from .tokenizer import ByteTokenizer
 
@@ -59,6 +59,13 @@ def main() -> None:
         generated = generate(loaded, prompt, max_new_tokens=4, eos_token_id=tok.eos_token_id, temperature=0.0)
         check(generated.shape[1] >= prompt.shape[1] + 1, "local autoregressive generation produces tokens")
         check(generated.shape[1] <= prompt.shape[1] + 4, "generation respects max_new_tokens")
+
+        measured = generate_with_stats(loaded, prompt, max_new_tokens=3, eos_token_id=tok.eos_token_id, temperature=0.0)
+        check(measured.stats.generated_tokens >= 1, "generation telemetry counts generated tokens")
+        check(measured.stats.peak_kv_cache_bytes > 0, "generation telemetry measures live KV-cache bytes")
+        check(measured.stats.cache_layers == cfg.num_hidden_layers, "generation telemetry reports every cache layer")
+        cache_probe = loaded(prompt, use_cache=True).past_key_values
+        check(kv_cache_nbytes(cache_probe) > 0, "KV-cache byte accounting is non-zero for a real prompt")
 
     nano = ForgeLMConfig.nano()
     check(nano.hidden_size == 384 and nano.num_hidden_layers == 8 and nano.num_attention_heads == 6 and nano.num_key_value_heads == 2, "Nano profile matches WitForge contract")
