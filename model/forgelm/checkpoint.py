@@ -20,6 +20,14 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
+def checkpoint_identity(directory: str | Path) -> str:
+    target = Path(directory)
+    manifest = target / "manifest.json"
+    if not manifest.is_file():
+        raise FileNotFoundError(manifest)
+    return sha256_file(manifest)
+
+
 def save_checkpoint(
     directory: str | Path,
     model: ForgeLMForCausalLM,
@@ -60,14 +68,17 @@ def save_checkpoint(
 
 def verify_checkpoint(directory: str | Path) -> Dict[str, Any]:
     target = Path(directory)
-    manifest = json.loads((target / "manifest.json").read_text(encoding="utf-8"))
+    manifest_path = target / "manifest.json"
+    if not manifest_path.is_file():
+        return {"ok": False, "checks": {"manifest": False}, "manifest": None}
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     checks = {
-        "config": sha256_file(target / "config.json") == manifest["config_sha256"],
-        "tokenizer": sha256_file(target / "tokenizer.json") == manifest["tokenizer_sha256"],
-        "weights": sha256_file(target / "model.pt") == manifest["weights_sha256"],
+        "config": (target / "config.json").is_file() and sha256_file(target / "config.json") == manifest.get("config_sha256"),
+        "tokenizer": (target / "tokenizer.json").is_file() and sha256_file(target / "tokenizer.json") == manifest.get("tokenizer_sha256"),
+        "weights": (target / "model.pt").is_file() and sha256_file(target / "model.pt") == manifest.get("weights_sha256"),
     }
     if manifest.get("optimizer_sha256"):
-        checks["optimizer"] = sha256_file(target / "optimizer.pt") == manifest["optimizer_sha256"]
+        checks["optimizer"] = (target / "optimizer.pt").is_file() and sha256_file(target / "optimizer.pt") == manifest["optimizer_sha256"]
     return {"ok": all(checks.values()), "checks": checks, "manifest": manifest}
 
 
@@ -86,3 +97,16 @@ def load_checkpoint(directory: str | Path, *, device: str | torch.device = "cpu"
     model.to(device)
     model.eval()
     return model, tokenizer, verification["manifest"]
+
+
+def load_training_checkpoint(
+    directory: str | Path,
+    *,
+    device: str | torch.device = "cpu",
+) -> Tuple[ForgeLMForCausalLM, Any, Dict[str, Any], Optional[Dict[str, Any]]]:
+    target = Path(directory)
+    model, tokenizer, manifest = load_checkpoint(target, device=device)
+    optimizer_state = None
+    if manifest.get("optimizer_sha256"):
+        optimizer_state = torch.load(target / "optimizer.pt", map_location=device, weights_only=True)
+    return model, tokenizer, manifest, optimizer_state
