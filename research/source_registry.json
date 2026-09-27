@@ -1,0 +1,19 @@
+{
+  "format": "iu-source-registry-v1",
+  "policy": "Reference only sources whose provenance and license are known. Do not claim proprietary model source exists. Do not copy third-party code into ForgeLM without attribution/license review.",
+  "sources": [
+    {"name":"OpenAI gpt-oss","url":"https://github.com/openai/gpt-oss","license":"Apache-2.0","status":"REFERENCE_APPROVED","use":"architecture/open-weight study; no bundled vendor source"},
+    {"name":"xAI Grok-1","url":"https://github.com/xai-org/grok-1","license":"Apache-2.0","status":"REFERENCE_APPROVED","use":"architecture/open-weight study; no bundled vendor source"},
+    {"name":"DeepSeek-V3 code","url":"https://github.com/deepseek-ai/DeepSeek-V3","license":"MIT for code; model terms separate","status":"REFERENCE_APPROVED_CODE","use":"architecture/training-system study; model terms must be reviewed separately"},
+    {"name":"Google DeepMind Gemma","url":"https://github.com/google-deepmind/gemma","license":"Apache-2.0 implementation","status":"REFERENCE_APPROVED","use":"JAX/open-model implementation study"},
+    {"name":"Google Gemma PyTorch","url":"https://github.com/google/gemma_pytorch","license":"Apache-2.0","status":"REFERENCE_APPROVED_ARCHIVED","use":"PyTorch implementation study; repository archived Aug 2026"},
+    {"name":"Hugging Face Transformers","url":"https://github.com/huggingface/transformers","license":"Apache-2.0","status":"DEPENDENCY_APPROVED","use":"optional interoperability dependency"},
+    {"name":"Sarus Arena","url":"https://github.com/arena-ai/arena","license":"Apache-2.0","status":"REFERENCE_APPROVED","use":"evaluation/distillation workflow research"},
+    {"name":"Claude model","url":"https://github.com/anthropics","license":"varies by repository","status":"PUBLIC_RESEARCH_ONLY","use":"No Claude model-source assumption; public papers/tools only after license review"},
+    {"name":"Gemini model","url":"https://ai.google.dev/","license":"not represented here as open model source","status":"PUBLIC_RESEARCH_ONLY","use":"Use Gemma/open research where source is actually available; do not relabel Gemini as open source"},
+    {"name":"ChatGPT product","url":"https://openai.com/","license":"product/service","status":"NO_MODEL_SOURCE_ASSUMED","use":"Use gpt-oss for available OpenAI open-model source, not ChatGPT product internals"},
+    {"name":"Samsung Bixby","url":"https://www.samsung.com/","license":"not verified as open model source","status":"NO_MODEL_SOURCE_ASSUMED","use":"public documentation only unless a specific licensed source repository is identified"},
+    {"name":"DarkAI","url":"","license":"ambiguous name / multiple unrelated projects","status":"REVIEW_REQUIRED","use":"not used until exact repository and license are identified"},
+    {"name":"LMArena / Arena","url":"https://github.com/lmarena","license":"repository-specific","status":"REFERENCE_ONLY","use":"benchmark/evaluation research; each repository requires its own license check"}
+  ]
+}

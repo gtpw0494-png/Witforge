@@ -1,0 +1,84 @@
+{
+  "format": "iu-local-source-snapshot-v1",
+  "sources": [
+    {
+      "name": "OpenAI gpt-oss",
+      "declaredLicense": "Apache-2.0",
+      "registryStatus": "REFERENCE_APPROVED",
+      "present": false
+    },
+    {
+      "name": "xAI Grok-1",
+      "declaredLicense": "Apache-2.0",
+      "registryStatus": "REFERENCE_APPROVED",
+      "present": false
+    },
+    {
+      "name": "DeepSeek-V3 code",
+      "declaredLicense": "MIT for code; model terms separate",
+      "registryStatus": "REFERENCE_APPROVED_CODE",
+      "present": false
+    },
+    {
+      "name": "Google DeepMind Gemma",
+      "declaredLicense": "Apache-2.0 implementation",
+      "registryStatus": "REFERENCE_APPROVED",
+      "present": false
+    },
+    {
+      "name": "Google Gemma PyTorch",
+      "declaredLicense": "Apache-2.0",
+      "registryStatus": "REFERENCE_APPROVED_ARCHIVED",
+      "present": false
+    },
+    {
+      "name": "Hugging Face Transformers",
+      "declaredLicense": "Apache-2.0",
+      "registryStatus": "DEPENDENCY_APPROVED",
+      "present": false
+    },
+    {
+      "name": "Sarus Arena",
+      "declaredLicense": "Apache-2.0",
+      "registryStatus": "REFERENCE_APPROVED",
+      "present": false
+    },
+    {
+      "name": "Claude model",
+      "declaredLicense": "varies by repository",
+      "registryStatus": "PUBLIC_RESEARCH_ONLY",
+      "present": false
+    },
+    {
+      "name": "Gemini model",
+      "declaredLicense": "not represented here as open model source",
+      "registryStatus": "PUBLIC_RESEARCH_ONLY",
+      "present": false
+    },
+    {
+      "name": "ChatGPT product",
+      "declaredLicense": "product/service",
+      "registryStatus": "NO_MODEL_SOURCE_ASSUMED",
+      "present": false
+    },
+    {
+      "name": "Samsung Bixby",
+      "declaredLicense": "not verified as open model source",
+      "registryStatus": "NO_MODEL_SOURCE_ASSUMED",
+      "present": false
+    },
+    {
+      "name": "DarkAI",
+      "declaredLicense": "ambiguous name / multiple unrelated projects",
+      "registryStatus": "REVIEW_REQUIRED",
+      "present": false
+    },
+    {
+      "name": "LMArena / Arena",
+      "declaredLicense": "repository-specific",
+      "registryStatus": "REFERENCE_ONLY",
+      "present": false
+    }
+  ],
+  "truth": "Presence and git commit are measured locally. License compatibility is not inferred from filenames."
+}

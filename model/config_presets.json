@@ -1,0 +1,92 @@
+{
+  "format": "forgelm-config-presets-v3",
+  "presets": {
+    "termux-tiny": {
+      "d_model": 64,
+      "n_layers": 2,
+      "n_heads": 4,
+      "n_kv_heads": 2,
+      "d_ff": 192,
+      "max_seq_len": 192,
+      "num_experts": 0,
+      "cache_window": 192
+    },
+    "termux-moe-lab": {
+      "d_model": 72,
+      "n_layers": 3,
+      "n_heads": 6,
+      "n_kv_heads": 2,
+      "d_ff": 216,
+      "max_seq_len": 256,
+      "num_experts": 4,
+      "experts_per_token": 2,
+      "cache_window": 256,
+      "router_aux_loss_coef": 0.01
+    },
+    "desktop-small": {
+      "d_model": 256,
+      "n_layers": 8,
+      "n_heads": 8,
+      "n_kv_heads": 2,
+      "d_ff": 768,
+      "max_seq_len": 1024,
+      "num_experts": 0,
+      "cache_window": 1024
+    },
+    "desktop-moe": {
+      "d_model": 256,
+      "n_layers": 8,
+      "n_heads": 8,
+      "n_kv_heads": 2,
+      "d_ff": 512,
+      "max_seq_len": 1024,
+      "num_experts": 8,
+      "experts_per_token": 2,
+      "cache_window": 1024,
+      "router_aux_loss_coef": 0.01
+    },
+    "desktop-reasoning-moe": {
+      "d_model": 384,
+      "n_layers": 12,
+      "n_heads": 12,
+      "n_kv_heads": 4,
+      "d_ff": 1536,
+      "max_seq_len": 2048,
+      "num_experts": 16,
+      "experts_per_token": 2,
+      "cache_window": 2048,
+      "router_aux_loss_coef": 0.01,
+      "future_loss_coef": 0.1,
+      "future_horizon": 3
+    },
+    "termux-context-lab": {
+      "d_model": 72,
+      "n_layers": 3,
+      "n_heads": 6,
+      "n_kv_heads": 2,
+      "d_ff": 216,
+      "max_seq_len": 1024,
+      "rope_scale": 4,
+      "num_experts": 4,
+      "experts_per_token": 2,
+      "cache_window": 512,
+      "router_aux_loss_coef": 0.01
+    },
+    "desktop-long-context": {
+      "d_model": 384,
+      "n_layers": 12,
+      "n_heads": 12,
+      "n_kv_heads": 4,
+      "d_ff": 1536,
+      "max_seq_len": 8192,
+      "rope_scale": 4,
+      "num_experts": 16,
+      "experts_per_token": 2,
+      "cache_window": 4096,
+      "router_aux_loss_coef": 0.01,
+      "future_loss_coef": 0.1,
+      "future_horizon": 3
+    }
+  },
+  "truth": "Larger presets and RoPE scaling extend the local attention window but do not prove frontier long-context quality. ForgeLM native context memory can retrieve from sources larger than the active window; benchmark evidence is required before promotion."
+}

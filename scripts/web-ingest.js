@@ -1,0 +1,2 @@
+import path from "node:path";import {fileURLToPath} from "node:url";import {KnowledgeStore} from "../src/store.js";import {AuditLog} from "../src/audit.js";import {WebCorpus} from "../src/web-corpus.js";
+const [url,license="UNKNOWN",licenseSource="UNVERIFIED"]=process.argv.slice(2);const root=path.dirname(path.dirname(fileURLToPath(import.meta.url)));const web=new WebCorpus({root,store:new KnowledgeStore(path.join(root,"data")),audit:new AuditLog(path.join(root,"state"))});console.log(JSON.stringify(await web.ingestUrl({url,license,licenseSource}),null,2));

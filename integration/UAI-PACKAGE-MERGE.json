@@ -1,0 +1,10 @@
+{
+  "scriptConflicts": {
+    "test": {
+      "witforge": "node forgelm-test.js && node spec-test.js && node storage-test.js && node adversarial-test.js && node platform-test.js && node arena-test.js && node engagement-test.js && node smoke-test.js",
+      "uai": "node test.js",
+      "preservedAs": "uai:test"
+    }
+  },
+  "dependencyConflicts": {}
+}

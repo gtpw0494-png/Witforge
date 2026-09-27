@@ -1,0 +1,119 @@
+{
+  "version": "v2",
+  "policy": "Research approval and training-rights approval are separate. FACT_EXTRACTION_ALLOWED permits short provenance-linked factual claims; PER_RECORD_LICENSE requires explicit per-record license verification before training eligibility.",
+  "sources": [
+    {
+      "id": "arxiv",
+      "name": "arXiv",
+      "domain": "arxiv.org",
+      "type": "academic",
+      "allowed": true,
+      "license": "PER-ITEM",
+      "license_source": "https://info.arxiv.org/help/license/index.html",
+      "training_policy": "PER_RECORD_LICENSE",
+      "trust": 0.96,
+      "priority": 100,
+      "extractors": [
+        "text",
+        "metadata",
+        "references"
+      ]
+    },
+    {
+      "id": "github-docs",
+      "name": "GitHub Docs",
+      "domain": "docs.github.com",
+      "type": "official-docs",
+      "allowed": true,
+      "license": "CC-BY",
+      "license_source": "https://docs.github.com/en/contributing/style-guide-and-content-model/style-guide",
+      "training_policy": "FACT_EXTRACTION_ALLOWED",
+      "trust": 0.97,
+      "priority": 95,
+      "extractors": [
+        "text",
+        "metadata"
+      ]
+    },
+    {
+      "id": "python-docs",
+      "name": "Python Docs",
+      "domain": "docs.python.org",
+      "type": "official-docs",
+      "allowed": true,
+      "license": "PSF-2.0",
+      "license_source": "https://docs.python.org/3/license.html",
+      "training_policy": "FACT_EXTRACTION_ALLOWED",
+      "trust": 0.97,
+      "priority": 95,
+      "extractors": [
+        "text",
+        "metadata"
+      ]
+    },
+    {
+      "id": "wikipedia",
+      "name": "Wikipedia",
+      "domain": "wikipedia.org",
+      "type": "reference",
+      "allowed": true,
+      "license": "CC-BY-SA-4.0/GFDL",
+      "license_source": "https://foundation.wikimedia.org/wiki/Terms_of_Use",
+      "training_policy": "PER_RECORD_LICENSE",
+      "trust": 0.82,
+      "priority": 70,
+      "extractors": [
+        "text",
+        "metadata"
+      ]
+    },
+    {
+      "id": "huggingface-docs",
+      "name": "Hugging Face Docs",
+      "domain": "huggingface.co",
+      "type": "official-docs",
+      "allowed": true,
+      "license": "PER-REPOSITORY/PAGE",
+      "license_source": "https://huggingface.co/",
+      "training_policy": "PER_RECORD_LICENSE",
+      "trust": 0.9,
+      "priority": 85,
+      "extractors": [
+        "text",
+        "metadata"
+      ]
+    },
+    {
+      "id": "mozilla-mdn",
+      "name": "MDN",
+      "domain": "developer.mozilla.org",
+      "type": "official-docs",
+      "allowed": true,
+      "license": "CC-BY-SA-2.5-or-later",
+      "license_source": "https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Attrib_copyright_license",
+      "training_policy": "PER_RECORD_LICENSE",
+      "trust": 0.96,
+      "priority": 92,
+      "extractors": [
+        "text",
+        "metadata"
+      ]
+    },
+    {
+      "id": "public-domain-books",
+      "name": "Internet Archive",
+      "domain": "archive.org",
+      "type": "archive",
+      "allowed": true,
+      "license": "PER-ITEM",
+      "license_source": "https://archive.org/",
+      "training_policy": "PER_RECORD_LICENSE",
+      "trust": 0.9,
+      "priority": 75,
+      "extractors": [
+        "text",
+        "metadata"
+      ]
+    }
+  ]
+}

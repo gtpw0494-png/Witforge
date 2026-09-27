@@ -1,0 +1,26 @@
+# Model/provider integration
+
+UAI includes a capability catalog for the requested OpenAI, Anthropic, Gemini, xAI, Cohere, Inference.net, MiniMax, Puter, DeepSeek, and open-ecosystem families. The catalog is deliberately truth-gated: an entry means that UAI knows the model's provider and capabilities, not that credentials, endpoint access, licensing, or runtime availability exists.
+
+## Configuration
+
+Set the provider key and optionally override the endpoint/model:
+
+```sh
+export OPENAI_API_KEY=...
+export OPENAI_MODEL=gpt-6
+export ANTHROPIC_API_KEY=...
+export ANTHROPIC_MODEL=claude-sonnet-5
+export GEMINI_API_KEY=...
+export XAI_API_KEY=...
+export COHERE_API_KEY=...
+export INFERENCE_API_KEY=...
+export MINIMAX_API_KEY=...
+export PUTER_API_KEY=...
+```
+
+Open-ecosystem models can use Hugging Face, a local llama.cpp/Ollama runtime, or a custom OpenAI-compatible endpoint. Use `UAI_PROVIDER_BASE_URL`, `UAI_PROVIDER_API_KEY`, and `UAI_PROVIDER_MODEL` for the custom adapter.
+
+The provider hub now supports normalized text chat, vision-shaped requests, image-generation-shaped requests, health evidence, timeout control, and provider-call audit records. Exact model availability is always probed at runtime.
+
+Run `node verification/model-catalog.test.mjs` to verify the catalog and `npm test` for the full suite.

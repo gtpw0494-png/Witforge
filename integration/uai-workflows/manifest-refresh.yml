@@ -1,0 +1,50 @@
+name: Refresh release manifest
+
+on:
+  push:
+    branches:
+      - main
+      - 'build/**'
+    paths-ignore:
+      - release-manifest.json
+      - .promotion-trigger
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-manifest-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Rebuild manifest deterministically
+        run: python3 scripts/build-release-manifest.py
+
+      - name: Commit only manifest metadata when changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- release-manifest.json; then
+            echo "Release manifest is current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add release-manifest.json
+          test "$(git diff --cached --name-only | wc -l | tr -d ' ')" = "1"
+          test "$(git diff --cached --name-only)" = "release-manifest.json"
+          git commit -m "chore: refresh release manifest"
+          git push origin HEAD:${{ github.ref_name }}

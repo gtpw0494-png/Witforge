@@ -1,0 +1,34 @@
+{
+  "format": "intraultuniversalion-language-data-registry-v1",
+  "sources": [
+    {
+      "id": "princeton-wordnet-3.0",
+      "name": "Princeton WordNet 3.0",
+      "purpose": "definitions and lexical relations",
+      "sourceUrl": "https://wordnetcode.princeton.edu/3.0/WordNet-3.0.tar.gz",
+      "license": "WordNet-3.0",
+      "licenseUrl": "https://wordnet.princeton.edu/license-and-commercial-use",
+      "trainingEligible": true,
+      "notes": "Permission to use/copy/modify/distribute without fee or royalty subject to preserving the required copyright/license notices."
+    },
+    {
+      "id": "openassistant-oasst1",
+      "name": "OpenAssistant OASST1",
+      "purpose": "multi-turn conversational dialogue and banter-style training/retrieval",
+      "sourceUrl": "https://huggingface.co/datasets/OpenAssistant/oasst1",
+      "downloadUrl": "https://huggingface.co/datasets/OpenAssistant/oasst1/resolve/main/2023-04-12_oasst_ready.messages.jsonl.gz?download=true",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://huggingface.co/datasets/OpenAssistant/oasst1/blob/main/LICENSE",
+      "trainingEligible": true,
+      "notes": "Multilingual assistant conversation corpus. Default importer selects English; other languages can be imported explicitly."
+    },
+    {
+      "id": "daily-dialog",
+      "name": "DailyDialog",
+      "purpose": "optional daily conversation research",
+      "license": "CC-BY-NC-SA-4.0",
+      "trainingEligible": false,
+      "notes": "Not enabled by default because its non-commercial/share-alike terms are more restrictive."
+    }
+  ]
+}

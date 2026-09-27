@@ -1,0 +1,2 @@
+import path from "node:path";import {fileURLToPath} from "node:url";import {KnowledgeStore} from "../src/store.js";import {AuditLog} from "../src/audit.js";import {LearningFabric} from "../src/learning-fabric.js";
+const root=path.dirname(path.dirname(fileURLToPath(import.meta.url)));const store=new KnowledgeStore(path.join(root,"data"));const audit=new AuditLog(path.join(root,"state"));const fabric=new LearningFabric({store,audit,root});console.log(JSON.stringify(fabric.build(),null,2));

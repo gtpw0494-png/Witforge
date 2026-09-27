@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://intraultuniversalion.local/schemas/http-request-v1.json",
+  "title": "UAI Governed HTTP Request Envelope",
+  "type": "object",
+  "required": [
+    "requestId",
+    "correlationId",
+    "actor",
+    "method",
+    "path",
+    "capability",
+    "risk",
+    "argumentsHash",
+    "policyDecision"
+  ],
+  "properties": {
+    "requestId": {
+      "type": "string",
+      "pattern": "^req-"
+    },
+    "correlationId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "actor": {
+      "type": "string",
+      "minLength": 1
+    },
+    "method": {
+      "type": "string"
+    },
+    "path": {
+      "type": "string"
+    },
+    "capability": {
+      "type": "string"
+    },
+    "risk": {
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "argumentsHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "policyDecision": {
+      "enum": [
+        "ALLOW",
+        "DENY",
+        "ASK",
+        "ESCALATE",
+        "BLOCK"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

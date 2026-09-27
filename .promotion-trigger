@@ -1,0 +1,7 @@
+UAI v0.54.0 direct-main verification trigger
+requirements=authoritative-ci+user-owned-memory+provenance-graph+policy-simulation+model-artifact-verification+evaluation-records+manifest-reproducibility
+main-advance=user-directed
+feature=explicit-consent-memory+optional-local-encryption+lineage-trace+dry-run-purge+policy-preview+artifact-integrity+verified-evaluations
+truth=no-silent-memory-training+runtime-registration-not-executability+cross-store-purge-remains-partial+multimodal+dense-retrieval+federated-learning+formal-verification+independent-bootstrap-proof-remain-incomplete
+checkpoint=pre-evidence-promotion
+checkpoint=final-promoted-state

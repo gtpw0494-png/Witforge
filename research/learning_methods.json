@@ -1,0 +1,16 @@
+{
+  "format":"uai-learning-methods-v1",
+  "updated":"2026-09-24",
+  "methods":[
+    {"id":"causal-pretraining","name":"Causal language-model pretraining","status":"IMPLEMENTED_SMALL_SCALE","requires":["torch"],"use":"ForgeLM local decoder training on governed corpora"},
+    {"id":"supervised-finetuning","name":"Supervised fine-tuning","status":"PARTIAL","requires":["torch"],"use":"instruction/response dataset-v2 and verified traces"},
+    {"id":"lora","name":"LoRA parameter-efficient fine-tuning","status":"RUNTIME_CONDITIONAL","requires":["transformers","peft","torch"],"use":"preferred adaptation path before full-model fine-tuning"},
+    {"id":"qlora","name":"QLoRA-style low-rank adaptation","status":"RUNTIME_CONDITIONAL","requires":["transformers","peft","torch","compatible quantization backend"],"use":"memory-bounded adaptation on supported hardware"},
+    {"id":"dpo","name":"Direct Preference Optimization","status":"RUNTIME_CONDITIONAL","requires":["transformers","trl","torch"],"use":"preference-pair optimization after supervised baseline and provenance checks"},
+    {"id":"rag","name":"Retrieval-augmented generation","status":"IMPLEMENTED_LOCAL_FOUNDATION","requires":["sqlite"],"use":"FTS5 plus sparse semantic hybrid retrieval with provenance"},
+    {"id":"continual-replay","name":"Continual learning with replay/holdout","status":"IMPLEMENTED_FOUNDATION","requires":[],"use":"versioned replay snapshots and regression holdouts; no direct training on unreviewed chat history"},
+    {"id":"distillation","name":"Knowledge distillation","status":"RESEARCH_ONLY","requires":[],"use":"future teacher/student workflow after licensing and evaluation controls"},
+    {"id":"multimodal","name":"Multimodal text/image/audio learning","status":"PLANNED_UNAVAILABLE","requires":[],"use":"not exposed as connected until modality pipelines, provenance and evaluation exist"},
+    {"id":"federated","name":"Federated/privacy-preserving training","status":"PLANNED_UNAVAILABLE","requires":[],"use":"not exposed as connected until secure aggregation/privacy accounting is implemented"}
+  ]
+}

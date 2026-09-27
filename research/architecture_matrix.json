@@ -1,0 +1,55 @@
+{
+  "format": "iu-architecture-matrix-v2",
+  "verifiedDate": "2026-09-23",
+  "policy": "Architectural ideas are independently implemented and benchmarked. Vendor source remains in vendor-reference and is not silently copied into ForgeLM.",
+  "features": [
+    {
+      "feature": "grouped-query-attention",
+      "references": ["xAI Grok-1", "OpenAI gpt-oss"],
+      "status": "ADOPTED",
+      "forgelm": "n_heads / n_kv_heads grouped query attention"
+    },
+    {
+      "feature": "rotary-position-embeddings",
+      "references": ["xAI Grok-1", "OpenAI gpt-oss", "Google DeepMind Gemma"],
+      "status": "ADOPTED",
+      "forgelm": "RoPE with explicit absolute positions"
+    },
+    {
+      "feature": "sparse-mixture-of-experts",
+      "references": ["xAI Grok-1", "OpenAI gpt-oss", "DeepSeek-V3 code"],
+      "status": "ADOPTED_EXPERIMENTAL",
+      "forgelm": "optional top-k local MoE"
+    },
+    {
+      "feature": "kv-cache",
+      "references": ["xAI Grok-1", "DeepSeek-V3 code", "Google DeepMind Gemma"],
+      "status": "ADOPTED",
+      "forgelm": "incremental inference cache with absolute-position causal masking"
+    },
+    {
+      "feature": "sliding-window-attention",
+      "references": ["OpenAI gpt-oss", "Google DeepMind Gemma"],
+      "status": "EXPERIMENT_NEXT",
+      "forgelm": "cache-window limit exists; layerwise local/global attention schedule not yet promoted"
+    },
+    {
+      "feature": "multi-head-latent-attention",
+      "references": ["DeepSeek-V3 code"],
+      "status": "RESEARCH",
+      "forgelm": "not implemented; requires independent benchmark before adoption"
+    },
+    {
+      "feature": "multi-token-prediction",
+      "references": ["DeepSeek-V3 code"],
+      "status": "RESEARCH",
+      "forgelm": "not implemented yet"
+    },
+    {
+      "feature": "quantized-moe-weights",
+      "references": ["OpenAI gpt-oss"],
+      "status": "RESEARCH",
+      "forgelm": "not bundled; hardware/toolchain-specific"
+    }
+  ]
+}

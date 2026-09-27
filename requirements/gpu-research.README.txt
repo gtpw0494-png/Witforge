@@ -1,0 +1,2 @@
+GPU research candidates: deepspeed, bitsandbytes, triton, xformers, flash-attn.
+Install them individually only when your CUDA/ROCm/Python combination is supported. They are omitted from automatic installation so a profile does not falsely imply compatibility.

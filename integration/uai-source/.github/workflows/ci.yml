@@ -1,0 +1,271 @@
+name: UAI authoritative CI
+
+on:
+  push:
+    branches:
+      - main
+      - 'build/**'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install Node metadata without optional runtimes
+        run: npm install --ignore-scripts --omit=optional
+
+      - name: Validate feature evidence claims
+        run: node scripts/validate-feature-evidence.mjs
+
+      - name: Run cumulative regression suite
+        run: npm test
+
+      - name: Run security and adversarial boundary suite
+        run: npm run test:security
+
+      - name: Verify plugin sandbox and local model runtime boundaries
+        run: node verification/runtime-boundaries.test.mjs
+
+      - name: Verify v0.43 control-plane modernization
+        run: npm run test:control-plane
+
+      - name: Verify v0.44 governed plugin gateway
+        run: npm run test:plugin-gateway
+
+      - name: Verify v0.44 plugin HTTP integration
+        run: npm run test:plugin-http
+
+      - name: Verify v0.45 provenance document data plane
+        run: npm run test:document-data
+
+      - name: Verify v0.45 document HTTP and OneChat integration
+        run: npm run test:document-http
+
+      - name: Verify v0.46 secure API identity and authorization
+        run: npm run test:api-security
+
+      - name: Verify v0.48 native conversation and capability truth
+        run: npm run test:conversation-capability
+
+      - name: Verify v0.49 evidence-native model routing
+        run: npm run test:model-router-evidence
+
+      - name: Verify v0.49 owner email/password bootstrap and token retirement
+        run: npm run test:owner-auth
+
+      - name: Verify v0.50 conversational continuity and governed web research
+        run: npm run test:conversation-research
+
+      - name: Verify v0.51 durable conversation rehydration
+        run: npm run test:conversation-memory
+
+      - name: Verify v0.52 bounded research and source-maintenance agents
+        run: npm run test:shadow-light
+
+      - name: Verify v0.52 governed HTTP integration
+        run: npm run test:shadow-light-http
+
+      - name: Verify v0.53 dedicated agent control plane
+        run: npm run test:agent-control
+
+      - name: Verify v0.53 governed control-plane HTTP integration
+        run: npm run test:agent-control-http
+
+      - name: Verify v0.54 user-owned intelligence plane
+        run: npm run test:platform-intelligence
+
+      - name: Verify v0.54 governed intelligence HTTP integration
+        run: npm run test:platform-intelligence-http
+
+      - name: Verify v0.55 governed knowledge autonomy and candidate lifecycle
+        run: npm run test:knowledge-production
+
+      - name: Verify v0.56 frontier provider routing and catalog
+        run: npm run test:frontier-models
+
+      - name: Verify first ForgeLM bootstrap promotion
+        run: npm run test:forgelm-bootstrap
+
+      - name: Verify ForgeVision governed lifecycle
+        run: npm run test:vision-lifecycle
+
+      - name: Verify ForgeAudio governed lifecycle
+        run: npm run test:audio-lifecycle
+
+      - name: Verify ForgeSpeech governed lifecycle
+        run: npm run test:speech-lifecycle
+
+      - name: Verify ForgeVideo governed lifecycle
+        run: npm run test:video-lifecycle
+
+      - name: Verify OneChat multimodal attachments
+        run: npm run test:onechat-attachments
+
+      - name: Verify browser JavaScript syntax
+        run: npm run test:browser-syntax
+
+      - name: Verify v0.73 Termux and OneChat recovery
+        run: npm run test:termux-onechat-recovery
+
+      - name: Verify OneChat attachment UI contract
+        run: npm run test:onechat-attachment-ui
+
+      - name: Verify persistent OneChat attachment history
+        run: npm run test:onechat-history-attachments
+
+      - name: Verify OneChat conversation management
+        run: npm run test:onechat-conversations
+
+      - name: Verify OneChat turn controls
+        run: npm run test:onechat-turn-controls
+
+      - name: Verify OneChat live sessions
+        run: npm run test:onechat-live-sessions
+
+      - name: Verify durable OneChat restart recovery
+        run: npm run test:onechat-durable-recovery
+
+      - name: Verify lifecycle retrieval and learning foundations
+        run: python3 verification/test_data_learning.py
+
+      - name: Compile all Python source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import py_compile
+          roots=[Path('model'),Path('research'),Path('storage'),Path('scripts')]
+          files=sorted(p for r in roots if r.exists() for p in r.rglob('*.py'))
+          for p in files:
+              py_compile.compile(str(p),doraise=True)
+          print(f'Compiled {len(files)} Python files successfully.')
+          PY
+
+      - name: Verify Torch-free tokenizer path
+        run: python3 model/tokenizer.py status
+
+      - name: Verify tracked-file privacy boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          git ls-files > /tmp/tracked.txt
+          if grep -E '(^|/)(\.env($|\.)|[^/]*\.sqlite3($|[-.])|[^/]*\.iub$|checkpoints/|runs/|tokenizers/|vendor-data/|vendor-reference/|state/)' /tmp/tracked.txt; then
+            echo 'Private or mutable runtime data is tracked.'
+            exit 1
+          fi
+
+      - name: Verify release manifest is reproducible
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp release-manifest.json /tmp/release-manifest.before.json
+          python3 scripts/build-release-manifest.py
+          diff -u /tmp/release-manifest.before.json release-manifest.json
+
+      - name: Localhost smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=8787 IUV_STATE_DIR=/tmp/uai-ci-state IUV_DB_PATH=/tmp/uai-ci.sqlite3 IUV_OBJECT_ROOT=/tmp/uai-ci-objects node server.js >/tmp/uai-server.log 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8787/api/status >/tmp/status.json; then
+              break
+            fi
+            sleep 1
+          done
+          python3 - <<'PY'
+          import json, pathlib
+          data=json.loads(pathlib.Path('/tmp/status.json').read_text())
+          expected=json.loads(pathlib.Path('package.json').read_text())['version']
+          assert data['name']=='IntraultUniversalion'
+          assert data['version']==expected
+          assert data['surface']=='OneChat'
+          assert data['governanceKernel']['authorityModel']=='LOCAL_SELF_GOVERNED'
+          print('Status smoke test passed.')
+          PY
+          curl -fsS -D /tmp/enroll.headers -c /tmp/uai.cookies             -X POST -H 'content-type: application/json'             --data '{"email":"ci-owner@example.local","password":"CI-Owner-Password-123456"}'             http://127.0.0.1:8787/api/auth/enroll >/tmp/enroll.json
+          csrf=$(python3 - <<'PY'
+          import json
+          print(json.load(open('/tmp/enroll.json'))['csrfToken'])
+          PY
+          )
+          test -n "$csrf"
+          curl -fsS -b /tmp/uai.cookies -X POST             -H 'content-type: application/json'             -H "x-uai-csrf: $csrf"             --data '{"message":"hello","chatId":"ci-smoke"}'             http://127.0.0.1:8787/api/onechat >/tmp/onechat.json
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/onechat.json'))
+          assert data.get('state') in {'SUCCESS','PARTIAL','UNAVAILABLE'}
+          assert isinstance(data.get('message',''),str) and data.get('message','')
+          print('Authenticated OneChat smoke test passed.')
+          PY
+
+  neural-cpu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install CPU PyTorch
+        run: python3 -m pip install --upgrade pip torch
+
+      - name: Run ForgeLM train-save-load test
+        working-directory: model
+        run: python3 test_forgelm.py
+
+      - name: Run advanced objective test
+        working-directory: model
+        run: python3 test_advanced.py
+
+      - name: Run ForgeLM v0.57 native long-context test
+        working-directory: model
+        run: python3 test_long_context.py
+
+      - name: Run ForgeVision v0.58 native vision test
+        working-directory: model
+        run: python3 test_vision.py
+
+      - name: Run ForgeVision v0.59 multimodal runtime test
+        working-directory: model
+        run: python3 test_vision_runtime.py
+
+      - name: Run ForgeAudio v0.60 native audio test
+        working-directory: model
+        run: python3 test_audio.py
+
+      - name: Run ForgeSpeech v0.61 native speech test
+        working-directory: model
+        run: python3 test_speech.py
+
+      - name: Run ForgeVideo v0.62 native video test
+        working-directory: model
+        run: python3 test_video.py
+
+      - name: Run ForgeMultimodal v0.63 fusion test
+        working-directory: model
+        run: python3 test_multimodal.py
+
+      - name: Run ForgeLM v0.70 token streaming test
+        working-directory: model
+        run: python3 test_streaming.py

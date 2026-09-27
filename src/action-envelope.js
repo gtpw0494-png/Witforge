@@ -1,0 +1,22 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {GovernanceDb} from './governance-db.js';
+const TERMINAL=new Set(['COMPLETED','CANCELLED']);
+export class ActionEnvelopeStore{
+ constructor(stateRoot,audit=null){this.stateRoot=stateRoot;this.audit=audit;this.db=new GovernanceDb(stateRoot);fs.mkdirSync(stateRoot,{recursive:true});this.legacy=path.join(stateRoot,'action-envelopes.json');this._migrate();}
+ _strip(r){if(!r)return null;const x={...r};delete x._version;return x;}
+ _migrate(){if(!fs.existsSync(this.legacy))return;let rows=[];try{rows=JSON.parse(fs.readFileSync(this.legacy,'utf8'));}catch{return;}for(const row of rows){if(row?.id&&!this.db.get('action',row.id).record)this.db.create('action',row);}if(rows.length){try{fs.renameSync(this.legacy,this.legacy+'.migrated-v037');}catch{}}}
+ list(limit=100){return (this.db.list('action',limit).records||[]).map(x=>this._strip(x));}
+ get(id){const r=this.db.get('action',id);return r.record?{...r.record,_version:r.version}:null;}
+ _cas(id,mutator,event){for(let n=0;n<5;n++){const cur=this.get(id);if(!cur)return null;const expected=cur._version,base=this._strip(cur),body=mutator(base);const r=this.db.cas('action',id,expected,body,event);if(r.state==='SUCCESS')return {...r.record,_version:r.version};if(r.state!=='CONFLICT')throw new Error(r.message||'Action update failed.');}throw new Error('Action update conflicted repeatedly.');}
+ create({subject='user:onechat',agent='task-engine',intent='',plan={steps:[]},capabilityScope=[]}={}){const now=new Date().toISOString(),id=`action-${crypto.randomUUID()}`;const envelope={id,subject,agent,intent:String(intent),plan,capabilityScope:[...new Set(capabilityScope)],authority:{decision:'ALLOW',basis:'bounded orchestration only; downstream policy and approval gates remain independent'},securityDecision:{decision:'ALLOW',reason:'planning/orchestration only; no credential or security authority delegated'},approvalBinding:null,execution:{state:'NEW',startedAt:null,completedAt:null,steps:[]},verification:{state:'UNKNOWN',evidence:[]},recovery:{state:'NOT_REQUIRED',attempts:0,lastReason:null},auditLineage:[],createdAt:now,updatedAt:now,history:[{state:'NEW',at:now}]};const r=this.db.create('action',envelope);if(r.state!=='SUCCESS')throw new Error(r.message||'Action persistence failed.');const a=this.audit?.append({type:'action.envelope.create',actionId:id,intent:envelope.intent});if(a)this.appendAudit(id,a.id);return this.get(id);}
+ update(id,patch={}){return this._cas(id,cur=>({...cur,...patch,updatedAt:new Date().toISOString()}),{type:'update',patchKeys:Object.keys(patch)});}
+ transition(id,state,details={}){return this._cas(id,env=>{if(TERMINAL.has(env.execution?.state)&&state!==env.execution.state)throw new Error(`Terminal action ${env.execution.state} cannot transition to ${state}`);const now=new Date().toISOString(),execution={...env.execution};if(state==='EXECUTING'&&!execution.startedAt)execution.startedAt=now;if(TERMINAL.has(state))execution.completedAt=now;execution.state=state;return {...env,execution,history:[...(env.history||[]),{state,at:now,details}],updatedAt:now};},{type:'transition',to:state,details});}
+ appendStep(id,stepResult){return this._cas(id,env=>({...env,execution:{...env.execution,steps:[...(env.execution?.steps||[]),stepResult]},updatedAt:new Date().toISOString()}),{type:'step',index:stepResult?.index,state:stepResult?.result?.state});}
+ verify(id,{state='UNKNOWN',evidence=[]}={}){return this.update(id,{verification:{state,evidence,verifiedAt:new Date().toISOString()}});}
+ recover(id,reason){return this._cas(id,env=>({...env,recovery:{state:'RECOVERING',attempts:Number(env.recovery?.attempts||0)+1,lastReason:String(reason||''),at:new Date().toISOString()},updatedAt:new Date().toISOString()}),{type:'recovery',reason});}
+ bindApproval(id,approval){if(!approval?.id||!approval?.bindingHash)throw new Error('Approval binding requires approval id and binding hash.');return this.update(id,{approvalBinding:{approvalId:approval.id,bindingHash:approval.bindingHash,status:approval.status,expiresAt:approval.expiresAt,boundAt:new Date().toISOString()}});}
+ appendAudit(id,auditId){if(!auditId)return this.get(id);return this._cas(id,env=>({...env,auditLineage:[...(env.auditLineage||[]),auditId],updatedAt:new Date().toISOString()}),{type:'audit-link',auditId});}
+ events(id){return this.db.events('action',id).events||[];}
+}

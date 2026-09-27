@@ -1,0 +1,13 @@
+{
+  "format":"uai-technology-reference-registry-v1",
+  "updated":"2026-09-24",
+  "references":[
+    {"id":"sqlite-wal","name":"SQLite Write-Ahead Logging","url":"https://sqlite.org/wal.html","use":"transactional local persistence, concurrency and crash recovery reference","status":"REFERENCE_APPROVED"},
+    {"id":"json-schema-2020-12","name":"JSON Schema 2020-12","url":"https://json-schema.org/specification","use":"cross-runtime data contract schemas","status":"REFERENCE_APPROVED"},
+    {"id":"owasp-prompt-injection","name":"OWASP LLM Prompt Injection Prevention Cheat Sheet","url":"https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html","use":"untrusted external-content quarantine and tool-boundary defenses","status":"REFERENCE_APPROVED"},
+    {"id":"hf-peft-lora","name":"Hugging Face PEFT LoRA","url":"https://huggingface.co/docs/peft/en/package_reference/lora","use":"runtime-conditional LoRA/QLoRA adaptation design","status":"REFERENCE_APPROVED"},
+    {"id":"hf-trl-dpo","name":"Hugging Face TRL DPO Trainer","url":"https://huggingface.co/docs/trl/dpo_trainer","use":"runtime-conditional preference optimization design","status":"REFERENCE_APPROVED"},
+    {"id":"llamacpp-server","name":"llama.cpp server","url":"https://github.com/ggml-org/llama.cpp/tree/master/tools/server","use":"local GGUF runtime and OpenAI-compatible local chat/embedding interface","status":"REFERENCE_APPROVED"},
+    {"id":"mlflow-model-registry","name":"MLflow Model Registry","url":"https://mlflow.org/docs/latest/model-registry/","use":"model lifecycle metadata/versioning design reference; MLflow is not required by UAI","status":"REFERENCE_ONLY"}
+  ]
+}

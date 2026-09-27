@@ -1,0 +1,20 @@
+{
+  "schema": "witforge.uai-consolidation.v1",
+  "target": "gtpw0494-png/Witforge",
+  "source": "gtpw0494-png/UAI",
+  "witforgeBefore": "34df87c10437c434449b7afd0ea0998266528aa3",
+  "uaiSource": "733ff724d32e2b91a9c4a8c8d930b3d1391fe5f0",
+  "policy": {
+    "additive": true,
+    "witforgeAuthoritativeConflicts": [
+      ".github/workflows/ci.yml",
+      ".gitignore",
+      "README.md",
+      "package.json",
+      "server.js"
+    ],
+    "archivedConflicts": "integration/uai-source",
+    "archivedWorkflows": "integration/uai-workflows"
+  },
+  "resultingTrackedFiles": 472
+}

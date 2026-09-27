@@ -1,0 +1,19 @@
+{
+  "name": "UAI",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-24-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.13"
+    }
+  },
+  "forwardPorts": [8787],
+  "portsAttributes": {
+    "8787": {
+      "label": "UAI",
+      "onAutoForward": "openBrowser",
+      "visibility": "private"
+    }
+  },
+  "postCreateCommand": "npm install --ignore-scripts --omit=optional",
+  "postStartCommand": "bash scripts/start-codespace.sh"
+}

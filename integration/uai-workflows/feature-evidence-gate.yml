@@ -1,0 +1,34 @@
+name: feature-evidence-gate
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Validate feature maturity claims
+        run: node scripts/validate-feature-evidence.mjs
+      - name: Require complete source before verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(server.js test.js src model research storage scripts)
+          for p in "${required[@]}"; do
+            test -e "$p" || { echo "Missing required source path: $p"; exit 1; }
+          done
+      - name: Install package metadata without optional runtime expansion
+        run: npm install --ignore-scripts --omit=optional
+      - name: Run cumulative repository tests
+        run: npm test
+      - name: Revalidate claims after tests
+        run: node scripts/validate-feature-evidence.mjs

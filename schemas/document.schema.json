@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://intraultuniversalion.local/schemas/document-v1.json",
+  "title": "UAI Provenance Document v1",
+  "type": "object",
+  "required": [
+    "source_id",
+    "text"
+  ],
+  "properties": {
+    "source_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_name": {
+      "type": "string"
+    },
+    "source_type": {
+      "type": "string"
+    },
+    "source_url": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "original_uri": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "canonical_uri": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "title": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "language": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "mime_type": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "publisher": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "retrieved_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "license": {
+      "type": "string"
+    },
+    "license_source": {
+      "type": "string"
+    },
+    "owner": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "retrieval_eligible": {
+      "type": "boolean"
+    },
+    "source_training_eligible": {
+      "type": "boolean"
+    },
+    "training_approved": {
+      "type": "boolean"
+    },
+    "quality_score": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1
+    },
+    "parser_version": {
+      "type": "string"
+    },
+    "normalization_version": {
+      "type": "string"
+    },
+    "chunk_max_chars": {
+      "type": "integer",
+      "minimum": 200,
+      "maximum": 8000
+    },
+    "provenance": {
+      "type": "object"
+    },
+    "security": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true
+}

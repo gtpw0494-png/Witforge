@@ -1,0 +1,1408 @@
+{
+  "schema_version": "uai-feature-evidence-v1",
+  "generated_for": "0.73.0",
+  "promotion_rule": "A feature may be VERIFIED only when concrete implementation paths and executable tests exist and authoritative repository CI passes on the exact promotion commit. Runtime-dependent integrations retain separate availability truth.",
+  "allowed_statuses": [
+    "DECLARED",
+    "IMPLEMENTED_UNVERIFIED_REPO",
+    "EXPERIMENTAL",
+    "PARTIAL",
+    "VERIFIED",
+    "UNAVAILABLE",
+    "BLOCKED"
+  ],
+  "features": [
+    {
+      "id": "onechat-primary-surface",
+      "introduced": "0.7.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/onechat.js",
+        "server.js",
+        "public/index.html"
+      ],
+      "tests": [
+        "test.js"
+      ],
+      "evidence_note": "Cumulative OneChat tests plus authoritative localhost /api/status and /api/onechat smoke test."
+    },
+    {
+      "id": "governed-source-self-development",
+      "introduced": "0.11.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/self-development.js",
+        "src/workspace.js"
+      ],
+      "tests": [
+        "test.js"
+      ],
+      "evidence_note": "Sandbox validation, proposal/approval flow and rollback regression tests pass."
+    },
+    {
+      "id": "forgelm-local-neural-core",
+      "introduced": "0.12.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "model/forgelm.py",
+        "model/trainer.py",
+        "model/tokenizer_core.py"
+      ],
+      "tests": [
+        "model/test_forgelm.py",
+        "model/test_advanced.py"
+      ],
+      "evidence_note": "Authoritative CPU-PyTorch CI trains, saves, loads and backpropagates advanced objectives."
+    },
+    {
+      "id": "verified-learning-data-pipeline",
+      "introduced": "0.13.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "model/data_pipeline.py",
+        "src/learning-fabric.js"
+      ],
+      "tests": [
+        "test.js",
+        "verification/test_data_learning.py"
+      ],
+      "evidence_note": "Verified traces, dedupe/splits and explicit web training eligibility/approval are executable tests."
+    },
+    {
+      "id": "response-quality-gate",
+      "introduced": "0.21.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/response-composer.js",
+        "src/onechat.js"
+      ],
+      "tests": [
+        "test.js"
+      ],
+      "evidence_note": "Seed-model output quality and coherent fallback tests pass."
+    },
+    {
+      "id": "governed-web-ingestion",
+      "introduced": "0.22.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/web-corpus.js",
+        "src/content-security.js"
+      ],
+      "tests": [
+        "test.js",
+        "security-test.js",
+        "verification/test_data_learning.py"
+      ],
+      "evidence_note": "SSRF/private-target boundaries, external-instruction authority, quarantine/security signals, dedupe and explicit training promotion are covered; live public-site reachability remains environment-dependent."
+    },
+    {
+      "id": "bulk-corpus-importers",
+      "introduced": "0.23.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "research/import_web_corpus.py",
+        "research/stream_fineweb.py"
+      ],
+      "tests": [
+        "test.js"
+      ],
+      "evidence_note": "Synthetic importer tests cover supported local corpus formats; remote FineWeb streaming remains dependency/network conditional."
+    },
+    {
+      "id": "language-database-storage",
+      "introduced": "0.26.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "storage/db.py",
+        "src/storage-db.js",
+        "research/import_wordnet.py",
+        "research/import_oasst1.py"
+      ],
+      "tests": [
+        "test.js",
+        "verification/test_data_learning.py"
+      ],
+      "evidence_note": "SQLite/WAL storage, definitions/dialogue, lifecycle filtering and fixtures pass."
+    },
+    {
+      "id": "lexical-style-semantic-retrieval",
+      "introduced": "0.30.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "storage/db.py",
+        "storage/semantic.py"
+      ],
+      "tests": [
+        "test.js",
+        "verification/test_data_learning.py"
+      ],
+      "evidence_note": "Lexical relations, style profiling, hybrid sparse+FTS retrieval and retrieval metrics are executable."
+    },
+    {
+      "id": "durable-task-ledger",
+      "introduced": "0.31.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/task-store.js",
+        "src/governance-db.js"
+      ],
+      "tests": [
+        "test.js",
+        "security-test.js"
+      ],
+      "evidence_note": "Persistence, legal transitions, restart-safe checkpoints and optimistic conflict handling pass."
+    },
+    {
+      "id": "action-envelopes",
+      "introduced": "0.32.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/action-envelope.js"
+      ],
+      "tests": [
+        "test.js"
+      ],
+      "evidence_note": "Execution, verification, recovery and audit-linked envelope lifecycle is regression tested."
+    },
+    {
+      "id": "task-resume-cancel-recovery",
+      "introduced": "0.33.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/agent-system.js",
+        "src/task-store.js",
+        "server.js"
+      ],
+      "tests": [
+        "test.js"
+      ],
+      "evidence_note": "Failed-step resume and cancellation behavior pass."
+    },
+    {
+      "id": "runtime-availability-evidence",
+      "introduced": "0.34.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/availability-ledger.js",
+        "src/capabilities.js"
+      ],
+      "tests": [
+        "test.js"
+      ],
+      "evidence_note": "Runtime-connected/configured/unavailable evidence classes are tested independently from declarations."
+    },
+    {
+      "id": "policy-decision-engine",
+      "introduced": "0.35.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/policy-engine.js"
+      ],
+      "tests": [
+        "test.js",
+        "verification/runtime-boundaries.test.mjs"
+      ],
+      "evidence_note": "ALLOW/ASK/ESCALATE behavior and downstream execution checks pass."
+    },
+    {
+      "id": "exact-operation-approval-binding",
+      "introduced": "0.35.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/approval-store.js",
+        "src/governance-db.js"
+      ],
+      "tests": [
+        "test.js",
+        "security-test.js"
+      ],
+      "evidence_note": "Approved invocation validates; mutated arguments/replay binding is rejected."
+    },
+    {
+      "id": "scoped-autonomy-leases",
+      "introduced": "0.36.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/autonomy-store.js"
+      ],
+      "tests": [
+        "test.js"
+      ],
+      "evidence_note": "Scope, risk ceiling, action budget and revocation paths pass."
+    },
+    {
+      "id": "transactional-governance-store",
+      "introduced": "0.37.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/governance-db.js",
+        "storage/governance.py"
+      ],
+      "tests": [
+        "test.js",
+        "security-test.js"
+      ],
+      "evidence_note": "SQLite WAL, optimistic versioning and legal task-transition enforcement pass."
+    },
+    {
+      "id": "versioned-transfer-integrity-contracts",
+      "introduced": "0.38.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/contracts.js",
+        "schemas/event-envelope.schema.json"
+      ],
+      "tests": [
+        "test.js",
+        "security-test.js"
+      ],
+      "evidence_note": "Untampered envelopes verify and altered payloads are denied."
+    },
+    {
+      "id": "signed-plugin-registry-boundary",
+      "introduced": "0.39.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/plugin-registry.js",
+        "schemas/plugin-manifest.schema.json"
+      ],
+      "tests": [
+        "security-test.js"
+      ],
+      "evidence_note": "Manifest validation and Ed25519 signature verification are executable."
+    },
+    {
+      "id": "plugin-sandbox-executor",
+      "introduced": "0.39.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/plugin-executor.js"
+      ],
+      "tests": [
+        "verification/runtime-boundaries.test.mjs"
+      ],
+      "evidence_note": "Execution is unavailable without sandbox configuration; signed low-risk fixture executes successfully through configured external sandbox boundary."
+    },
+    {
+      "id": "model-runtime-registry",
+      "introduced": "0.40.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/model-registry.js",
+        "research/model_registry.json"
+      ],
+      "tests": [
+        "test.js"
+      ],
+      "evidence_note": "Registry/runtime presence is separated from connectivity truth."
+    },
+    {
+      "id": "llamacpp-runtime-adapter",
+      "introduced": "0.40.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/model-runtime-adapter.js"
+      ],
+      "tests": [
+        "verification/runtime-boundaries.test.mjs"
+      ],
+      "evidence_note": "Local OpenAI-compatible fixture proves status/chat; remote endpoints are blocked by default. Real llama.cpp availability remains runtime-dependent."
+    },
+    {
+      "id": "data-retention-deletion-purge",
+      "introduced": "0.41.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "storage/lifecycle.py",
+        "storage/db.py"
+      ],
+      "tests": [
+        "verification/test_data_learning.py"
+      ],
+      "evidence_note": "Fixture data is visible, hidden by soft deletion, and removed by transactional hard purge."
+    },
+    {
+      "id": "hybrid-retrieval-evaluation",
+      "introduced": "0.41.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "storage/semantic.py",
+        "storage/retrieval_eval.py"
+      ],
+      "tests": [
+        "verification/test_data_learning.py"
+      ],
+      "evidence_note": "Real SQLite fixture verifies ranked retrieval plus recall@k and MRR calculation."
+    },
+    {
+      "id": "adaptation-availability-planning",
+      "introduced": "0.42.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "model/adaptation.py",
+        "research/learning_methods.json"
+      ],
+      "tests": [
+        "verification/test_data_learning.py"
+      ],
+      "evidence_note": "Unknown/unavailable/runtime-conditional methods preserve truthful planning states; this does not claim LoRA/QLoRA/DPO training executed."
+    },
+    {
+      "id": "continual-replay-regression-gates",
+      "introduced": "0.42.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "model/continual.py"
+      ],
+      "tests": [
+        "verification/test_data_learning.py"
+      ],
+      "evidence_note": "Deterministic replay snapshots and pass/fail metric regression thresholds are executable."
+    },
+    {
+      "id": "public-repository-privacy-boundary",
+      "introduced": "0.30.0",
+      "status": "VERIFIED",
+      "implementation": [
+        ".gitignore",
+        ".github/workflows/ci.yml",
+        "scripts/build-release-manifest.py"
+      ],
+      "tests": [
+        ".github/workflows/ci.yml"
+      ],
+      "evidence_note": "Authoritative CI scans tracked paths and release manifest reproducibility."
+    },
+    {
+      "id": "long-running-background-orchestration",
+      "introduced": "0.31.0",
+      "status": "PARTIAL",
+      "implementation": [
+        "src/task-store.js",
+        "src/agent-system.js"
+      ],
+      "tests": [
+        "test.js"
+      ],
+      "evidence_note": "Durable continuation exists, but execution stops when the localhost process is stopped; no background daemon is claimed."
+    },
+    {
+      "id": "universal-external-adapter-approval-binding",
+      "introduced": "0.35.0",
+      "status": "PARTIAL",
+      "implementation": [
+        "src/approval-store.js",
+        "src/runtime-services.js",
+        "src/plugin-executor.js"
+      ],
+      "tests": [
+        "test.js",
+        "security-test.js",
+        "verification/runtime-boundaries.test.mjs"
+      ],
+      "evidence_note": "Exact binding is implemented for governed paths tested here; universal coverage across every future adapter is not claimed."
+    },
+    {
+      "id": "lora-qlora-dpo-execution",
+      "introduced": "0.42.0",
+      "status": "PARTIAL",
+      "implementation": [
+        "model/adaptation.py",
+        "research/learning_methods.json"
+      ],
+      "tests": [
+        "verification/test_data_learning.py"
+      ],
+      "evidence_note": "Dependency/status planning exists. Actual adapter training requires compatible external base models, dependencies, compute and a governed training implementation/run."
+    },
+    {
+      "id": "production-scale-llm-training",
+      "introduced": "0.12.0",
+      "status": "PARTIAL",
+      "implementation": [
+        "model/forgelm.py",
+        "model/trainer.py"
+      ],
+      "tests": [
+        "model/test_forgelm.py",
+        "model/test_advanced.py"
+      ],
+      "evidence_note": "Small local training is verified; production-scale distributed training is not claimed."
+    },
+    {
+      "id": "live-billing",
+      "introduced": "0.25.0",
+      "status": "PARTIAL",
+      "implementation": [
+        "src/runtime-services.js"
+      ],
+      "tests": [
+        "test.js"
+      ],
+      "evidence_note": "Adapter foundation exists; live behavior requires legitimate external credentials/service availability."
+    },
+    {
+      "id": "oxford-definitive-comparison",
+      "introduced": "0.25.0",
+      "status": "UNAVAILABLE",
+      "implementation": [
+        "src/runtime-services.js"
+      ],
+      "tests": [
+        "test.js"
+      ],
+      "evidence_note": "Requires legitimately licensed Oxford data/API credentials; no substitute is presented as Oxford."
+    },
+    {
+      "id": "physical-fabrication",
+      "introduced": "0.25.0",
+      "status": "UNAVAILABLE",
+      "implementation": [
+        "src/runtime-services.js"
+      ],
+      "tests": [
+        "test.js"
+      ],
+      "evidence_note": "Requires real verified fabrication hardware/controller and explicit approval; source presence is not hardware availability."
+    },
+    {
+      "id": "multimodal-learning",
+      "introduced": "0.42.0",
+      "status": "UNAVAILABLE",
+      "implementation": [
+        "research/learning_methods.json"
+      ],
+      "tests": [
+        "verification/test_data_learning.py"
+      ],
+      "evidence_note": "No modality pipeline/provenance/evaluation implementation exists yet."
+    },
+    {
+      "id": "federated-private-training",
+      "introduced": "0.42.0",
+      "status": "UNAVAILABLE",
+      "implementation": [
+        "research/learning_methods.json"
+      ],
+      "tests": [
+        "verification/test_data_learning.py"
+      ],
+      "evidence_note": "Secure aggregation/privacy accounting and federated evaluation are not implemented."
+    },
+    {
+      "id": "transactional-control-registries",
+      "introduced": "0.43.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/agent-system.js",
+        "src/control-center.js",
+        "src/availability-ledger.js",
+        "src/governance-db.js"
+      ],
+      "tests": [
+        "verification/control-plane-modernization.test.mjs"
+      ],
+      "evidence_note": "Legacy JSON migration and transactional registry behavior verified by authoritative repository CI and dedicated behavioral tests."
+    },
+    {
+      "id": "tamper-evident-audit-chain",
+      "introduced": "0.43.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/audit.js",
+        "server.js"
+      ],
+      "tests": [
+        "verification/control-plane-modernization.test.mjs"
+      ],
+      "evidence_note": "SHA-256 chain with legacy-prefix anchoring and tamper detection verified by authoritative repository CI and dedicated behavioral tests."
+    },
+    {
+      "id": "plugin-idempotency-replay-protection",
+      "introduced": "0.43.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/idempotency-store.js",
+        "src/plugin-executor.js",
+        "server.js"
+      ],
+      "tests": [
+        "verification/control-plane-modernization.test.mjs"
+      ],
+      "evidence_note": "Transactional exactly-once/replay behavior verified by authoritative repository CI and dedicated behavioral tests."
+    },
+    {
+      "id": "operation-scoped-plugin-gateway",
+      "introduced": "0.44.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/plugin-gateway.js",
+        "src/sandbox-runner.js",
+        "src/plugin-secret-broker.js",
+        "src/schema-validator.js",
+        "src/plugin-registry.js",
+        "server.js",
+        "schemas/plugin-manifest.schema.json"
+      ],
+      "tests": [
+        "verification/plugin-gateway.test.mjs",
+        "verification/plugin-http.test.mjs"
+      ],
+      "evidence_note": "Dedicated gateway and HTTP integration suites pass on the v0.44 implementation: schema validation, network-destination allowlists, runtime capability evidence, exact approval binding, autonomy budgeting, scoped secret injection/redaction, transactional replay protection, output verification/limits, timeout, cancellation and HTTP Idempotency-Key forwarding. Final main promotion still requires authoritative CI on the exact promotion commit."
+    },
+    {
+      "id": "os-level-plugin-hard-isolation",
+      "introduced": "0.44.0",
+      "status": "PARTIAL",
+      "implementation": [
+        "src/sandbox-runner.js",
+        "src/plugin-gateway.js"
+      ],
+      "tests": [
+        "verification/plugin-gateway.test.mjs"
+      ],
+      "evidence_note": "Host process enforces timeout, cancellation, output size, minimal environment and declared policy metadata. Filesystem/network/CPU/memory hard isolation still depends on the explicitly configured external sandbox runtime and is not claimed as kernel-enforced by Node itself."
+    },
+    {
+      "id": "provenance-document-data-plane",
+      "introduced": "0.45.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "storage/documents.py",
+        "src/document-store.js",
+        "schemas/document.schema.json",
+        "src/web-corpus.js",
+        "src/onechat.js",
+        "src/response-composer.js",
+        "server.js"
+      ],
+      "tests": [
+        "verification/document-data-plane.test.py",
+        "verification/document-http.test.mjs"
+      ],
+      "evidence_note": "Dedicated SQLite/object-store and live HTTP/OneChat suites pass on v0.45: canonical URI handling, immutable content-addressed objects, revisions, deterministic chunks, quarantine exclusion, retrieval/training separation, source/document/chunk citations, soft deletion, hard purge, reindexing and API composition. PR #4 was merged to main and authoritative main-branch CI passed on merge commit c4d790c3b277297bffee867e4fc55df173acaebb."
+    },
+    {
+      "id": "multimodal-document-lineage",
+      "introduced": "0.45.0",
+      "status": "PARTIAL",
+      "implementation": [
+        "schemas/document.schema.json",
+        "storage/documents.py"
+      ],
+      "tests": [
+        "verification/document-data-plane.test.py"
+      ],
+      "evidence_note": "The document contract is ready for modality metadata, but OCR/page/bounding-box, audio timestamps, video frame lineage and visual embeddings are not yet implemented."
+    },
+    {
+      "id": "local-self-governance-kernel",
+      "introduced": "0.46.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/governance/kernel.js",
+        "src/governance/authorization.js",
+        "src/policy-engine.js",
+        "server.js"
+      ],
+      "tests": [
+        "verification/api-security-v046.test.mjs"
+      ],
+      "evidence_note": "Verified by the current live API security suite: local governance composition, request/correlation identity, per-route authorization metadata, policy evaluation, exact approval binding and audited actor identity all execute successfully."
+    },
+    {
+      "id": "credential-backed-owner-session-auth",
+      "introduced": "0.47.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/governance/identity.js",
+        "src/governance/request-schemas.js",
+        "src/governance/authorization.js",
+        "server.js",
+        "public/app.js",
+        "public/index.html"
+      ],
+      "tests": [
+        "verification/api-security-v046.test.mjs",
+        "verification/plugin-http.test.mjs",
+        "verification/document-http.test.mjs"
+      ],
+      "evidence_note": "Verified by direct identity and live HTTP suites: first-run email/password enrollment, scrypt verification, server-side session records, HttpOnly session cookies, CSRF enforcement, logout/revocation, and authenticated plugin/document/OneChat flows all execute successfully."
+    },
+    {
+      "id": "native-local-conversation-engine",
+      "introduced": "0.48.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/conversation-engine.js",
+        "src/onechat.js",
+        "src/response-composer.js",
+        "server.js"
+      ],
+      "tests": [
+        "verification/conversation-capability-v048.test.mjs"
+      ],
+      "evidence_note": "Verified by the v0.48 conversation suite: bounded per-chat continuity, connected llama.cpp preference, ForgeLM fallback, truthful no-runtime UNAVAILABLE behavior and OneChat native-conversation integration all pass."
+    },
+    {
+      "id": "explicit-capability-truth-contract",
+      "introduced": "0.48.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/capability-truth.js"
+      ],
+      "tests": [
+        "verification/conversation-capability-v048.test.mjs"
+      ],
+      "evidence_note": "Verified by the v0.48 capability suite across CONNECTED, CONFIGURED, REGISTERED_SOURCE, DEGRADED, UNAVAILABLE, BLOCKED and EXPIRED states plus ranking behavior."
+    },
+    {
+      "id": "trusted-first-run-ownership-proof",
+      "introduced": "0.47.0",
+      "status": "PARTIAL",
+      "implementation": [
+        "src/governance/identity.js",
+        "server.js"
+      ],
+      "tests": [
+        "verification/api-security-v046.test.mjs"
+      ],
+      "evidence_note": "First-run enrollment closes after the first owner is created and is localhost-oriented, but no independent bootstrap-file/device-key ownership proof is currently required before first enrollment. This remains a hardening gap rather than being overstated."
+    },
+    {
+      "id": "evidence-native-onechat-envelope",
+      "introduced": "0.49.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/evidence-envelope.js",
+        "src/onechat.js",
+        "src/response-composer.js",
+        "public/app.js"
+      ],
+      "tests": [
+        "verification/model-router-evidence-v049.test.mjs"
+      ],
+      "evidence_note": "Verified by unit and live system tests: OneChat emits SHA-256 integrity evidence envelopes with claim support states, cited source/chunk excerpts, model route/tool summaries; tampering is detected and explain-answer returns prior structured evidence without private chain-of-thought."
+    },
+    {
+      "id": "health-aware-local-model-router",
+      "introduced": "0.49.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/models/router.js",
+        "src/conversation-engine.js",
+        "src/governance/authorization.js",
+        "src/onechat.js",
+        "server.js"
+      ],
+      "tests": [
+        "verification/model-router-evidence-v049.test.mjs"
+      ],
+      "evidence_note": "Verified by unit and live system tests: health probing, local/privacy/offline/task/modality constraints, deterministic ranking, rejected-output fallback, llama.cpp selection and authenticated HTTP route simulation all pass."
+    },
+    {
+      "id": "browser-chat-session-continuity",
+      "introduced": "0.49.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "public/app.js",
+        "src/conversation-engine.js",
+        "src/onechat.js"
+      ],
+      "tests": [
+        "verification/model-router-evidence-v049.test.mjs"
+      ],
+      "evidence_note": "Verified at source contract plus live shared-chat HTTP behavior: browser sends a stable per-tab chatId and repeated turns with the same chatId produce bounded native conversation continuity and explain-answer linkage."
+    },
+    {
+      "id": "durable-conversation-rehydration",
+      "introduced": "0.49.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/conversation-engine.js",
+        "src/onechat.js",
+        "src/store.js"
+      ],
+      "tests": [
+        "verification/model-router-evidence-v049.test.mjs",
+        "verification/conversation-memory-v051.test.mjs"
+      ],
+      "evidence_note": "Verified by v0.51 restart-continuity tests: a fresh ConversationEngine rebuilds only the matching chatId's recent persisted user/assistant turns, enforces the existing token/turn bounds, and makes rehydrated history available to follow-up intent detection and model prompts."
+    },
+    {
+      "id": "owner-email-password-bootstrap-rotation",
+      "introduced": "0.49.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/governance/identity.js",
+        "server.js",
+        "scripts/configure-owner.mjs",
+        "scripts/run-owner-local.sh",
+        "public/app.js"
+      ],
+      "tests": [
+        "verification/owner-bootstrap-v049.test.mjs",
+        "verification/api-security-v046.test.mjs"
+      ],
+      "evidence_note": "Verified by v0.49 owner-auth CI: environment bootstrap creates the password-session owner without plaintext credential persistence in the identity record, explicit local credential rotation revokes active sessions, protected HTTP routes reject bearer-only owner requests, and email/password login succeeds through the normal session + CSRF path."
+    },
+    {
+      "id": "context-engineered-conversation",
+      "introduced": "0.50.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/conversation-engine.js",
+        "src/onechat.js",
+        "src/model-runtime-adapter.js",
+        "src/models/router.js"
+      ],
+      "tests": [
+        "verification/conversation-research-v050.test.mjs",
+        "verification/conversation-capability-v048.test.mjs"
+      ],
+      "evidence_note": "Verified by v0.50 tests for bounded same-chat follow-up continuity, context-aware synthesis, and structured local runtime routing. This establishes implementation behavior, not parity with any proprietary model."
+    },
+    {
+      "id": "governed-live-web-research",
+      "introduced": "0.50.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/web-research-engine.js",
+        "src/onechat.js",
+        "src/content-security.js",
+        "server.js"
+      ],
+      "tests": [
+        "verification/conversation-research-v050.test.mjs"
+      ],
+      "evidence_note": "Verified with deterministic live-HTTP fixtures: research performs search discovery, fetches multiple sources, quarantines external instructions as untrusted evidence, labels sources, and passes the evidence into conversational synthesis."
+    },
+    {
+      "id": "internet-wide-source-coverage",
+      "introduced": "0.50.0",
+      "status": "PARTIAL",
+      "implementation": [
+        "src/web-research-engine.js",
+        "src/web-corpus.js"
+      ],
+      "tests": [
+        "verification/conversation-research-v050.test.mjs"
+      ],
+      "evidence_note": "The research engine can discover and fetch multiple public web sources, but no implementation can guarantee literally all web sources; access remains subject to indexing, robots, authentication, paywalls, network availability, content type and policy."
+    },
+    {
+      "id": "bounded-shadow-rd",
+      "introduced": "0.52.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/agent-budget.js",
+        "src/shadow/shadow-agent-registry.js",
+        "src/shadow/shadow-run-store.js",
+        "src/shadow/candidate-store.js",
+        "src/shadow/shadow-coordinator.js",
+        "src/shadow/disagreement-detector.js",
+        "src/shadow/promotion-gate.js"
+      ],
+      "tests": [
+        "verification/shadow-light-v052.test.mjs",
+        "verification/shadow-light-http-v052.test.mjs"
+      ],
+      "evidence_note": "Bounded virtual research agents, persistent run/candidate records, resource budgets, quarantine and separate promotion gate are implemented. Candidates remain ineligible for production/training by default."
+    },
+    {
+      "id": "isolated-light-source-maintenance",
+      "introduced": "0.52.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/light/light-agent-registry.js",
+        "src/light/worktree-manager.js",
+        "src/light/patch-evaluator.js",
+        "src/light/light-coordinator.js"
+      ],
+      "tests": [
+        "verification/shadow-light-v052.test.mjs",
+        "verification/shadow-light-http-v052.test.mjs"
+      ],
+      "evidence_note": "Source-maintenance agents use detached worktrees, bounded workers and required test/security/shadow-review evidence. No direct protected-main merge authority is granted."
+    },
+    {
+      "id": "protected-local-governance-kernel-v2",
+      "introduced": "0.52.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/governance/kernel.js",
+        "src/governance/promotion-rules.js",
+        "src/governance/emergency-stop.js",
+        "src/governance/policy-store.js",
+        "src/governance/capability-boundary.js",
+        "src/governance/trusted-device.js",
+        "src/governance/audit-integrity.js"
+      ],
+      "tests": [
+        "verification/shadow-light-v052.test.mjs",
+        "verification/shadow-light-http-v052.test.mjs"
+      ],
+      "evidence_note": "Protected governance rule catalog, emergency stop, local policy store, capability boundary, audit verification and trusted-device registry are present. Independent hardware/bootstrap ownership proof remains unavailable."
+    },
+    {
+      "id": "platform-roadmap-truth-catalog",
+      "introduced": "0.52.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/platform-capability-catalog.js",
+        "server.js"
+      ],
+      "tests": [
+        "verification/shadow-light-v052.test.mjs",
+        "verification/shadow-light-http-v052.test.mjs"
+      ],
+      "evidence_note": "Model, runtime, learning, retrieval, plugin, connector, tool and benchmark categories are exposed without treating declarations as connected capabilities; incomplete items remain explicitly non-complete."
+    },
+    {
+      "id": "typed-agent-control-plane-v053",
+      "introduced": "0.53.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "storage/control_plane.py",
+        "src/control-plane-store.js",
+        "src/control-plane-scheduler.js",
+        "src/shadow/shadow-run-store.js",
+        "src/shadow/candidate-store.js",
+        "src/shadow/shadow-coordinator.js",
+        "src/light/worktree-manager.js",
+        "src/light/light-coordinator.js",
+        "src/governance/authorization.js",
+        "src/governance/request-schemas.js",
+        "server.js",
+        "scripts/control-plane-cli.js",
+        "public/app.js",
+        "public/index.html",
+        "TERMUX-RUN.md"
+      ],
+      "tests": [
+        "verification/agent-control-v053.test.mjs",
+        "verification/agent-control-http-v053.test.mjs"
+      ],
+      "evidence_note": "Verified by authoritative exact-state CI on commit 552cd72d54f3d1f7ef23c9812caa236d7a187e7d: cumulative/security regressions, dedicated v0.53 storage/scheduler tests, live authenticated HTTP dispatch/dashboard tests, release-manifest reproducibility, localhost smoke, ForgeLM train-save-load and advanced neural objective jobs all passed. Dedicated shadow_runs, shadow_candidates, light_patches, light_worktrees and agent_jobs SQLite tables use bounded persistent leases, expiry/recovery and legacy migration; promotion authority remains separate."
+    },
+    {
+      "id": "structured-web-research-v053",
+      "introduced": "0.53.0",
+      "status": "PARTIAL",
+      "implementation": [
+        "src/web-research-engine.js",
+        "src/onechat.js"
+      ],
+      "tests": [
+        "verification/conversation-research-v050.test.mjs"
+      ],
+      "evidence_note": "Multi-query public-web research and an optional Brave Search API path are implemented. Brave remains runtime/configuration dependent, HTML search fallbacks remain best-effort, and UAI does not claim exhaustive internet-wide coverage."
+    },
+    {
+      "id": "user-owned-memory-v054",
+      "introduced": "0.54.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "storage/platform_state.py",
+        "src/platform-state-store.js",
+        "src/memory/consent.js",
+        "src/memory/retention.js",
+        "src/memory/memory-store.js",
+        "src/memory/deletion.js",
+        "src/memory/retrieval.js",
+        "src/onechat.js",
+        "server.js"
+      ],
+      "tests": [
+        "verification/platform-intelligence-v054.test.mjs",
+        "verification/platform-intelligence-http-v054.test.mjs"
+      ],
+      "evidence_note": "Verified by authoritative exact-state CI on commit 09548723e9eb6b7cf7ac976a7aac16d11373f735: explicit-consent memory, AES-256-GCM mode, training-disabled default, search/why/export/delete semantics, authenticated OneChat/HTTP flows and emergency-stop blocking passed. UAI still does not silently remember every conversation or silently train from memory."
+    },
+    {
+      "id": "provenance-policy-plane-v054",
+      "introduced": "0.54.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/provenance/graph.js",
+        "src/provenance/lineage.js",
+        "src/provenance/purge.js",
+        "src/provenance/citation.js",
+        "src/governance/policy-simulator.js",
+        "src/policy-engine.js",
+        "src/governance/authorization.js",
+        "src/governance/request-schemas.js",
+        "server.js"
+      ],
+      "tests": [
+        "verification/platform-intelligence-v054.test.mjs",
+        "verification/platform-intelligence-http-v054.test.mjs"
+      ],
+      "evidence_note": "Verified by authoritative exact-state CI on commit 09548723e9eb6b7cf7ac976a7aac16d11373f735: provenance node/edge tracing, dry-run purge planning, linked-memory purge propagation, richer policy decision metadata/proofs and non-executing policy workflow simulation passed. Full deletion propagation into every legacy document/index/dataset/model store remains PARTIAL and is not claimed."
+    },
+    {
+      "id": "model-artifact-evaluation-v054",
+      "introduced": "0.54.0",
+      "status": "VERIFIED",
+      "implementation": [
+        "src/models/artifact-verifier.js",
+        "src/evaluation/evaluation-store.js",
+        "src/evaluation/benchmark-runner.js",
+        "src/evaluation/promotion-score.js",
+        "scripts/platform-intelligence-cli.js",
+        "public/app.js",
+        "server.js"
+      ],
+      "tests": [
+        "verification/platform-intelligence-v054.test.mjs",
+        "verification/platform-intelligence-http-v054.test.mjs"
+      ],
+      "evidence_note": "Verified by authoritative exact-state CI on commit 09548723e9eb6b7cf7ac976a7aac16d11373f735: artifact path confinement, SHA-256 verification, runtime-availability separation, persistent evaluation records, verified-only leaderboards, benchmark runner and promotion-evidence scoring passed, alongside ForgeLM train-save-load and advanced neural-objective CI. Artifact registration still does not imply runtime connectivity or production eligibility."
+    },
+    {
+      "id": "verified-knowledge-sqlite-v055",
+      "introduced": "0.55.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "src/verified-knowledge-store.js",
+        "src/platform-state-store.js",
+        "storage/platform_state.py"
+      ],
+      "tests": [
+        "verification/knowledge-autonomy-v055.test.mjs",
+        "verification/verified-knowledge-sqlite.test.mjs",
+        "verification/knowledge-production-http-v055.test.mjs"
+      ],
+      "evidence_note": "Verified knowledge now persists in the existing SQLite/WAL platform-state database with legacy JSON migration, deduplication, rights gating and integrity snapshots. Exact-state authoritative CI has not yet been observed for this promotion commit."
+    },
+    {
+      "id": "governed-knowledge-autonomy-v055",
+      "introduced": "0.55.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "src/knowledge-verifier.js",
+        "src/knowledge-research-worker.js",
+        "src/knowledge-scheduler.js",
+        "src/knowledge-autonomy.js",
+        "model/knowledge_verifier.py",
+        "model/knowledge_pipeline.py",
+        "model/knowledge_sources.json"
+      ],
+      "tests": [
+        "verification/knowledge-autonomy-v055.test.mjs",
+        "verification/knowledge-research-scheduler.test.mjs",
+        "verification/knowledge-governance.test.mjs",
+        "model/eval/knowledge_benchmark.py"
+      ],
+      "evidence_note": "Research is bounded to approved source domains, external content remains untrusted, registry trust cannot be caller-spoofed, independent corroboration is required, and research approval is separated from training-rights approval. Scheduled research is process-bound and does not claim execution while localhost is stopped."
+    },
+    {
+      "id": "hybrid-cloud-knowledge-durability-v055",
+      "introduced": "0.55.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "src/cloud-knowledge-store.js",
+        "src/hybrid-knowledge-store.js",
+        "storage/cloud/uai_verified_knowledge.sql",
+        "docs/CLOUD-KNOWLEDGE-STORAGE.md"
+      ],
+      "tests": [
+        "verification/cloud-knowledge-store.test.mjs"
+      ],
+      "evidence_note": "Optional Postgres/PostgREST-compatible cloud persistence is secondary to local storage. Cloud records are reverified locally before recovery; configured credentials do not imply connectivity. Free-tier capacity is not guaranteed."
+    },
+    {
+      "id": "forgelm-candidate-first-promotion-v055",
+      "introduced": "0.55.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "model/cli.py",
+        "model/eval/checkpoint_compare.py",
+        "model/eval/regression_corpus.jsonl",
+        "src/knowledge-training-job.js",
+        "src/forgelm-candidate-promotion.js",
+        "src/knowledge-learning-pipeline.js",
+        "src/model-lab.js",
+        "src/onechat.js",
+        "src/governance/authorization.js",
+        "src/governance/request-schemas.js",
+        "server.js"
+      ],
+      "tests": [
+        "verification/knowledge-training-job.test.mjs",
+        "verification/forgelm-candidate-promotion.test.mjs",
+        "verification/knowledge-learning-pipeline.test.mjs",
+        "verification/model-lab-promotion.test.mjs",
+        "verification/onechat-model-lifecycle.test.mjs",
+        "verification/forgelm-cli-policy.test.mjs",
+        "verification/knowledge-production-http-v055.test.mjs"
+      ],
+      "evidence_note": "Training paths now create candidate checkpoints rather than silently replacing the live ForgeLM checkpoint. Held-out knowledge and stable regression loss gates precede exact owner-bound promotion; rollback artifacts are integrity-checked. Exact-state authoritative CI remains pending."
+    },
+    {
+      "id": "frontier-provider-routing-v056",
+      "introduced": "0.56.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "src/providers.js",
+        "src/model-catalog.js",
+        "src/models/router.js",
+        "src/conversation-engine.js",
+        "src/onechat.js",
+        "server.js"
+      ],
+      "tests": [
+        "verification/model-catalog.test.mjs",
+        "verification/frontier-provider-routing-v056.test.mjs"
+      ],
+      "evidence_note": "Provider-native chat, vision, image, structured-output, embedding and rerank adapters plus explicit local/cloud model routing are implemented. Catalog registration and configured credentials remain distinct from runtime CONNECTED evidence; proprietary model internals are not claimed."
+    },
+    {
+      "id": "forgelm-embedding-rerank-v056",
+      "introduced": "0.56.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "model/forgelm.py",
+        "model/capabilities.py",
+        "model/self_sufficient.py",
+        "src/forgelm-bridge.js",
+        "src/models/router.js"
+      ],
+      "tests": [
+        "model/test_forgelm.py"
+      ],
+      "evidence_note": "Promoted ForgeLM checkpoints can produce normalized mean-pooled hidden-state embeddings and deterministic cosine reranking locally. Retrieval quality remains dependent on the trained checkpoint and is not claimed to equal frontier embedding models without benchmark evidence."
+    },
+    {
+      "id": "forgelm-native-long-context-v057",
+      "introduced": "0.57.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "model/forgelm.py",
+        "model/long_context.py",
+        "model/capabilities.py",
+        "model/self_sufficient.py",
+        "src/forgelm-bridge.js",
+        "src/models/router.js",
+        "model/config_presets.json"
+      ],
+      "tests": [
+        "model/test_long_context.py"
+      ],
+      "evidence_note": "ForgeLM now has native RoPE context scaling plus offline dense context memory using its own hidden-state embeddings. Sources larger than the active transformer window are chunked, ranked and assembled locally with evidence. This does not claim that the base transformer attends to the entire source simultaneously or that frontier long-context quality has been reached."
+    },
+    {
+      "id": "forgevision-native-foundation-v058",
+      "introduced": "0.58.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "model/vision.py",
+        "model/train_vision.py",
+        "src/capabilities.js"
+      ],
+      "tests": [
+        "model/test_vision.py"
+      ],
+      "evidence_note": "Native local visual patch encoder, transformer blocks and ForgeLM-space projector are trainable without external AI. Alignment training uses the promoted ForgeLM text embedding space. Semantic image understanding remains unavailable until a trained/evaluated ForgeVision checkpoint is explicitly promoted."
+    },
+    {
+      "id": "forgevision-governed-runtime-v059",
+      "introduced": "0.59.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "model/eval/vision_compare.py",
+        "src/forgevision-candidate-promotion.js",
+        "model/vision_runtime.py",
+        "src/forgelm-bridge.js",
+        "src/governance/authorization.js",
+        "src/governance/request-schemas.js",
+        "server.js"
+      ],
+      "tests": [
+        "verification/forgevision-candidate-promotion.test.mjs",
+        "model/test_vision_runtime.py"
+      ],
+      "evidence_note": "ForgeVision candidates are hash-bound, locally evaluated against image-caption evidence, owner-approved before atomic promotion, rollback-capable, and only reported CONNECTED when promoted ForgeVision+ForgeLM checkpoints pass native runtime health. Inference is path-bounded and uses no external AI."
+    },
+    {
+      "id": "forgeaudio-native-runtime-v060",
+      "introduced": "0.60.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "model/audio.py",
+        "model/train_audio.py",
+        "model/eval/audio_compare.py",
+        "model/audio_runtime.py",
+        "src/forgeaudio-candidate-promotion.js",
+        "src/forgelm-bridge.js",
+        "src/capabilities.js",
+        "src/governance/authorization.js",
+        "src/governance/request-schemas.js",
+        "server.js"
+      ],
+      "tests": [
+        "model/test_audio.py",
+        "verification/forgeaudio-candidate-promotion.test.mjs"
+      ],
+      "evidence_note": "ForgeAudio is a local spectral audio encoder/projector aligned to ForgeLM embeddings, with hash-bound evaluation, explicit owner-approved promotion, rollback, runtime health and path-bounded native audio-language inference. No external AI or speech API is used. PCM WAV is the dependency-free supported input format."
+    },
+    {
+      "id": "forgespeech-native-runtime-v061",
+      "introduced": "0.61.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "model/speech.py",
+        "model/train_speech.py",
+        "model/eval/speech_compare.py",
+        "model/speech_runtime.py",
+        "src/forgespeech-candidate-promotion.js",
+        "src/forgelm-bridge.js",
+        "src/capabilities.js",
+        "src/governance/authorization.js",
+        "src/governance/request-schemas.js",
+        "server.js"
+      ],
+      "tests": [
+        "model/test_speech.py",
+        "verification/forgespeech-candidate-promotion.test.mjs"
+      ],
+      "evidence_note": "ForgeSpeech is a local ForgeLM-conditioned waveform generator trained from local text/WAV pairs with waveform and spectral losses. Candidate evaluation, hash binding, explicit owner-approved promotion, rollback, runtime health, and path-bounded WAV synthesis are implemented. No external TTS model or cloud speech API is used; output quality depends on locally trained data and checkpoint quality."
+    },
+    {
+      "id": "forgevideo-native-runtime-v062",
+      "introduced": "0.62.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "model/video.py",
+        "model/train_video.py",
+        "model/eval/video_compare.py",
+        "model/video_runtime.py",
+        "src/forgevideo-candidate-promotion.js",
+        "src/forgelm-bridge.js",
+        "src/capabilities.js",
+        "src/governance/authorization.js",
+        "src/governance/request-schemas.js",
+        "server.js"
+      ],
+      "tests": [
+        "model/test_video.py",
+        "verification/forgevideo-candidate-promotion.test.mjs"
+      ],
+      "evidence_note": "ForgeVideo reuses the native ForgeVision frame encoder, adds local temporal transformer modeling, projects video tokens into ForgeLM space, and supports local ffmpeg frame extraction, video-text alignment training, evaluation, hash-bound owner-approved promotion, rollback, runtime health, and path-bounded native video-language inference. No external AI/video model is used."
+    },
+    {
+      "id": "forgemultimodal-fusion-v063",
+      "introduced": "0.63.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "model/multimodal.py",
+        "model/multimodal_runtime.py",
+        "src/forgelm-bridge.js",
+        "src/capabilities.js",
+        "src/governance/authorization.js",
+        "src/governance/request-schemas.js",
+        "server.js"
+      ],
+      "tests": [
+        "model/test_multimodal.py"
+      ],
+      "evidence_note": "A parameter-free local FusionAssembler combines healthy promoted image/audio/video encoder tokens with local document/context/text embeddings into one bounded ForgeLM prefill. Individual modality health remains independently truth-gated and there is no external AI fallback. A separate trainable ForgeFusion transformer exists as an experimental architecture but is not used or claimed as trained unless independently checkpointed/evaluated."
+    },
+    {
+      "id": "onechat-multimodal-attachments-v064",
+      "introduced": "0.64.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "src/onechat.js",
+        "src/conversation-engine.js",
+        "src/multimodal/pipeline.js",
+        "src/forgelm-bridge.js",
+        "server.js",
+        "src/governance/authorization.js",
+        "src/governance/request-schemas.js"
+      ],
+      "tests": [
+        "verification/onechat-multimodal-attachments.test.mjs",
+        "model/test_multimodal.py"
+      ],
+      "evidence_note": "OneChat can register up to 16 governed local attachments, preserve content hashes/provenance with the chat turn, extract local document/text evidence where parsers are available, and send image/audio/video plus document/context/history into the unified native ForgeMultimodal runtime. Attachment paths remain constrained by approved local roots and no external AI fallback is used."
+    },
+    {
+      "id": "onechat-attachment-ui-v065",
+      "introduced": "0.65.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "public/index.html",
+        "public/app.js",
+        "public/styles.css",
+        "server.js",
+        "src/governance/authorization.js",
+        "src/governance/request-schemas.js",
+        "src/multimodal/pipeline.js",
+        "src/onechat.js",
+        "src/conversation-engine.js"
+      ],
+      "tests": [
+        "verification/onechat-attachment-ui.test.mjs",
+        "verification/onechat-multimodal-attachments.test.mjs"
+      ],
+      "evidence_note": "The single OneChat composer now supports up to 16 local attachments with preview/status chips, chunked governed uploads, bounded-memory SHA-256 hashing, atomic placement into state/media-input, provenance registration, and automatic submission through the existing OneChat attachment contract. Large files are chunked below the API body limit; no second chat surface or external AI upload service is introduced."
+    },
+    {
+      "id": "onechat-persistent-attachment-history-v066",
+      "introduced": "0.66.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "src/onechat.js",
+        "src/multimodal/pipeline.js",
+        "server.js",
+        "public/app.js",
+        "public/styles.css",
+        "src/governance/request-schemas.js"
+      ],
+      "tests": [
+        "verification/onechat-history-attachments.test.mjs",
+        "verification/onechat-attachment-ui.test.mjs"
+      ],
+      "evidence_note": "OneChat can restore persisted turns with sanitized attachment metadata, render governed image/audio/video/document cards, and reopen registered media by media ID through an authenticated content endpoint. Browser uploads and future OneChat turns use media IDs instead of server filesystem paths; history responses omit paths, and media content resolution revalidates owner identity, approved roots and file existence."
+    },
+    {
+      "id": "onechat-conversation-management-v067",
+      "introduced": "0.67.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "src/store.js",
+        "src/onechat.js",
+        "server.js",
+        "src/governance/request-schemas.js",
+        "public/index.html",
+        "public/app.js",
+        "public/styles.css"
+      ],
+      "tests": [
+        "verification/onechat-conversation-management.test.mjs",
+        "verification/onechat-history-attachments.test.mjs",
+        "verification/onechat-attachment-ui.test.mjs"
+      ],
+      "evidence_note": "OneChat now provides owner-bound local conversation listing/search, in-place switching, new chat, rename, archive/unarchive, sanitized JSON export and explicit deletion of chat/control records while retaining registered media artifacts. The same OneChat surface remains the only user-facing chat UI."
+    },
+    {
+      "id": "onechat-turn-controls-v068",
+      "introduced": "0.68.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "src/onechat.js",
+        "server.js",
+        "src/governance/request-schemas.js",
+        "public/app.js",
+        "public/styles.css"
+      ],
+      "tests": [
+        "verification/onechat-turn-controls.test.mjs",
+        "verification/onechat-attachment-ui.test.mjs"
+      ],
+      "evidence_note": "OneChat now provides append-only Edit, Retry, Regenerate and Branch controls by creating new conversation branches rather than mutating prior history. Per-turn copy/export and sanitized evidence inspection are available. First turns generate local conversation titles, attachment evidence uses media IDs instead of file paths, and turn exports/evidence are owner-bound and path-sanitized."
+    },
+    {
+      "id": "onechat-live-turn-sessions-v069",
+      "introduced": "0.69.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "src/onechat-turn-sessions.js",
+        "src/onechat.js",
+        "src/conversation-engine.js",
+        "src/forgelm-bridge.js",
+        "server.js",
+        "public/index.html",
+        "public/app.js",
+        "public/styles.css",
+        "src/governance/request-schemas.js"
+      ],
+      "tests": [
+        "verification/onechat-live-sessions.test.mjs",
+        "verification/onechat-attachment-ui.test.mjs"
+      ],
+      "evidence_note": "OneChat can start owner-bound asynchronous turn sessions, stream structured phase/tool/model/persistence events over replayable SSE, reconnect from a last-seen event sequence, request cancellation, and discard late results after cancellation. Local ForgeLM subprocess calls receive AbortSignal and are terminated on Stop. Other collaborators are cancellation-checked at phase boundaries. This feature claims event streaming; token streaming is only available when a runtime emits token chunks and is not inferred from progress events."
+    },
+    {
+      "id": "forgelm-token-streaming-v070",
+      "introduced": "0.70.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "model/forgelm.py",
+        "model/self_sufficient.py",
+        "model/multimodal_runtime.py",
+        "src/forgelm-bridge.js",
+        "src/models/router.js",
+        "src/conversation-engine.js",
+        "src/onechat.js",
+        "src/onechat-turn-sessions.js",
+        "public/app.js",
+        "src/capabilities.js"
+      ],
+      "tests": [
+        "model/test_streaming.py",
+        "verification/onechat-live-sessions.test.mjs",
+        "verification/onechat-attachment-ui.test.mjs"
+      ],
+      "evidence_note": "ForgeLM.generate emits callbacks from the actual local sampling loop. The Python text and multimodal runtimes serialize cumulative decoded text as newline-delimited token events, the Node bridge parses and forwards those events through the local model router and OneChat session journal, and the browser progressively renders them over replayable SSE. Stop uses the same AbortSignal to terminate the local ForgeLM subprocess. Token streaming is only claimed for ForgeLM paths that emit these generation-time events."
+    },
+    {
+      "id": "onechat-durable-session-recovery-v071",
+      "introduced": "0.71.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "src/onechat-turn-sessions.js",
+        "server.js",
+        "public/app.js",
+        "src/governance/request-schemas.js",
+        "src/capabilities.js"
+      ],
+      "tests": [
+        "verification/onechat-durable-session-recovery.test.mjs",
+        "verification/onechat-live-sessions.test.mjs",
+        "verification/onechat-attachment-ui.test.mjs"
+      ],
+      "evidence_note": "Live OneChat sessions persist an atomic state snapshot plus append-only JSONL event journal under state/onechat-turn-sessions. On restart, terminal sessions remain terminal, QUEUED sessions may safely continue, and RUNNING/CANCEL_REQUESTED sessions become INTERRUPTED and are never reported as completed. The owner may explicitly resume an interrupted turn as a new linked session. Browser sessionStorage reconnects to surviving live sessions and exposes explicit interrupted-session resume."
+    },
+    {
+      "id": "forgelm-first-checkpoint-bootstrap-v072",
+      "introduced": "0.72.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "model/eval/bootstrap_candidate.py",
+        "src/forgelm-candidate-promotion.js",
+        "scripts/bootstrap-forgelm.mjs"
+      ],
+      "tests": [
+        "verification/forgelm-bootstrap-promotion.test.mjs"
+      ],
+      "evidence_note": "Fresh installs can train, evaluate and explicitly promote the first ForgeLM checkpoint without a pre-existing live baseline. Bootstrap evaluation verifies loadability, finite loss metadata, acceptable training trend and local generation. Promotion remains hash-bound and explicitly approved; later upgrades keep baseline regression comparison."
+    },
+    {
+      "id": "termux-onechat-recovery-v073",
+      "introduced": "0.73.0",
+      "status": "IMPLEMENTED_UNVERIFIED_REPO",
+      "implementation": [
+        "src/process-compat.js",
+        "src/self-development.js",
+        "verification/model-router-evidence-v049.test.mjs",
+        "verification/api-security-v046.test.mjs",
+        "verification/owner-bootstrap-v049.test.mjs",
+        "verification/document-http.test.mjs",
+        "verification/plugin-http.test.mjs",
+        "verification/shadow-light-http-v052.test.mjs",
+        "verification/agent-control-http-v053.test.mjs",
+        "verification/knowledge-production-http-v055.test.mjs",
+        "verification/platform-intelligence-http-v054.test.mjs",
+        "scripts/check-browser-syntax.mjs",
+        "src/onechat.js"
+      ],
+      "tests": [
+        "verification/termux-onechat-recovery-v073.test.mjs"
+      ],
+      "evidence_note": "Termux/Android child Node execution clears libtermux-exec preload for syntax validation and HTTP verification tests use absolute server.js paths. Browser syntax checking uses a Termux-safe wrapper. OneChat now answers natural capability questions from live capability truth, probes web-search reachability instead of claiming connectivity, and recognizes natural bare-domain ingest requests."
+    }
+  ]
+}

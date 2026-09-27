@@ -1,0 +1,66 @@
+{
+  "format": "iu-web-source-registry-v1",
+  "policy": "A source being public or crawlable does not erase copyright, privacy, terms, or attribution requirements. Training eligibility is explicit per source class.",
+  "sources": [
+    {
+      "id": "common-crawl",
+      "name": "Common Crawl",
+      "kind": "web-crawl",
+      "homepage": "https://commoncrawl.org/",
+      "access": "PUBLIC_BULK",
+      "license": "COMMON_CRAWL_TERMS_PLUS_ORIGIN_TERMS",
+      "trainingEligibility": "REVIEW_PER_ORIGIN",
+      "notes": "Free bulk access; underlying crawled content can carry separate owner terms."
+    },
+    {
+      "id": "fineweb",
+      "name": "Hugging Face FineWeb",
+      "kind": "curated-web-corpus",
+      "homepage": "https://huggingface.co/datasets/HuggingFaceFW/fineweb",
+      "access": "PUBLIC_DATASET",
+      "license": "ODC-BY-1.0",
+      "trainingEligibility": "ELIGIBLE_WITH_ATTRIBUTION_AND_SOURCE_REVIEW",
+      "notes": "Cleaned/deduplicated English web data derived from Common Crawl."
+    },
+    {
+      "id": "wikimedia",
+      "name": "Wikimedia/Wikipedia dumps",
+      "kind": "encyclopedic-dump",
+      "homepage": "https://dumps.wikimedia.org/",
+      "access": "PUBLIC_DUMP",
+      "license": "CC-BY-SA_AND_PAGE_SPECIFIC_TERMS",
+      "trainingEligibility": "ELIGIBLE_WITH_ATTRIBUTION_SHAREALIKE_REVIEW",
+      "notes": "Text is generally CC BY-SA; page/media-specific conditions still apply."
+    },
+    {
+      "id": "stackexchange-dump",
+      "name": "Stack Exchange public data dump",
+      "kind": "qa-dump",
+      "homepage": "https://archive.org/details/stackexchange",
+      "access": "PUBLIC_DUMP",
+      "license": "CC-BY-SA_VERSION_DEPENDS_ON_POST_DATE",
+      "trainingEligibility": "ELIGIBLE_WITH_ATTRIBUTION_SHAREALIKE_REVIEW",
+      "notes": "Use the official dump/API path rather than indiscriminate page scraping."
+    },
+    {
+      "id": "direct-web",
+      "name": "Direct URL ingestion",
+      "kind": "live-web",
+      "homepage": null,
+      "access": "USER_REQUESTED_URL",
+      "license": "UNKNOWN_UNLESS_DECLARED_OR_VERIFIED",
+      "trainingEligibility": "NOT_ELIGIBLE_BY_DEFAULT",
+      "notes": "Robots.txt is checked by default. Private/local network targets are blocked by default."
+    },
+    {
+      "id": "github-public",
+      "name": "Public Git repositories",
+      "kind": "source-code",
+      "homepage": "https://github.com/",
+      "access": "PUBLIC_REPOSITORY",
+      "license": "REPOSITORY_SPECIFIC",
+      "trainingEligibility": "ONLY_EXPLICIT_COMPATIBLE_LICENSES",
+      "notes": "Existing reference-source registry remains authoritative for model-source study."
+    }
+  ]
+}

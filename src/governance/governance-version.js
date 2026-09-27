@@ -1,0 +1,2 @@
+export const GOVERNANCE_VERSION="1.0.0";
+export const GOVERNANCE_SCHEMA_VERSION=1;

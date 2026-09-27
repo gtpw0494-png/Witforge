@@ -1,0 +1,48 @@
+{
+  "format": "iu-capability-enablers-v1",
+  "verifiedDate": "2026-09-24",
+  "policy": "A capability is CONNECTED only when its local implementation or configured external dependency is actually usable. Research references never grant authority by themselves.",
+  "enablers": [
+    {
+      "capability": "local.forgelm.train/infer/trainer.v2",
+      "name": "Termux python-torch",
+      "source": "https://github.com/termux/termux-packages/blob/master/packages/python-torch/build.sh",
+      "fact": "The official Termux package repository contains python-torch for PyTorch on Termux.",
+      "activation": "pkg install -y python-torch python-numpy",
+      "requiresUserSecret": false
+    },
+    {
+      "capability": "local.langgraph.orchestration",
+      "name": "LangGraph.js",
+      "source": "https://www.npmjs.com/package/@langchain/langgraph",
+      "fact": "LangGraph.js is installable with @langchain/langgraph and @langchain/core and supports controllable stateful agent workflows.",
+      "activation": "npm install @langchain/langgraph@1.4.17 @langchain/core@1.2.12",
+      "requiresUserSecret": false
+    },
+    {
+      "capability": "billing.live.read",
+      "name": "Stripe Billing API",
+      "source": "https://docs.stripe.com/api/subscriptions/list",
+      "fact": "Stripe exposes GET /v1/subscriptions for live subscription reads.",
+      "activation": "export STRIPE_SECRET_KEY='...'; npm run capabilities:probe",
+      "requiresUserSecret": true
+    },
+    {
+      "capability": "reference.oxford.compare",
+      "name": "Oxford Dictionaries API",
+      "source": "https://developer.oxforddictionaries.com/documentation/making-requests-to-the-api",
+      "fact": "Oxford Dictionaries API v2 accepts app_id/app_key headers and provides dictionary/lexical endpoints; sandbox credentials are available through Oxford.",
+      "activation": "export OXFORD_APP_ID='...'; export OXFORD_APP_KEY='...'; npm run capabilities:probe",
+      "requiresUserSecret": true
+    },
+    {
+      "capability": "physical.matter.fabricate",
+      "name": "OctoPrint REST API",
+      "source": "https://docs.octoprint.org/en/main/api/index.html",
+      "fact": "OctoPrint provides authenticated REST endpoints for printer connection, files and print-job operations.",
+      "activation": "export OCTOPRINT_URL='http://printer:5000'; export OCTOPRINT_API_KEY='...'; export FABRICATION_ENABLE=1; npm run capabilities:probe",
+      "requiresUserSecret": true,
+      "requiresHardware": true
+    }
+  ]
+}

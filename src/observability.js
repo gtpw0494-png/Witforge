@@ -1,0 +1,4 @@
+export class Observability{
+ constructor(audit){this.audit=audit;}
+ summary(limit=5000){const rows=this.audit?.list(limit)||[];const counts={},states={},policy={};for(const r of rows){counts[r.type]=(counts[r.type]||0)+1;if(r.state)states[r.state]=(states[r.state]||0)+1;if(r.decision)policy[r.decision]=(policy[r.decision]||0)+1;}const taskSteps=rows.filter(x=>x.type==='task.step'||x.type==='task.resume.step');const failures=taskSteps.filter(x=>!['SUCCESS'].includes(x.state)).length;return {state:'SUCCESS',events:rows.length,eventTypes:counts,resultStates:states,policyDecisions:policy,taskStepSuccessRate:taskSteps.length?(taskSteps.length-failures)/taskSteps.length:null,taskSteps:taskSteps.length,taskStepFailures:failures,truth:'Metrics are derived from local audit evidence; missing events are not inferred.'};}
+}

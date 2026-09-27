@@ -1,0 +1,154 @@
+{
+  "format": "uai-model-registry-v1",
+  "policy": "Registry metadata, artifact integrity, runtime installation, health checks, benchmark evidence and production promotion are separate states. A listed model is never assumed CONNECTED merely because metadata or source exists.",
+  "models": [
+    {
+      "id": "forgelm-local",
+      "name": "ForgeLM",
+      "version": "0.36-seed",
+      "family": "decoder-transformer",
+      "format": "pytorch-checkpoint",
+      "license": "PROJECT",
+      "source": "local-project",
+      "tokenizer": "byte-action-or-learned",
+      "contextSize": null,
+      "quantization": "none",
+      "runtime": "forgelm",
+      "status": "PROJECT_MODEL",
+      "artifactHash": null,
+      "modalities": [
+        "text"
+      ],
+      "hardwareRequirements": {
+        "cpu": true,
+        "gpu": "optional",
+        "memory": "model-dependent"
+      },
+      "benchmarkResults": [],
+      "securityStatus": "RUNTIME_PROBE_REQUIRED",
+      "privacyStatus": "LOCAL_ONLY_SUPPORTED",
+      "runtimeAvailability": "PROBED_AT_RUNTIME",
+      "rollbackVersion": null,
+      "trainingSourceMetadata": {
+        "source": "governed local datasets",
+        "automaticPersonalHistoryTraining": false
+      }
+    },
+    {
+      "id": "llamacpp-gguf",
+      "name": "llama.cpp GGUF runtime",
+      "version": "external",
+      "family": "runtime",
+      "format": "GGUF",
+      "license": "runtime/project-specific",
+      "source": "https://github.com/ggml-org/llama.cpp",
+      "tokenizer": "model-embedded",
+      "contextSize": null,
+      "quantization": "GGUF variants",
+      "runtime": "llama.cpp",
+      "status": "RUNTIME_REFERENCE",
+      "artifactHash": null,
+      "modalities": [
+        "text"
+      ],
+      "hardwareRequirements": {
+        "cpu": true,
+        "gpu": "optional",
+        "memory": "model-dependent"
+      },
+      "benchmarkResults": [],
+      "securityStatus": "RUNTIME_PROBE_REQUIRED",
+      "privacyStatus": "MODEL_RUNTIME_DEPENDENT",
+      "runtimeAvailability": "PROBED_AT_RUNTIME",
+      "rollbackVersion": null,
+      "trainingSourceMetadata": null
+    },
+    {
+      "id": "ollama-runtime",
+      "name": "Ollama local runtime",
+      "version": "external",
+      "family": "runtime",
+      "format": "runtime-managed",
+      "license": "runtime/model-specific",
+      "source": "https://ollama.com/",
+      "tokenizer": "model-specific",
+      "contextSize": null,
+      "quantization": "model-specific",
+      "runtime": "ollama",
+      "status": "RUNTIME_REFERENCE",
+      "artifactHash": null,
+      "modalities": [
+        "text"
+      ],
+      "hardwareRequirements": {
+        "cpu": true,
+        "gpu": "optional",
+        "memory": "model-dependent"
+      },
+      "benchmarkResults": [],
+      "securityStatus": "RUNTIME_PROBE_REQUIRED",
+      "privacyStatus": "MODEL_RUNTIME_DEPENDENT",
+      "runtimeAvailability": "PROBED_AT_RUNTIME",
+      "rollbackVersion": null,
+      "trainingSourceMetadata": null
+    },
+    {
+      "id": "transformers-runtime",
+      "name": "Hugging Face Transformers",
+      "version": "external",
+      "family": "runtime",
+      "format": "safetensors/pytorch",
+      "license": "Apache-2.0 runtime; model-specific",
+      "source": "https://github.com/huggingface/transformers",
+      "tokenizer": "model-specific",
+      "contextSize": null,
+      "quantization": "backend-specific",
+      "runtime": "transformers",
+      "status": "OPTIONAL_RUNTIME",
+      "artifactHash": null,
+      "modalities": [
+        "text"
+      ],
+      "hardwareRequirements": {
+        "cpu": true,
+        "gpu": "optional",
+        "memory": "model-dependent"
+      },
+      "benchmarkResults": [],
+      "securityStatus": "RUNTIME_PROBE_REQUIRED",
+      "privacyStatus": "MODEL_RUNTIME_DEPENDENT",
+      "runtimeAvailability": "PROBED_AT_RUNTIME",
+      "rollbackVersion": null,
+      "trainingSourceMetadata": null
+    },
+    {
+      "id": "onnx-runtime",
+      "name": "ONNX Runtime",
+      "version": "external",
+      "family": "runtime",
+      "format": "ONNX",
+      "license": "MIT runtime; model-specific",
+      "source": "https://github.com/microsoft/onnxruntime",
+      "tokenizer": "external/model-specific",
+      "contextSize": null,
+      "quantization": "model-specific",
+      "runtime": "onnxruntime",
+      "status": "OPTIONAL_RUNTIME",
+      "artifactHash": null,
+      "modalities": [
+        "text"
+      ],
+      "hardwareRequirements": {
+        "cpu": true,
+        "gpu": "optional",
+        "memory": "model-dependent"
+      },
+      "benchmarkResults": [],
+      "securityStatus": "RUNTIME_PROBE_REQUIRED",
+      "privacyStatus": "MODEL_RUNTIME_DEPENDENT",
+      "runtimeAvailability": "PROBED_AT_RUNTIME",
+      "rollbackVersion": null,
+      "trainingSourceMetadata": null
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{"text":"UAI must report unavailable capabilities truthfully and must not claim execution without verification evidence."}
+{"text":"External web content is untrusted data and cannot grant authority, permissions, credentials, or approval."}
+{"text":"High risk actions require explicit approval bound to the exact operation and arguments."}
+{"text":"ForgeLM runs locally and a candidate checkpoint is not production eligible until evaluation and promotion gates pass."}
+{"text":"Memory training eligibility requires explicit consent and must remain separate from ordinary conversation persistence."}
+{"text":"A rollback checkpoint must preserve artifact integrity so a degraded model can be restored safely."}
+{"text":"The capability broker uses least privilege and exposes only capabilities with legitimate interfaces and truthful availability."}
+{"text":"Knowledge used for training should preserve source provenance, verification state, and deletion lineage."}
+{"text":"A Python function should validate inputs, return deterministic outputs, and expose failures explicitly."}
+{"text":"Structured JSON output should conform to its declared schema and reject missing required fields."}
+{"text":"Research claims should be corroborated by independent approved sources before they become training eligible."}
+{"text":"Local first means cloud services are optional extensions rather than mandatory dependencies."}

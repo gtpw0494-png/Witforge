@@ -1,0 +1,10 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://intraultuniversalion.local/schemas/event-envelope-v1.json",
+  "title":"UAI Technology Transfer Envelope v1",
+  "type":"object",
+  "required":["id","schema_version","event_type","producer","consumer","created_at","correlation_id","content_type","payload","provenance","security_labels","retention_policy","integrity_hash"],
+  "properties":{
+    "id":{"type":"string","minLength":1},"schema_version":{"const":"1.0"},"event_type":{"type":"string","minLength":1},"producer":{"type":"string","minLength":1},"consumer":{"type":"string","minLength":1},"created_at":{"type":"string","format":"date-time"},"correlation_id":{"type":"string","minLength":1},"task_id":{"type":["string","null"]},"content_type":{"type":"string","minLength":1},"payload":{},"provenance":{"type":"object"},"security_labels":{"type":"array","items":{"type":"string"},"uniqueItems":true},"retention_policy":{"type":"object"},"integrity_hash":{"type":"string","pattern":"^sha256:[a-f0-9]{64}$"},"idempotency_key":{"type":["string","null"]}
+  },"additionalProperties":false
+}

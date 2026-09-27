@@ -1,0 +1,21 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import {ForgeAudioCandidatePromotion} from "../src/forgeaudio-candidate-promotion.js";
+
+const root=fs.mkdtempSync(path.join(os.tmpdir(),"uai-audio-promote-"));
+const candidate=path.join(root,"model","runs","audio-candidate","forgeaudio.pt");
+const dataset=path.join(root,"audio-eval.jsonl");
+fs.mkdirSync(path.dirname(candidate),{recursive:true});fs.writeFileSync(candidate,"audio-candidate");fs.writeFileSync(dataset,'{"audio":"fixture.wav","text":"fixture"}\n');
+const calls=[];
+const promotion=new ForgeAudioCandidatePromotion({root,stateRoot:path.join(root,"state"),runner:async(command,args)=>{calls.push([command,args]);return{state:"SUCCESS",code:0,stdout:JSON.stringify({state:"SUCCESS",passed:true,candidateMeanCosine:0.8,baselineMeanCosine:null,externalModels:false})+"\n",stderr:""};}});
+assert.equal(promotion.status().state,"UNAVAILABLE");
+const ev=await promotion.evaluate({candidate,dataset});assert.equal(ev.eligible,true);
+assert.equal(promotion.promote({candidate,evaluation:ev}).state,"WAITING_APPROVAL");
+const first=promotion.promote({candidate,evaluation:ev,approved:true,approvalId:"audio-1"});assert.equal(first.state,"SUCCESS");assert.equal(first.bootstrap,true);
+fs.writeFileSync(candidate,"audio-candidate-v2");const ev2=await promotion.evaluate({candidate,dataset});const second=promotion.promote({candidate,evaluation:ev2,approved:true,approvalId:"audio-2"});assert.equal(second.state,"SUCCESS");assert.ok(second.previous?.id);
+fs.writeFileSync(candidate,"tampered");assert.equal(promotion.promote({candidate,evaluation:ev2,approved:true,approvalId:"audio-2"}).state,"BLOCKED");
+assert.equal(promotion.rollback(second.previous.id,{reason:"test"}).state,"SUCCESS");
+assert.ok(calls.some(([,args])=>args.includes("model/eval/audio_compare.py")));
+console.log("forgeaudio candidate promotion: ok");

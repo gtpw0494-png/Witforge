@@ -1,12 +1,6 @@
-data/
 node_modules/
-*.log
-platform.json
 __pycache__/
 *.pyc
-.venv/
-state/models/
-*.pt
 .env
 .env.*
 data/*.sqlite3*

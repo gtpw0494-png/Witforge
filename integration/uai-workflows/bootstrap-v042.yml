@@ -1,0 +1,117 @@
+name: Bootstrap v0.42 sanitized source
+
+on:
+  push:
+    branches:
+      - build/v0.34.0-durable-orchestration
+    paths:
+      - '.bootstrap/READY-v042'
+
+permissions:
+  contents: write
+
+jobs:
+  reconstruct-test-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout build branch
+        uses: actions/checkout@v7
+        with:
+          ref: build/v0.34.0-durable-orchestration
+          fetch-depth: 0
+
+      - name: Reconstruct exact sanitized archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          parts=(.bootstrap/v042-*.b64)
+          test "${#parts[@]}" -eq 4
+          cat "${parts[@]}" | tr -d '[:space:]' | base64 --decode > /tmp/uai-v042.zip
+          echo "8e92f328f9779f9bf5e1e438a44c0a5a504f0bf1cb586c458fe2b874adc0a030  /tmp/uai-v042.zip" | sha256sum -c -
+          unzip -t /tmp/uai-v042.zip
+
+      - name: Enforce public repository privacy boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -Z1 /tmp/uai-v042.zip > /tmp/uai-v042-paths.txt
+          if grep -E '(^|/)(\.env($|\.)|[^/]*\.sqlite3($|[-.])|[^/]*\.iub$|checkpoints/|runs/|tokenizers/|vendor-data/|vendor-reference/|state/)' /tmp/uai-v042-paths.txt; then
+            echo "Blocked: sanitized source archive contains private or mutable runtime data."
+            exit 1
+          fi
+
+      - name: Expand complete source checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/uai-v042-source
+          mkdir -p /tmp/uai-v042-source
+          unzip -q /tmp/uai-v042.zip -d /tmp/uai-v042-source
+          rsync -a --exclude='.git/' /tmp/uai-v042-source/ ./
+          rm -rf .bootstrap
+          rm -f .github/workflows/bootstrap-v036.yml
+
+      - name: Require complete source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(package.json server.js test.js src model research storage scripts public governance)
+          for p in "${required[@]}"; do
+            test -e "$p" || { echo "Missing required source path: $p"; exit 1; }
+          done
+          test "$(node -p "require('./package.json').version")" = "0.42.0"
+
+      - name: Validate feature evidence registry
+        run: node scripts/validate-feature-evidence.mjs
+
+      - name: Install Node package metadata
+        run: npm install --ignore-scripts --omit=optional
+
+      - name: Run cumulative Node regression suite
+        run: npm test
+
+      - name: Compile all Python source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import py_compile
+          roots = [Path('model'), Path('research'), Path('storage'), Path('scripts')]
+          files = sorted(p for r in roots if r.exists() for p in r.rglob('*.py'))
+          for p in files:
+              py_compile.compile(str(p), doraise=True)
+          print(f"Compiled {len(files)} Python files successfully.")
+          PY
+
+      - name: Verify dependency-free tokenizer status path
+        run: python3 model/tokenizer.py status
+
+      - name: Verify release integrity when supported
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test -f scripts/build-release-manifest.py; then
+            python3 scripts/build-release-manifest.py
+          fi
+          if test -f scripts/verify-release-integrity.py; then
+            python3 scripts/verify-release-integrity.py
+          fi
+
+      - name: Commit only validated ordinary source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # ci.yml is required during validation and self-development sandbox tests,
+          # but a workflow-run token cannot publish workflow-file changes.
+          # The connector installs the already-tested ci.yml immediately afterward.
+          rm -f .github/workflows/ci.yml
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No source changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: synchronize tested v0.42.0 source tree"
+          git push origin HEAD:build/v0.34.0-durable-orchestration

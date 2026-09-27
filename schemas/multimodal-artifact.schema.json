@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uai.local/schemas/multimodal-artifact.schema.json",
+  "title": "UAI Multimodal Evidence Artifact",
+  "type": "object",
+  "required": ["id","sourceId","modality","mediaType","contentHash","bytes","state","createdAt"],
+  "properties": {
+    "id": {"type":"string","minLength":1},
+    "sourceId": {"type":"string","minLength":1},
+    "ownerId": {"type":["string","null"]},
+    "modality": {"enum":["text","pdf","image","audio","video","table","structured"]},
+    "mediaType": {"type":"string","minLength":1},
+    "contentHash": {"type":"string","pattern":"^[a-f0-9]{64}$"},
+    "bytes": {"type":"integer","minimum":0},
+    "parserVersion": {"type":["string","null"]},
+    "state": {"enum":["REGISTERED","PARSED","PARTIAL","UNAVAILABLE","QUARANTINED","REJECTED","SOFT_DELETED","PURGED"]},
+    "derived": {
+      "type":"array",
+      "items":{
+        "type":"object",
+        "required":["kind","contentHash","locator"],
+        "properties":{
+          "kind":{"type":"string"},
+          "contentHash":{"type":"string","pattern":"^[a-f0-9]{64}$"},
+          "text":{"type":"string"},
+          "locator":{
+            "type":"object",
+            "properties":{
+              "page":{"type":"integer","minimum":1},
+              "frame":{"type":"integer","minimum":0},
+              "startMs":{"type":"number","minimum":0},
+              "endMs":{"type":"number","minimum":0},
+              "bbox":{"type":"array","minItems":4,"maxItems":4,"items":{"type":"number"}}
+            },
+            "additionalProperties":false
+          }
+        },
+        "additionalProperties":true
+      }
+    }
+  },
+  "additionalProperties": true
+}

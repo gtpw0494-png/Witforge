@@ -1,0 +1,8 @@
+# GPU research packages are hardware/toolchain-specific and are intentionally
+# not auto-installed from this file. Candidate packages:
+# deepspeed
+# bitsandbytes
+# triton
+# xformers
+# flash-attn
+# Install only after checking CUDA/ROCm/Python compatibility.
