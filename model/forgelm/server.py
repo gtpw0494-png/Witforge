@@ -142,7 +142,7 @@ class ForgeNativeService:
             "step": self.manifest.get("step"),
             "context_length": self.model.config.max_position_embeddings,
             "tokenizer_schema": getattr(self.tokenizer, "schema", "unknown"),
-            "capabilities": ["text_generation", "structured_output", "kv_cache_telemetry", "sse_streaming", "responses_api", "stop_sequences", "deterministic_seed", "cache_strategy_control"],
+            "capabilities": ["text_generation", "structured_output", "kv_cache_telemetry", "sse_streaming", "responses_api", "stop_sequences", "deterministic_seed", "cache_strategy_control", "bounded_concurrency"],
             "cache_strategy": "dynamic",
             "cache_strategies": ["dynamic", "static", "none"],
             "quantization": self.quantization,
@@ -340,79 +340,85 @@ class ForgeNativeService:
 
     def stream_responses(self, payload: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
         chat_payload = self._responses_payload_to_chat(payload)
+        chat_events = self.stream_chat(chat_payload)
         response_id = f"resp-{int(time.time() * 1000)}"
         created = int(time.time())
 
         def events() -> Iterator[Dict[str, Any]]:
             sequence = 0
             text_parts: List[str] = []
-            yield {
-                "type": "response.created",
-                "sequence_number": sequence,
-                "response": {
-                    "id": response_id,
-                    "object": "response",
-                    "created_at": created,
-                    "status": "in_progress",
-                    "model": str(chat_payload.get("model") or self.model_id),
-                },
-            }
-            sequence += 1
             final = None
-            for chunk in self.stream_chat(chat_payload):
-                choice = chunk.get("choices", [{}])[0]
-                delta = choice.get("delta", {})
-                if "content" in delta:
-                    piece = str(delta.get("content") or "")
-                    if piece:
-                        text_parts.append(piece)
-                    yield {
-                        "type": "response.output_text.delta",
-                        "sequence_number": sequence,
-                        "response_id": response_id,
-                        "delta": piece,
-                        "token_id": chunk.get("token_id"),
-                    }
-                    sequence += 1
-                if chunk.get("usage"):
-                    final = chunk
-            if final is None:
-                raise RuntimeError("response stream ended without final usage")
-
-            output_text = "".join(text_parts)
-            yield {
-                "type": "response.output_text.done",
-                "sequence_number": sequence,
-                "response_id": response_id,
-                "text": output_text,
-            }
-            sequence += 1
-            yield {
-                "type": "response.completed",
-                "sequence_number": sequence,
-                "response": {
-                    "id": response_id,
-                    "object": "response",
-                    "created_at": created,
-                    "status": "completed",
-                    "model": final["model"],
-                    "output": [{
-                        "id": "msg-" + response_id.removeprefix("resp-"),
-                        "type": "message",
-                        "role": "assistant",
-                        "status": "completed",
-                        "content": [{"type": "output_text", "text": output_text}],
-                    }],
-                    "output_text": output_text,
-                    "usage": {
-                        "input_tokens": final["usage"]["prompt_tokens"],
-                        "output_tokens": final["usage"]["completion_tokens"],
-                        "total_tokens": final["usage"]["total_tokens"],
+            try:
+                yield {
+                    "type": "response.created",
+                    "sequence_number": sequence,
+                    "response": {
+                        "id": response_id,
+                        "object": "response",
+                        "created_at": created,
+                        "status": "in_progress",
+                        "model": str(chat_payload.get("model") or self.model_id),
                     },
-                    "inference": final["inference"],
-                    "structured": final["structured"],
-                },
-            }
+                }
+                sequence += 1
+                for chunk in chat_events:
+                    choice = chunk.get("choices", [{}])[0]
+                    delta = choice.get("delta", {})
+                    if "content" in delta:
+                        piece = str(delta.get("content") or "")
+                        if piece:
+                            text_parts.append(piece)
+                        yield {
+                            "type": "response.output_text.delta",
+                            "sequence_number": sequence,
+                            "response_id": response_id,
+                            "delta": piece,
+                            "token_id": chunk.get("token_id"),
+                        }
+                        sequence += 1
+                    if chunk.get("usage"):
+                        final = chunk
+                if final is None:
+                    raise RuntimeError("response stream ended without final usage")
+
+                output_text = "".join(text_parts)
+                yield {
+                    "type": "response.output_text.done",
+                    "sequence_number": sequence,
+                    "response_id": response_id,
+                    "text": output_text,
+                }
+                sequence += 1
+                yield {
+                    "type": "response.completed",
+                    "sequence_number": sequence,
+                    "response": {
+                        "id": response_id,
+                        "object": "response",
+                        "created_at": created,
+                        "status": "completed",
+                        "model": final["model"],
+                        "output": [{
+                            "id": "msg-" + response_id.removeprefix("resp-"),
+                            "type": "message",
+                            "role": "assistant",
+                            "status": "completed",
+                            "content": [{"type": "output_text", "text": output_text}],
+                        }],
+                        "output_text": output_text,
+                        "usage": {
+                            "input_tokens": final["usage"]["prompt_tokens"],
+                            "output_tokens": final["usage"]["completion_tokens"],
+                            "total_tokens": final["usage"]["total_tokens"],
+                        },
+                        "inference": final["inference"],
+                        "structured": final["structured"],
+                    },
+                }
+            finally:
+                close = getattr(chat_events, "close", None)
+                if callable(close):
+                    close()
 
         return events()
 
@@ -423,17 +429,17 @@ class ForgeNativeService:
         success = False
         try:
             generation = generate_with_stats(
-            self.model,
-            prep["input_ids"],
-            max_new_tokens=prep["max_tokens"],
-            eos_token_id=self.tokenizer.eos_token_id,
-            temperature=prep["temperature"],
-            top_k=prep["top_k"],
-            top_p=prep["top_p"],
-            repetition_penalty=prep["repetition_penalty"],
-            seed=prep["seed"],
-            allowed_token_fn=prep["allowed_token_fn"],
-            stop_token_sequences=prep["stop_token_sequences"],
+                self.model,
+                prep["input_ids"],
+                max_new_tokens=prep["max_tokens"],
+                eos_token_id=self.tokenizer.eos_token_id,
+                temperature=prep["temperature"],
+                top_k=prep["top_k"],
+                top_p=prep["top_p"],
+                repetition_penalty=prep["repetition_penalty"],
+                seed=prep["seed"],
+                allowed_token_fn=prep["allowed_token_fn"],
+                stop_token_sequences=prep["stop_token_sequences"],
                 cache_strategy=prep["cache_strategy"],
             )
             generated_ids = generation.output_ids[0, prep["input_ids"].shape[1]:].tolist()
@@ -441,33 +447,34 @@ class ForgeNativeService:
             self._validate_structured(content, prep["structured_candidates"])
             success = True
             return {
-            "id": f"forge-{int(time.time() * 1000)}",
-            "object": "chat.completion",
-            "created": int(time.time()),
-            "model": self.model_id,
-            "choices": [{
-                "index": 0,
-                "message": {"role": "assistant", "content": content},
-                "finish_reason": "stop" if generation.stats.stop_reason in {"eos", "stop_sequence"} else "length",
-            }],
-            "usage": {
-                "prompt_tokens": len(prep["ids"]),
-                "completion_tokens": len(generated_ids),
-                "total_tokens": len(prep["ids"]) + len(generated_ids),
-            },
-            "latency_ms": round((time.time() - started) * 1000, 3),
-            "structured": prep["structured_candidates"] is not None,
-            "inference": {
-                "cache_strategy": prep["cache_strategy"],
-                "kv_cache": {
-                    "peak_bytes": generation.stats.peak_kv_cache_bytes,
-                    "final_bytes": generation.stats.final_kv_cache_bytes,
-                    "layers": generation.stats.cache_layers,
+                "id": f"forge-{int(time.time() * 1000)}",
+                "object": "chat.completion",
+                "created": int(time.time()),
+                "model": self.model_id,
+                "choices": [{
+                    "index": 0,
+                    "message": {"role": "assistant", "content": content},
+                    "finish_reason": "stop" if generation.stats.stop_reason in {"eos", "stop_sequence"} else "length",
+                }],
+                "usage": {
+                    "prompt_tokens": len(prep["ids"]),
+                    "completion_tokens": len(generated_ids),
+                    "total_tokens": len(prep["ids"]) + len(generated_ids),
                 },
-                "stop_reason": generation.stats.stop_reason,
-                "matched_stop_index": generation.stats.matched_stop_index,
-                "sampled_tokens": generation.stats.sampled_tokens,
-                "seed": prep["seed"],
+                "latency_ms": round((time.time() - started) * 1000, 3),
+                "structured": prep["structured_candidates"] is not None,
+                "inference": {
+                    "cache_strategy": prep["cache_strategy"],
+                    "kv_cache": {
+                        "peak_bytes": generation.stats.peak_kv_cache_bytes,
+                        "final_bytes": generation.stats.final_kv_cache_bytes,
+                        "layers": generation.stats.cache_layers,
+                    },
+                    "stop_reason": generation.stats.stop_reason,
+                    "matched_stop_index": generation.stats.matched_stop_index,
+                    "sampled_tokens": generation.stats.sampled_tokens,
+                    "seed": prep["seed"],
+                    "queue_wait_ms": round(lease["queue_wait_ms"], 3),
                     "max_context_tokens": generation.stats.max_context_tokens,
                 },
             }
@@ -483,9 +490,9 @@ class ForgeNativeService:
 
         def events() -> Iterator[Dict[str, Any]]:
             success = False
-            try:
             generated_ids: List[int] = []
             emitted_text = ""
+            try:
                 yield {
                     "id": request_id,
                     "object": "chat.completion.chunk",
@@ -528,6 +535,7 @@ class ForgeNativeService:
 
                 if final_stats is None:
                     raise RuntimeError("stream generation ended without final stats")
+
                 final_raw = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
                 if final_raw.startswith(emitted_text):
                     tail = final_raw[len(emitted_text):]
@@ -540,7 +548,9 @@ class ForgeNativeService:
                             "model": self.model_id,
                             "choices": [{"index": 0, "delta": {"content": tail}, "finish_reason": None}],
                         }
+
                 self._validate_structured(final_raw, prep["structured_candidates"])
+                success = True
                 yield {
                     "id": request_id,
                     "object": "chat.completion.chunk",
@@ -569,10 +579,10 @@ class ForgeNativeService:
                         "matched_stop_index": final_stats.matched_stop_index,
                         "sampled_tokens": final_stats.sampled_tokens,
                         "seed": prep["seed"],
+                        "queue_wait_ms": round(lease["queue_wait_ms"], 3),
                         "max_context_tokens": final_stats.max_context_tokens,
                     },
                 }
-            success = True
             finally:
                 self._release_inference_slot(lease, success=success)
 
