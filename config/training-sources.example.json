@@ -1,0 +1,22 @@
+{
+  "schema": "witforge.forgelm.dataset-sources.v1",
+  "sources": [
+    {
+      "source_id": "owned-project-docs",
+      "path": "../data/training/project.jsonl",
+      "source_type": "OWNED",
+      "privacy": "INTERNAL",
+      "approved": true,
+      "kind": "TEXT"
+    },
+    {
+      "source_id": "user-approved-conversations",
+      "path": "../data/training/approved-conversations.jsonl",
+      "source_type": "USER_APPROVED",
+      "privacy": "PERSONAL",
+      "training_consent": true,
+      "approved": true,
+      "kind": "TEXT"
+    }
+  ]
+}
