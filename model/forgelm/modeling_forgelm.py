@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import nn
@@ -9,7 +9,60 @@ import torch.nn.functional as F
 
 from .configuration_forgelm import ForgeLMConfig
 
-KVCache = Tuple[torch.Tensor, torch.Tensor]
+TensorKVCache = Tuple[torch.Tensor, torch.Tensor]
+
+
+@dataclass
+class StaticKVCache:
+    key: torch.Tensor
+    value: torch.Tensor
+    length: int = 0
+
+    @classmethod
+    def allocate(
+        cls,
+        *,
+        batch_size: int,
+        num_key_value_heads: int,
+        max_length: int,
+        head_dim: int,
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> "StaticKVCache":
+        shape = (int(batch_size), int(num_key_value_heads), int(max_length), int(head_dim))
+        return cls(
+            key=torch.empty(shape, device=device, dtype=dtype),
+            value=torch.empty(shape, device=device, dtype=dtype),
+            length=0,
+        )
+
+    @property
+    def capacity(self) -> int:
+        return int(self.key.shape[-2])
+
+    def append(self, key: torch.Tensor, value: torch.Tensor) -> TensorKVCache:
+        if key.shape != value.shape:
+            raise ValueError("static KV key/value shapes differ")
+        if key.ndim != 4:
+            raise ValueError("static KV tensors must have shape [batch, heads, sequence, head_dim]")
+        if key.shape[0] != self.key.shape[0] or key.shape[1] != self.key.shape[1] or key.shape[-1] != self.key.shape[-1]:
+            raise ValueError("static KV append shape does not match cache allocation")
+        end = self.length + int(key.shape[-2])
+        if end > self.capacity:
+            raise ValueError("static KV cache capacity exceeded")
+        self.key[:, :, self.length:end, :].copy_(key)
+        self.value[:, :, self.length:end, :].copy_(value)
+        self.length = end
+        return self.key[:, :, :end, :], self.value[:, :, :end, :]
+
+
+KVCache = Union[TensorKVCache, StaticKVCache]
+
+
+def kv_cache_length(cache: KVCache) -> int:
+    if isinstance(cache, StaticKVCache):
+        return int(cache.length)
+    return int(cache[0].shape[-2])
 
 
 @dataclass
@@ -79,12 +132,21 @@ class ForgeAttention(nn.Module):
         q, k = self.rope(q, k, position_ids)
 
         past_len = 0
-        if past_key_value is not None:
+        present: Optional[KVCache] = None
+        if isinstance(past_key_value, StaticKVCache):
+            if not use_cache:
+                raise ValueError("static KV cache requires use_cache=True")
+            past_len = past_key_value.length
+            k, v = past_key_value.append(k, v)
+            present = past_key_value
+        elif past_key_value is not None:
             pk, pv = past_key_value
             past_len = pk.shape[-2]
             k = torch.cat((pk, k), dim=-2)
             v = torch.cat((pv, v), dim=-2)
-        present = (k, v) if use_cache else None
+            present = (k, v) if use_cache else None
+        elif use_cache:
+            present = (k, v)
 
         k_attn = k.repeat_interleave(self.kv_repeat, dim=1)
         v_attn = v.repeat_interleave(self.kv_repeat, dim=1)
@@ -185,7 +247,10 @@ class ForgeLMForCausalLM(nn.Module):
         if past_key_values:
             if len(past_key_values) != len(self.layers):
                 raise ValueError("past_key_values layer count mismatch")
-            past_len = past_key_values[0][0].shape[-2]
+            lengths = {kv_cache_length(cache) for cache in past_key_values}
+            if len(lengths) != 1:
+                raise ValueError("past_key_values layer lengths differ")
+            past_len = lengths.pop()
         total_len = past_len + input_ids.shape[1]
         if total_len > self.config.max_position_embeddings:
             raise ValueError("KV cache plus input exceeds max_position_embeddings")
