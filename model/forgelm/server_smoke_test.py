@@ -20,6 +20,26 @@ def request_json(url: str, body=None):
         return res.status, json.loads(res.read().decode("utf-8"))
 
 
+def request_sse(url: str, body):
+    data = json.dumps(body).encode("utf-8")
+    req = Request(url, data=data, headers={"Content-Type": "application/json"}, method="POST")
+    events = []
+    done = False
+    with urlopen(req, timeout=10) as res:
+        status = res.status
+        content_type = res.headers.get("Content-Type", "")
+        for raw in res:
+            line = raw.decode("utf-8").strip()
+            if not line.startswith("data: "):
+                continue
+            payload = line[6:]
+            if payload == "[DONE]":
+                done = True
+                break
+            events.append(json.loads(payload))
+    return status, content_type, events, done
+
+
 def main() -> None:
     with tempfile.TemporaryDirectory(prefix="forge-server-") as td:
         cfg = ForgeLMConfig.smoke()
@@ -53,6 +73,26 @@ def main() -> None:
             kv = inference.get("kv_cache") or {}
             if inference.get("cache_strategy") != "dynamic" or int(kv.get("peak_bytes", 0)) <= 0:
                 raise AssertionError("chat endpoint did not expose measured dynamic KV-cache telemetry")
+
+            status, content_type, stream_events, stream_done = request_sse(base + "/v1/chat/completions", {
+                "model": service.model_id,
+                "messages": [{"role": "user", "content": "stream hello"}],
+                "max_tokens": 3,
+                "temperature": 0,
+                "stream": True,
+            })
+            if status != 200 or "text/event-stream" not in content_type or not stream_done:
+                raise AssertionError("streaming chat did not complete as SSE")
+            token_events = [event for event in stream_events if isinstance(event.get("token_id"), int)]
+            final_events = [event for event in stream_events if event.get("usage")]
+            if not final_events:
+                raise AssertionError("streaming chat emitted no final usage event")
+            final_event = final_events[-1]
+            completion_tokens = int(final_event["usage"]["completion_tokens"])
+            if completion_tokens < 1 or len(token_events) != completion_tokens:
+                raise AssertionError("streaming chat did not emit one live event per generated token")
+            if final_event.get("inference", {}).get("cache_strategy") != "dynamic":
+                raise AssertionError("streaming chat omitted cache telemetry")
             status, structured = request_json(base + "/v1/chat/completions", {
                 "model": service.model_id,
                 "messages": [{"role": "user", "content": "choose a mode"}],
