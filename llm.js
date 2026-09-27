@@ -136,6 +136,12 @@ function normaliseStopArg(value) {
   return { stop: typeof value === 'string' ? out[0] : out };
 }
 
+function normaliseSeedArg(value) {
+  if (value == null) return { seed: null };
+  if (!Number.isSafeInteger(value) || value < 0) return { error: 'seed must be a non-negative safe integer' };
+  return { seed: value };
+}
+
 
 /* Build the exact request a provider would receive — exported and used dry
  * by the tests, so the wire format is checked without any network call. */
@@ -192,6 +198,9 @@ function dryRun(providerId, args) {
     const stop = normaliseStopArg(args.stop);
     if (stop.error) return { error: stop.error };
     if (stop.stop != null) body.stop = stop.stop;
+    const seed = normaliseSeedArg(args.seed);
+    if (seed.error) return { error: seed.error };
+    if (seed.seed != null) body.seed = seed.seed;
     return {
       provider: p.id, model, url: p.endpoint + '/v1/chat/completions', method: 'POST', local: true,
       headers: { 'content-type': 'application/json' },
@@ -244,6 +253,9 @@ function responsesDryRun(providerId, args) {
   const stop = normaliseStopArg(args.stop);
   if (stop.error) return { error: stop.error };
   if (stop.stop != null) body.stop = stop.stop;
+  const seed = normaliseSeedArg(args.seed);
+  if (seed.error) return { error: seed.error };
+  if (seed.seed != null) body.seed = seed.seed;
   return {
     provider: p.id, model, url: p.endpoint + '/v1/responses', method: 'POST', local: true,
     headers: { 'content-type': 'application/json' },
@@ -558,5 +570,5 @@ async function ensemble(providerIds, args, deps) {
 }
 
 module.exports = {
-  RATE_RPM, RATE_TPD, PROVIDERS, PROVIDER_IDS, DEFAULT_ORDER, SYSTEM_PROMPT, providerById, normaliseStopArg, dryRun, responsesDryRun, parseReply, parseResponsesReply, validateLocalUrl, chat, response, streamChat, streamResponse, ollamaModels, forgeNativeStatus, ensemble,
+  RATE_RPM, RATE_TPD, PROVIDERS, PROVIDER_IDS, DEFAULT_ORDER, SYSTEM_PROMPT, providerById, normaliseStopArg, normaliseSeedArg, dryRun, responsesDryRun, parseReply, parseResponsesReply, validateLocalUrl, chat, response, streamChat, streamResponse, ollamaModels, forgeNativeStatus, ensemble,
   OLLAMA_PORT: () => OLLAMA_PORT, FORGE_NATIVE_PORT: () => FORGE_NATIVE_PORT };
