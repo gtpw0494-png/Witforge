@@ -83,7 +83,7 @@ const PROVIDERS = [
     free: 'fully local ForgeLM checkpoint served by WitForge; no key and no cloud',
     connect: 'start "python -m model.forgelm.server --checkpoint state/models/forgelm-nano", then "verify forge-native"',
     local: true,
-    capabilities: ['text_generation', 'structured_output', 'sse_streaming', 'kv_cache_telemetry', 'responses_api', 'stop_sequences', 'deterministic_seed', 'cache_strategy_control'],
+    capabilities: ['text_generation', 'structured_output', 'sse_streaming', 'kv_cache_telemetry', 'responses_api', 'stop_sequences', 'deterministic_seed', 'cache_strategy_control', 'bounded_concurrency'],
     contextTokens: 2048
   },
   {
