@@ -167,7 +167,7 @@ def autotune_checkpoint(
     max_new_tokens: int = 8,
     device: str = "cpu",
     quantizations: Iterable[str] | None = None,
-    cache_strategies: Iterable[str] = ("dynamic", "none"),
+    cache_strategies: Iterable[str] = ("dynamic", "static", "none"),
     warmup_tokens: int = 1,
     memory_fraction: float = 0.60,
     timeout_seconds: int = 120,
@@ -175,8 +175,8 @@ def autotune_checkpoint(
     checkpoint = Path(checkpoint)
     profile = profile_device()
     caches = _unique(cache_strategies)
-    if not caches or any(x not in {"dynamic", "none"} for x in caches):
-        raise ValueError("cache_strategies must contain only dynamic or none")
+    if not caches or any(x not in {"dynamic", "static", "none"} for x in caches):
+        raise ValueError("cache_strategies must contain only dynamic, static or none")
 
     if quantizations is None:
         quants = ["none", "dynamic-int8"] if device == "cpu" else ["none"]
@@ -234,7 +234,7 @@ def main() -> None:
     p.add_argument("--max-new-tokens", type=int, default=8)
     p.add_argument("--device", default="cpu")
     p.add_argument("--quantization", dest="quantizations", action="append", choices=["none", "dynamic-int8"])
-    p.add_argument("--cache-strategy", dest="cache_strategies", action="append", choices=["dynamic", "none"])
+    p.add_argument("--cache-strategy", dest="cache_strategies", action="append", choices=["dynamic", "static", "none"])
     p.add_argument("--warmup-tokens", type=int, default=1)
     p.add_argument("--memory-fraction", type=float, default=0.60)
     p.add_argument("--timeout-seconds", type=int, default=120)
@@ -247,7 +247,7 @@ def main() -> None:
         max_new_tokens=args.max_new_tokens,
         device=args.device,
         quantizations=args.quantizations,
-        cache_strategies=args.cache_strategies or ("dynamic", "none"),
+        cache_strategies=args.cache_strategies or ("dynamic", "static", "none"),
         warmup_tokens=args.warmup_tokens,
         memory_fraction=args.memory_fraction,
         timeout_seconds=args.timeout_seconds,
