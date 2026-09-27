@@ -57,6 +57,8 @@ def main() -> None:
                 raise AssertionError("health endpoint did not report a loaded model")
             if "stop_sequences" not in health.get("capabilities", []):
                 raise AssertionError("health endpoint did not report stop-sequence capability")
+            if health.get("cache_strategies") != ["dynamic", "none"]:
+                raise AssertionError("health endpoint did not report both cache strategies")
             status, models = request_json(base + "/v1/models")
             if status != 200 or not models.get("data"):
                 raise AssertionError("models endpoint returned no model")
@@ -209,6 +211,29 @@ def main() -> None:
             })
             if response_seed.get("seed") != 77:
                 raise AssertionError("responses API did not propagate seed")
+
+            cache_payload = {
+                "model": service.model_id,
+                "messages": [{"role": "user", "content": "cache equivalence"}],
+                "max_tokens": 3,
+                "temperature": 0,
+            }
+            cached_chat = service.chat(dict(cache_payload, cache_strategy="dynamic"))
+            uncached_chat = service.chat(dict(cache_payload, cache_strategy="none"))
+            if cached_chat["choices"][0]["message"]["content"] != uncached_chat["choices"][0]["message"]["content"]:
+                raise AssertionError("dynamic and no-cache greedy API output differed")
+            if uncached_chat["inference"].get("cache_strategy") != "none":
+                raise AssertionError("no-cache API response did not report its strategy")
+            uncached_kv = uncached_chat["inference"].get("kv_cache") or {}
+            if int(uncached_kv.get("peak_bytes", -1)) != 0 or int(uncached_kv.get("final_bytes", -1)) != 0:
+                raise AssertionError("no-cache API response reported non-zero KV-cache bytes")
+            response_cache = service._responses_payload_to_chat({
+                "model": service.model_id,
+                "input": "cache response",
+                "cache_strategy": "none",
+            })
+            if response_cache.get("cache_strategy") != "none":
+                raise AssertionError("responses API did not propagate cache_strategy")
 
         finally:
             server.shutdown()
