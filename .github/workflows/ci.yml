@@ -63,6 +63,9 @@ jobs:
       - name: ForgeLM inference export and device profile
         run: python -m model.forgelm.mobile_smoke_test
 
+      - name: ForgeLM measured runtime autotuning
+        run: python -m model.forgelm.autotune_smoke_test
+
       - name: ForgeLM regression and injection evaluation
         run: python -m model.forgelm.regression_smoke_test
 
