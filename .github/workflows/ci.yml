@@ -62,3 +62,6 @@ jobs:
 
       - name: ForgeNative localhost inference server
         run: python -m model.forgelm.server_smoke_test
+
+      - name: ForgeLM advanced SFT DPO governance and promotion
+        run: python -m model.forgelm.advanced_smoke_test
