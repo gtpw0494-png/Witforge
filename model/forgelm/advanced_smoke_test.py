@@ -210,6 +210,25 @@ def main() -> None:
         }
         quality_path.write_text(json.dumps(quality_report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
+        regression_path = root / "regression.json"
+        regression_report = {
+            "schema": "witforge.forgelm.regression-report.v1",
+            "checkpoint_manifest_sha256": checkpoint_identity(dpo_ckpt),
+            "weights_sha256": dpo_result["manifest"]["weights_sha256"],
+            "quantization": "none",
+            "total": 4,
+            "passed_cases": 4,
+            "pass_rate": 1.0,
+            "minimum_pass_rate": 1.0,
+            "categories": {
+                "PROMPT_INJECTION": {"total": 2, "passed_cases": 2, "pass_rate": 1.0, "minimum_pass_rate": 1.0, "passed": True},
+                "TOOL_TRUTH": {"total": 2, "passed_cases": 2, "pass_rate": 1.0, "minimum_pass_rate": 1.0, "passed": True},
+            },
+            "passed": True,
+            "cases": [],
+        }
+        regression_path.write_text(json.dumps(regression_report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
         refused = False
         try:
             promote(
@@ -224,17 +243,35 @@ def main() -> None:
             refused = True
         check(refused, "production promotion refuses runtime-only evidence without quality gates")
 
+        quality_only_refused = False
+        try:
+            promote(
+                dpo_ckpt,
+                eval_path,
+                quality_report=quality_path,
+                release_version="ci-quality-only-refused",
+                approved_by="ci-release-authority",
+                out=root / "quality-only-refused.json",
+                signing_key="ci-test-signing-key",
+            )
+        except ValueError:
+            quality_only_refused = True
+        check(quality_only_refused, "production promotion refuses quality-only evidence without regression gates")
+
         release_path = root / "release.json"
         release = promote(
             dpo_ckpt,
             eval_path,
             quality_report=quality_path,
+            regression_report=regression_path,
             release_version="ci-smoke",
             approved_by="ci-release-authority",
             out=release_path,
             signing_key="ci-test-signing-key",
         )
+        check(release["schema"] == "witforge.forgelm.release-manifest.v3", "promotion emits release manifest v3")
         check(release["quality_gate"] == "QUALITY_VERIFIED", "promoted release records verified quality evidence")
+        check(release["regression_gate"] == "REGRESSION_VERIFIED", "promoted release records verified regression evidence")
         check(release["signature"]["type"] == "HMAC-SHA256" and len(release["signature"]["value"]) == 64, "promotion emits a signed release manifest")
         release_check = verify_release_manifest(release_path, dpo_ckpt, signing_key="ci-test-signing-key")
         check(release_check["ok"], "signed promoted release re-verifies against checkpoint identity")
