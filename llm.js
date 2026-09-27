@@ -83,7 +83,7 @@ const PROVIDERS = [
     free: 'fully local ForgeLM checkpoint served by WitForge; no key and no cloud',
     connect: 'start "python -m model.forgelm.server --checkpoint state/models/forgelm-nano", then "verify forge-native"',
     local: true,
-    capabilities: ['text_generation', 'structured_output'],
+    capabilities: ['text_generation', 'structured_output', 'sse_streaming', 'kv_cache_telemetry'],
     contextTokens: 2048
   },
   {
@@ -172,7 +172,7 @@ function dryRun(providerId, args) {
       max_tokens: maxTokens,
       temperature,
       top_p: 0.95,
-      stream: false
+      stream: args.stream === true
     };
     if (responseFormat) body.response_format = responseFormat;
     return {
@@ -282,6 +282,73 @@ async function chat(providerId, args, deps) {
   }
 }
 
+async function streamChat(providerId, args, deps) {
+  deps = deps || {};
+  const started = Date.now();
+  const requested = Object.assign({}, args || {}, { stream: true });
+  const req = dryRun(providerId, requested);
+  if (req.error) return { ok: false, error: req.error };
+  const p = providerById(req.provider);
+  if (!p || p.shape !== 'forge-native') {
+    return { ok: false, provider: p ? p.id : providerId, error: 'Live streaming is currently implemented only for forge-native' };
+  }
+  if (!deps.localStream) return { ok: false, provider: p.id, error: 'Local streaming transport unavailable in this runtime' };
+
+  let content = '';
+  let usage = null;
+  let inference = null;
+  let finishReason = null;
+  let eventCount = 0;
+  let tokenEvents = 0;
+  let finalSeen = false;
+
+  const transport = await deps.localStream(
+    req.url,
+    req.headers,
+    { method: 'POST', body: JSON.stringify(req.body), timeoutMs: 120000 },
+    event => {
+      if (!event || typeof event !== 'object') return;
+      eventCount++;
+      if (Number.isInteger(event.token_id)) tokenEvents++;
+      const choice = event.choices && event.choices[0];
+      const delta = choice && choice.delta;
+      if (delta && typeof delta.content === 'string') content += delta.content;
+      if (choice && choice.finish_reason) finishReason = choice.finish_reason;
+      if (event.usage) {
+        usage = event.usage;
+        inference = event.inference || null;
+        finalSeen = true;
+      }
+      if (typeof deps.onEvent === 'function') deps.onEvent(event);
+    }
+  );
+
+  const latencyMs = Date.now() - started;
+  if (!transport || !transport.ok) {
+    return { ok: false, provider: p.id, model: req.model || req.body.model, latencyMs, error: String((transport && (transport.error || transport.text)) || 'stream request failed').slice(0, 300) };
+  }
+  if (!finalSeen) {
+    return { ok: false, provider: p.id, model: req.model || req.body.model, latencyMs, error: 'ForgeNative stream ended without a final usage event' };
+  }
+  const completionTokens = usage && Number(usage.completion_tokens);
+  if (Number.isFinite(completionTokens) && completionTokens !== tokenEvents) {
+    return { ok: false, provider: p.id, model: req.model || req.body.model, latencyMs, error: 'ForgeNative stream token-event count did not match final usage' };
+  }
+  return {
+    ok: true,
+    provider: p.id,
+    model: req.model || req.body.model,
+    content: content.slice(0, 8000),
+    usage,
+    inference,
+    finishReason,
+    latencyMs,
+    streamed: true,
+    eventCount,
+    tokenEvents
+  };
+}
+
 /* GET {model list} from a local Ollama — used by llm.status, dry unless a
  * live localFetch is wired. */
 async function ollamaModels(deps) {
@@ -318,5 +385,5 @@ async function ensemble(providerIds, args, deps) {
 }
 
 module.exports = {
-  RATE_RPM, RATE_TPD, PROVIDERS, PROVIDER_IDS, DEFAULT_ORDER, SYSTEM_PROMPT, providerById, dryRun, parseReply, validateLocalUrl, chat, ollamaModels, forgeNativeStatus, ensemble,
+  RATE_RPM, RATE_TPD, PROVIDERS, PROVIDER_IDS, DEFAULT_ORDER, SYSTEM_PROMPT, providerById, dryRun, parseReply, validateLocalUrl, chat, streamChat, ollamaModels, forgeNativeStatus, ensemble,
   OLLAMA_PORT: () => OLLAMA_PORT, FORGE_NATIVE_PORT: () => FORGE_NATIVE_PORT };
