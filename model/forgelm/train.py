@@ -92,7 +92,9 @@ def train(
     random.seed(seed)
     torch.manual_seed(seed)
     device = resolve_device(device_name)
-    tokenizer = load_tokenizer(tokenizer_path) if tokenizer_path else ByteTokenizer(config.vocab_size)\n    if tokenizer.vocab_size != config.vocab_size:\n        raise ValueError(\"tokenizer/model vocabulary mismatch\")
+    tokenizer = load_tokenizer(tokenizer_path) if tokenizer_path else ByteTokenizer(config.vocab_size)
+    if tokenizer.vocab_size != config.vocab_size:
+        raise ValueError("tokenizer/model vocabulary mismatch")
     stream = build_token_stream(tokenizer, docs)
     seq_len = min(int(seq_len), config.max_position_embeddings)
     model = ForgeLMForCausalLM(config).to(device)
