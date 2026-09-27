@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import threading
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from .checkpoint import save_checkpoint
@@ -18,6 +19,16 @@ def request_json(url: str, body=None):
     req = Request(url, data=data, headers={"Content-Type": "application/json"} if data else {}, method="POST" if data else "GET")
     with urlopen(req, timeout=10) as res:
         return res.status, json.loads(res.read().decode("utf-8"))
+
+
+def request_error_json(url: str, body):
+    data = json.dumps(body).encode("utf-8")
+    req = Request(url, data=data, headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        with urlopen(req, timeout=10) as res:
+            return res.status, json.loads(res.read().decode("utf-8"))
+    except HTTPError as exc:
+        return exc.code, json.loads(exc.read().decode("utf-8"))
 
 
 def request_sse(url: str, body):
@@ -232,6 +243,30 @@ def main() -> None:
             gate_runtime = gate_service.health()["inference_runtime"]
             if int(gate_runtime.get("rejected", 0)) < 1 or int(gate_runtime.get("active", -1)) != 0:
                 raise AssertionError("bounded inference metrics did not record rejection/release")
+
+            busy_service = ForgeNativeService(td, max_concurrent=1, queue_timeout_seconds=0.01)
+            busy_server = make_server(busy_service, "127.0.0.1", 0)
+            busy_thread = threading.Thread(target=busy_server.serve_forever, daemon=True)
+            busy_thread.start()
+            busy_base = f"http://127.0.0.1:{busy_server.server_port}"
+            held_busy = busy_service._acquire_inference_slot()
+            try:
+                busy_status, busy_payload = request_error_json(busy_base + "/v1/chat/completions", {
+                    "model": busy_service.model_id,
+                    "messages": [{"role": "user", "content": "busy test"}],
+                    "max_tokens": 1,
+                    "temperature": 0,
+                })
+                if busy_status != 503:
+                    raise AssertionError("saturated ForgeNative HTTP endpoint did not return 503")
+                busy_error = busy_payload.get("error") or {}
+                if busy_error.get("code") != "inference_busy" or busy_error.get("retryable") is not True:
+                    raise AssertionError("saturated ForgeNative HTTP endpoint did not return retryable inference_busy")
+            finally:
+                busy_service._release_inference_slot(held_busy, success=True)
+                busy_server.shutdown()
+                busy_server.server_close()
+                busy_thread.join(timeout=5)
 
             stream_service = ForgeNativeService(td, max_concurrent=1, queue_timeout_seconds=0.1)
             stream_events = list(stream_service.stream_chat({
