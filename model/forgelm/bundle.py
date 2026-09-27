@@ -11,7 +11,7 @@ from typing import Any, Dict
 from .promotion import verify_release_manifest
 
 
-CHECKPOINT_FILES = ("config.json", "tokenizer.json", "model.pt", "manifest.json")
+CHECKPOINT_FILES = ("config.json", "tokenizer.json", "model.pt", "manifest.json")\nOPTIONAL_CHECKPOINT_FILES = ("optimizer.pt",)
 
 
 def sha256_file(path: Path) -> str:
@@ -49,6 +49,14 @@ def create_bundle(
             raise FileNotFoundError(src)
         dst = out_dir / name
         shutil.copy2(src, dst)
+        copied.append(dst)
+    checkpoint_manifest = json.loads((checkpoint / "manifest.json").read_text(encoding="utf-8"))
+    if checkpoint_manifest.get("optimizer_sha256"):
+        optimizer = checkpoint / "optimizer.pt"
+        if not optimizer.is_file():
+            raise FileNotFoundError(optimizer)
+        dst = out_dir / "optimizer.pt"
+        shutil.copy2(optimizer, dst)
         copied.append(dst)
     release_dst = out_dir / "release-manifest.json"
     shutil.copy2(release_manifest, release_dst)
