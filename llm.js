@@ -91,12 +91,12 @@ const PROVIDERS = [
     keyHint: null, endpoint: 'http://127.0.0.1:' + OLLAMA_PORT,
     defaultModel: 'llama3.2',
     free: 'fully local and free — you own the model; nothing leaves the machine',
-    connect: 'install Ollama and "ollama pull llama3.2" — no key needed'
+    connect: 'optional local provider: start Ollama only when explicitly selected; hosted WitForge does not require it'
   }
 ];
 const PROVIDER_IDS = PROVIDERS.map(p => p.id);
 /* Deterministic default order: cloud free tiers first, local last. */
-const DEFAULT_ORDER = ['groq', 'gemini', 'openrouter', 'nvidia-nim', 'together-ai', 'deepseek', 'mistral', 'ollama', 'forge-native'];
+const DEFAULT_ORDER = ['groq', 'gemini', 'openrouter', 'nvidia-nim', 'together-ai', 'deepseek', 'mistral', 'forge-native', 'ollama'];
 
 /* v2.02 advisory free-tier rate baselines (public console documentation,
  * shifts upstream — advisory labels, the enforcement below is recorded truth,
