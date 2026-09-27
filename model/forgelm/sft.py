@@ -10,7 +10,15 @@ import torch
 
 from .checkpoint import checkpoint_identity, load_training_checkpoint, save_checkpoint
 from .dataset import detect_secret
-from .modeling_forgelm import ForgeLMForCausalLM
+from .training_utils import (
+    autocast_context,
+    backward_loss,
+    make_grad_scaler,
+    normalize_accumulation_steps,
+    optimizer_step,
+    resolve_device,
+    resolve_precision,
+)
 
 
 ROLE_TAGS = {
@@ -123,32 +131,48 @@ def train_sft(
     max_length: int | None = None,
     device: str = "cpu",
     seed: int = 1337,
+    precision: str = "auto",
+    gradient_accumulation_steps: int = 1,
 ) -> Dict[str, Any]:
     random.seed(seed)
     torch.manual_seed(seed)
-    model, tokenizer, manifest, optimizer_state = load_training_checkpoint(checkpoint, device=device)
+    runtime = resolve_precision(resolve_device(device), precision)
+    accumulation = normalize_accumulation_steps(gradient_accumulation_steps)
+    model, tokenizer, manifest, optimizer_state = load_training_checkpoint(checkpoint, device=runtime.device)
     max_length = min(int(max_length or model.config.max_position_embeddings), model.config.max_position_embeddings)
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, betas=(0.9, 0.95), weight_decay=0.1)
     if optimizer_state is not None and str(manifest.get("metadata", {}).get("stage", "")).upper() == "SFT":
         optimizer.load_state_dict(optimizer_state)
         for group in optimizer.param_groups:
             group["lr"] = learning_rate
+    scaler = make_grad_scaler(runtime)
 
     start_step = int(manifest.get("step", 0))
     losses: List[float] = []
     model.train()
     for local_step in range(1, int(steps) + 1):
-        indices = [random.randrange(len(records)) for _ in range(max(1, int(batch_size)))]
-        x, y = make_batch(tokenizer, records, indices, max_length, next(model.parameters()).device)
         optimizer.zero_grad(set_to_none=True)
-        out = model(x, targets=y)
-        if out.loss is None or not torch.isfinite(out.loss):
-            raise RuntimeError("non-finite SFT loss")
-        out.loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        optimizer.step()
-        losses.append(float(out.loss.detach().cpu()))
-        print(json.dumps({"step": start_step + local_step, "loss": losses[-1], "stage": "SFT"}), flush=True)
+        micro_losses: List[float] = []
+        for _ in range(accumulation):
+            indices = [random.randrange(len(records)) for _ in range(max(1, int(batch_size)))]
+            x, y = make_batch(tokenizer, records, indices, max_length, runtime.device)
+            with autocast_context(runtime):
+                out = model(x, targets=y)
+                if out.loss is None or not torch.isfinite(out.loss):
+                    raise RuntimeError("non-finite SFT loss")
+                scaled_loss = out.loss / accumulation
+            micro_losses.append(float(out.loss.detach().float().cpu()))
+            backward_loss(scaled_loss, scaler)
+        optimizer_step(optimizer, model, scaler, max_grad_norm=1.0)
+        step_loss = sum(micro_losses) / len(micro_losses)
+        losses.append(step_loss)
+        print(json.dumps({
+            "step": start_step + local_step,
+            "loss": step_loss,
+            "stage": "SFT",
+            "precision": runtime.precision,
+            "grad_accum": accumulation,
+        }), flush=True)
 
     final_step = start_step + int(steps)
     next_manifest = save_checkpoint(
@@ -158,17 +182,22 @@ def train_sft(
         step=final_step,
         optimizer=optimizer,
         metadata={
-            "trainer": "forgelm-sft-v1",
+            "trainer": "forgelm-sft-v2",
             "stage": "SFT",
             "records": len(records),
             "chat_records": sum(r["kind"] != "TOOL_CALL" for r in records),
             "tool_records": sum(r["kind"] == "TOOL_CALL" for r in records),
             "final_loss": losses[-1] if losses else None,
+            "precision": runtime.precision,
+            "precision_runtime": runtime.metadata(),
+            "gradient_accumulation_steps": accumulation,
+            "micro_batch_size": int(batch_size),
+            "effective_batch_size": int(batch_size) * accumulation,
             "parent_checkpoint": checkpoint,
             "parent_manifest_sha256": checkpoint_identity(checkpoint),
         },
     )
-    return {"manifest": next_manifest, "losses": losses}
+    return {"manifest": next_manifest, "losses": losses, "precision": runtime.precision}
 
 
 def main() -> None:
@@ -177,10 +206,12 @@ def main() -> None:
     p.add_argument("--data", nargs="+", required=True)
     p.add_argument("--out", required=True)
     p.add_argument("--steps", type=int, default=100)
-    p.add_argument("--batch-size", type=int, default=2)
+    p.add_argument("--batch-size", type=int, default=2, help="micro-batch size")
+    p.add_argument("--grad-accum", type=int, default=1)
     p.add_argument("--lr", type=float, default=1e-4)
     p.add_argument("--max-length", type=int)
     p.add_argument("--device", default="cpu")
+    p.add_argument("--precision", choices=["auto", "fp32", "bf16", "fp16"], default="auto")
     p.add_argument("--seed", type=int, default=1337)
     args = p.parse_args()
     result = train_sft(
@@ -193,8 +224,15 @@ def main() -> None:
         max_length=args.max_length,
         device=args.device,
         seed=args.seed,
+        precision=args.precision,
+        gradient_accumulation_steps=args.grad_accum,
     )
-    print(json.dumps({"ok": True, "checkpoint": args.out, "step": result["manifest"]["step"]}, indent=2))
+    print(json.dumps({
+        "ok": True,
+        "checkpoint": args.out,
+        "step": result["manifest"]["step"],
+        "precision": result["precision"],
+    }, indent=2))
 
 
 if __name__ == "__main__":
