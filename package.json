@@ -1,6 +1,6 @@
 {
   "name": "witforge",
-  "version": "2.12.0",
+  "version": "2.13.0",
   "description": "WitForge — a local-first, security-first conversational AI operating platform (browser control surface + authoritative local server).",
   "keywords": [
     "local-first",
@@ -61,4 +61,4 @@
   "dependencies": {},
   "devDependencies": {},
   "comment": "Node runtime remains zero-dependency by design. ForgeLM native training/chat is an optional Python/PyTorch runtime under model/forgelm."
-}
+}\n
