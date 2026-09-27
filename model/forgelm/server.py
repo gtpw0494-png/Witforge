@@ -66,14 +66,14 @@ class ForgeNativeService:
         return {
             "ok": True,
             "service": "forge-native",
-            "version": "2",
+            "version": "3",
             "loaded": True,
             "model": self.model_id,
             "parameter_count": self.manifest.get("parameter_count"),
             "step": self.manifest.get("step"),
             "context_length": self.model.config.max_position_embeddings,
             "tokenizer_schema": getattr(self.tokenizer, "schema", "unknown"),
-            "capabilities": ["text_generation", "structured_output", "kv_cache_telemetry", "sse_streaming"],
+            "capabilities": ["text_generation", "structured_output", "kv_cache_telemetry", "sse_streaming", "responses_api"],
             "cache_strategy": "dynamic",
             "quantization": self.quantization,
             "release_verified": bool(self.release_verification and self.release_verification.get("ok")),
@@ -147,6 +147,164 @@ class ForgeNativeService:
         if normalized not in set(candidates):
             raise ValueError("structured generation ended before a valid schema instance completed")
         json.loads(normalized)
+
+    def _responses_payload_to_chat(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        requested = payload.get("model") or self.model_id
+        raw_input = payload.get("input")
+        messages: List[Dict[str, str]] = []
+        if isinstance(raw_input, str):
+            if not raw_input.strip():
+                raise ValueError("input must not be empty")
+            messages = [{"role": "user", "content": raw_input}]
+        elif isinstance(raw_input, list):
+            for item in raw_input:
+                if not isinstance(item, dict):
+                    raise ValueError("input array items must be objects")
+                role = str(item.get("role", "user")).lower()
+                content = item.get("content", "")
+                if isinstance(content, list):
+                    texts = []
+                    for part in content:
+                        if isinstance(part, dict):
+                            value = part.get("text", part.get("input_text", part.get("output_text", "")))
+                            if value:
+                                texts.append(str(value))
+                    content = "\n".join(texts)
+                content = str(content).strip()
+                if content:
+                    messages.append({"role": role, "content": content})
+            if not messages:
+                raise ValueError("input array carried no usable messages")
+        else:
+            raise ValueError("input must be a non-empty string or message array")
+
+        chat_payload: Dict[str, Any] = {
+            "model": requested,
+            "messages": messages,
+            "max_output_tokens": payload.get("max_output_tokens", 128),
+            "temperature": payload.get("temperature", 0.8),
+            "top_p": payload.get("top_p", 0.95),
+            "top_k": payload.get("top_k", 50),
+            "repetition_penalty": payload.get("repetition_penalty", 1.05),
+        }
+        text = payload.get("text")
+        fmt = text.get("format") if isinstance(text, dict) else None
+        if isinstance(fmt, dict) and fmt.get("type") == "json_schema":
+            chat_payload["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": str(fmt.get("name") or "response"),
+                    "strict": bool(fmt.get("strict", True)),
+                    "schema": fmt.get("schema"),
+                },
+            }
+        return chat_payload
+
+    def responses(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        chat_payload = self._responses_payload_to_chat(payload)
+        chat = self.chat(chat_payload)
+        text = chat["choices"][0]["message"]["content"]
+        response_id = "resp-" + chat["id"].removeprefix("forge-")
+        return {
+            "id": response_id,
+            "object": "response",
+            "created_at": chat["created"],
+            "status": "completed",
+            "model": chat["model"],
+            "output": [{
+                "id": "msg-" + response_id.removeprefix("resp-"),
+                "type": "message",
+                "role": "assistant",
+                "status": "completed",
+                "content": [{"type": "output_text", "text": text}],
+            }],
+            "output_text": text,
+            "usage": {
+                "input_tokens": chat["usage"]["prompt_tokens"],
+                "output_tokens": chat["usage"]["completion_tokens"],
+                "total_tokens": chat["usage"]["total_tokens"],
+            },
+            "inference": chat["inference"],
+            "structured": chat["structured"],
+        }
+
+    def stream_responses(self, payload: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
+        chat_payload = self._responses_payload_to_chat(payload)
+        response_id = f"resp-{int(time.time() * 1000)}"
+        created = int(time.time())
+
+        def events() -> Iterator[Dict[str, Any]]:
+            sequence = 0
+            text_parts: List[str] = []
+            yield {
+                "type": "response.created",
+                "sequence_number": sequence,
+                "response": {
+                    "id": response_id,
+                    "object": "response",
+                    "created_at": created,
+                    "status": "in_progress",
+                    "model": str(chat_payload.get("model") or self.model_id),
+                },
+            }
+            sequence += 1
+            final = None
+            for chunk in self.stream_chat(chat_payload):
+                choice = chunk.get("choices", [{}])[0]
+                delta = choice.get("delta", {})
+                if "content" in delta:
+                    piece = str(delta.get("content") or "")
+                    if piece:
+                        text_parts.append(piece)
+                    yield {
+                        "type": "response.output_text.delta",
+                        "sequence_number": sequence,
+                        "response_id": response_id,
+                        "delta": piece,
+                        "token_id": chunk.get("token_id"),
+                    }
+                    sequence += 1
+                if chunk.get("usage"):
+                    final = chunk
+            if final is None:
+                raise RuntimeError("response stream ended without final usage")
+
+            output_text = "".join(text_parts)
+            yield {
+                "type": "response.output_text.done",
+                "sequence_number": sequence,
+                "response_id": response_id,
+                "text": output_text,
+            }
+            sequence += 1
+            yield {
+                "type": "response.completed",
+                "sequence_number": sequence,
+                "response": {
+                    "id": response_id,
+                    "object": "response",
+                    "created_at": created,
+                    "status": "completed",
+                    "model": final["model"],
+                    "output": [{
+                        "id": "msg-" + response_id.removeprefix("resp-"),
+                        "type": "message",
+                        "role": "assistant",
+                        "status": "completed",
+                        "content": [{"type": "output_text", "text": output_text}],
+                    }],
+                    "output_text": output_text,
+                    "usage": {
+                        "input_tokens": final["usage"]["prompt_tokens"],
+                        "output_tokens": final["usage"]["completion_tokens"],
+                        "total_tokens": final["usage"]["total_tokens"],
+                    },
+                    "inference": final["inference"],
+                    "structured": final["structured"],
+                },
+            }
+
+        return events()
 
     def chat(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         prep = self._prepare_chat(payload)
@@ -289,7 +447,7 @@ class ForgeNativeService:
 
 def make_handler(service: ForgeNativeService):
     class Handler(BaseHTTPRequestHandler):
-        server_version = "ForgeNative/2"
+        server_version = "ForgeNative/3"
 
         def log_message(self, fmt: str, *args) -> None:
             return
@@ -335,7 +493,7 @@ def make_handler(service: ForgeNativeService):
             return self._json(404, {"error": {"code": "not_found", "message": "route not found"}})
 
         def do_POST(self) -> None:
-            if self.path != "/v1/chat/completions":
+            if self.path not in {"/v1/chat/completions", "/v1/responses"}:
                 return self._json(404, {"error": {"code": "not_found", "message": "route not found"}})
             try:
                 length = int(self.headers.get("Content-Length", "0"))
@@ -349,11 +507,13 @@ def make_handler(service: ForgeNativeService):
                 payload = json.loads(self.rfile.read(length))
                 if not isinstance(payload, dict):
                     raise ValueError("JSON object required")
+                if self.path == "/v1/responses":
+                    if payload.get("stream") is True:
+                        return self._sse(service.stream_responses(payload))
+                    return self._json(200, service.responses(payload))
                 if payload.get("stream") is True:
-                    iterator = service.stream_chat(payload)
-                    return self._sse(iterator)
-                result = service.chat(payload)
-                return self._json(200, result)
+                    return self._sse(service.stream_chat(payload))
+                return self._json(200, service.chat(payload))
             except ValueError as exc:
                 return self._json(400, {"error": {"code": "invalid_request", "message": str(exc)}})
             except Exception as exc:
