@@ -21,6 +21,7 @@ class GenerationStats:
     cache_layers: int
     max_context_tokens: int
     stop_reason: str
+    cache_strategy: str
     matched_stop_index: Optional[int] = None
 
     def to_dict(self) -> Dict[str, int | str | None]:
@@ -158,6 +159,7 @@ def iter_generate(
     seed: Optional[int] = None,
     allowed_token_fn: Optional[AllowedTokenFn] = None,
     stop_token_sequences: Optional[Sequence[Sequence[int]]] = None,
+    cache_strategy: str = "dynamic",
 ) -> Iterator[GenerationStreamEvent]:
     with torch.inference_mode():
         if input_ids.ndim != 2 or input_ids.shape[0] != 1:
@@ -168,6 +170,9 @@ def iter_generate(
         max_context = int(model.config.max_position_embeddings)
         if input_ids.shape[1] > max_context:
             raise ValueError("generation prompt exceeds model context window")
+        strategy = str(cache_strategy or "dynamic").lower()
+        if strategy not in {"dynamic", "none"}:
+            raise ValueError("cache_strategy must be one of: dynamic, none")
         stops = _normalise_stop_sequences(stop_token_sequences, int(model.config.vocab_size))
 
         model.eval()
@@ -181,9 +186,10 @@ def iter_generate(
                 sampled_tokens=0,
                 peak_kv_cache_bytes=0,
                 final_kv_cache_bytes=0,
-                cache_layers=int(model.config.num_hidden_layers),
+                cache_layers=int(model.config.num_hidden_layers) if strategy == "dynamic" else 0,
                 max_context_tokens=max_context,
                 stop_reason="context" if input_ids.shape[1] >= max_context else "max_tokens",
+                cache_strategy=strategy,
             )
             yield GenerationStreamEvent(None, 0, True, output_ids=input_ids.clone(), stats=stats)
             return
@@ -193,10 +199,11 @@ def iter_generate(
             generator = torch.Generator(device=input_ids.device)
             generator.manual_seed(seed)
 
-        output = model(context_ids, use_cache=True)
-        past = output.past_key_values
+        use_dynamic_cache = strategy == "dynamic"
+        output = model(context_ids, use_cache=use_dynamic_cache)
+        past = output.past_key_values if use_dynamic_cache else None
         next_logits = output.logits[:, -1, :]
-        peak_cache = kv_cache_nbytes(past)
+        peak_cache = kv_cache_nbytes(past) if use_dynamic_cache else 0
         final_cache = peak_cache
         sampled_tokens = 0
         stop_reason = "max_tokens"
@@ -256,11 +263,16 @@ def iter_generate(
                 stop_reason = "context"
                 break
 
-            output = model(next_token, past_key_values=past, use_cache=True)
-            past = output.past_key_values
+            if use_dynamic_cache:
+                output = model(next_token, past_key_values=past, use_cache=True)
+                past = output.past_key_values
+                final_cache = kv_cache_nbytes(past)
+                peak_cache = max(peak_cache, final_cache)
+            else:
+                output = model(context_ids, use_cache=False)
+                past = None
+                final_cache = 0
             next_logits = output.logits[:, -1, :]
-            final_cache = kv_cache_nbytes(past)
-            peak_cache = max(peak_cache, final_cache)
         else:
             for event in emit(pending):
                 yield event
@@ -281,6 +293,7 @@ def iter_generate(
             cache_layers=len(past) if past is not None else 0,
             max_context_tokens=max_context,
             stop_reason=stop_reason,
+            cache_strategy=strategy,
             matched_stop_index=matched_stop_index,
         )
         yield GenerationStreamEvent(None, len(visible_tokens), True, output_ids=output_ids, stats=stats)
@@ -300,6 +313,7 @@ def generate_with_stats(
     seed: Optional[int] = None,
     allowed_token_fn: Optional[AllowedTokenFn] = None,
     stop_token_sequences: Optional[Sequence[Sequence[int]]] = None,
+    cache_strategy: str = "dynamic",
 ) -> GenerationResult:
     final_event: Optional[GenerationStreamEvent] = None
     for event in iter_generate(
@@ -314,6 +328,7 @@ def generate_with_stats(
         seed=seed,
         allowed_token_fn=allowed_token_fn,
         stop_token_sequences=stop_token_sequences,
+        cache_strategy=cache_strategy,
     ):
         if event.done:
             final_event = event
@@ -336,6 +351,7 @@ def generate(
     seed: Optional[int] = None,
     allowed_token_fn: Optional[AllowedTokenFn] = None,
     stop_token_sequences: Optional[Sequence[Sequence[int]]] = None,
+    cache_strategy: str = "dynamic",
 ) -> torch.Tensor:
     return generate_with_stats(
         model,
@@ -349,4 +365,5 @@ def generate(
         seed=seed,
         allowed_token_fn=allowed_token_fn,
         stop_token_sequences=stop_token_sequences,
+        cache_strategy=cache_strategy,
     ).output_ids
