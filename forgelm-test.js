@@ -87,6 +87,12 @@ const forgeResponseStopDry=llm.responsesDryRun('forge-native',{prompt:'stop resp
 ok(forgeResponseStopDry.body.stop==='END', 'ForgeNative Responses dry run preserves a stop string');
 ok(/at most 8/.test(llm.dryRun('forge-native',{prompt:'bad stop',stop:['1','2','3','4','5','6','7','8','9']}).error||''), 'ForgeNative rejects oversized stop lists before transport');
 
+const forgeSeedDry=llm.dryRun('forge-native',{prompt:'seed test',seed:12345,maxTokens:32,temperature:0.8});
+ok(forgeSeedDry.body.seed===12345, 'ForgeNative chat dry run preserves deterministic seed');
+const forgeResponseSeedDry=llm.responsesDryRun('forge-native',{prompt:'seed response',seed:67890,maxTokens:32,temperature:0.8});
+ok(forgeResponseSeedDry.body.seed===67890, 'ForgeNative Responses dry run preserves deterministic seed');
+ok(/non-negative safe integer/.test(llm.dryRun('forge-native',{prompt:'bad seed',seed:-1}).error||''), 'ForgeNative rejects invalid seeds before transport');
+
 const forgeStreamDry=llm.dryRun('forge-native',{prompt:'stream',stream:true,maxTokens:4,temperature:0});
 ok(forgeStreamDry.body.stream===true, 'ForgeNative dry run preserves explicit streaming intent');
 ok(forgeProvider.capabilities.includes('sse_streaming'), 'ForgeNative declares verified streaming capability');
