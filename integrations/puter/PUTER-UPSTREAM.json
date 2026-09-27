@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/HeyPuter/puter",
+  "commit": "922d203e18e1946c83dca2fe3b179010fde0480c",
+  "license": "AGPL-3.0-only",
+  "role": "optional third-party provider/reference boundary",
+  "authority": "WitForge remains authoritative for policy, approval, security, execution truth and audit",
+  "runtimeEndpoint": "https://api.puter.com/puterai/openai/v1/",
+  "verifiedDocs": "Puter OpenAI-compatible API documentation, checked 2026-09-27"
+}
