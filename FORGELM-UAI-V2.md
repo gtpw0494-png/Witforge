@@ -39,18 +39,30 @@ Information-only classes:
 
 The information-only classes cannot grant authority.
 
-## Next model tranche
+## Native ForgeLM runtime
 
-The native ForgeLM package will implement:
-- decoder-only Transformer
-- GQA
-- RoPE
-- RMSNorm
-- SwiGLU
-- KV/prefix cache
-- constrained JSON decoding
-- Nano then Micro profiles
-- optional GGUF export for llama.cpp
-- optional vLLM server adapter
+Implemented in WitForge 2.09.0:
 
-It will remain downstream of the same WitForge governance boundary.
+- `model/forgelm/configuration_forgelm.py` — validated Nano and smoke configurations.
+- `model/forgelm/modeling_forgelm.py` — decoder-only Transformer with GQA, RoPE, RMSNorm and SwiGLU.
+- `model/forgelm/generation.py` — KV-cache autoregressive generation with temperature, top-k, top-p, repetition penalty and an allowed-token constraint hook.
+- `model/forgelm/tokenizer.py` — deterministic UTF-8 byte bootstrap tokenizer with stable reserved action/memory/evidence token IDs. Byte-level BPE remains the next tokenizer upgrade.
+- `model/forgelm/checkpoint.py` — save/load plus SHA-256 manifest verification and exact parameter counts.
+- `model/forgelm/train.py` — local causal-language-model trainer for text and JSONL conversational corpora.
+- `model/forgelm/chat.py` — local interactive or one-shot chat against a saved checkpoint.
+- `model/forgelm/smoke_test.py` — real forward/backward optimizer step, KV-cache test, checkpoint round-trip and generation test.
+- `config/forgelm-nano.json` — the 25,172,352-parameter ForgeLM-Nano architecture target.
+- `requirements/forgelm.txt` — optional PyTorch runtime requirement.
+
+The Node control plane remains dependency-free. Python/PyTorch is an optional model runtime and does not gain permissions, credentials, execution authority or verification authority.
+
+## Remaining model work
+
+- train the byte-level BPE tokenizer while preserving the reserved IDs;
+- structured JSON grammar/schema decoding on top of the allowed-token constraint hook;
+- SFT/DPO and verified-trace dataset pipeline;
+- resumable/distributed training and evaluation suites;
+- ForgeNative localhost model server and Node provider adapter;
+- GGUF conversion/runtime compatibility work;
+- vLLM registration/serving compatibility;
+- quantization and mobile performance profiles.
