@@ -95,9 +95,11 @@ ok(/non-negative safe integer/.test(llm.dryRun('forge-native',{prompt:'bad seed'
 
 const forgeNoCacheDry=llm.dryRun('forge-native',{prompt:'cache test',cacheStrategy:'none',maxTokens:32,temperature:0});
 ok(forgeNoCacheDry.body.cache_strategy==='none', 'ForgeNative chat dry run preserves no-cache strategy');
+const forgeStaticCacheDry=llm.dryRun('forge-native',{prompt:'static cache test',cacheStrategy:'static',maxTokens:32,temperature:0});
+ok(forgeStaticCacheDry.body.cache_strategy==='static', 'ForgeNative chat dry run preserves static-cache strategy');
 const forgeResponseNoCacheDry=llm.responsesDryRun('forge-native',{prompt:'cache response',cacheStrategy:'none',maxTokens:32,temperature:0});
 ok(forgeResponseNoCacheDry.body.cache_strategy==='none', 'ForgeNative Responses dry run preserves no-cache strategy');
-ok(/dynamic or none/.test(llm.dryRun('forge-native',{prompt:'bad cache',cacheStrategy:'paged'}).error||''), 'ForgeNative rejects unsupported cache strategies before transport');
+ok(/dynamic, static or none/.test(llm.dryRun('forge-native',{prompt:'bad cache',cacheStrategy:'paged'}).error||''), 'ForgeNative rejects unsupported cache strategies before transport');
 ok(forgeProvider.capabilities.includes('cache_strategy_control'), 'ForgeNative provider declares cache strategy control');
 
 const forgeStreamDry=llm.dryRun('forge-native',{prompt:'stream',stream:true,maxTokens:4,temperature:0});
