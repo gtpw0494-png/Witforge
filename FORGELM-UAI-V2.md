@@ -41,7 +41,7 @@ The information-only classes cannot grant authority.
 
 ## Native ForgeLM runtime
 
-Implemented in WitForge 2.09.0:
+Implemented through WitForge 2.10.0:
 
 - `model/forgelm/configuration_forgelm.py` — validated Nano and smoke configurations.
 - `model/forgelm/modeling_forgelm.py` — decoder-only Transformer with GQA, RoPE, RMSNorm and SwiGLU.
@@ -52,7 +52,12 @@ Implemented in WitForge 2.09.0:
 - `model/forgelm/chat.py` — local interactive or one-shot chat against a saved checkpoint.
 - `model/forgelm/smoke_test.py` — real forward/backward optimizer step, KV-cache test, checkpoint round-trip and generation test.
 - `config/forgelm-nano.json` — the 25,172,352-parameter ForgeLM-Nano architecture target.
-- `requirements/forgelm.txt` — optional PyTorch runtime requirement.
+- `requirements/forgelm.txt` — optional PyTorch runtime requirement.\n- `model/forgelm/dataset.py` — provenance/consent/license/privacy/secret/verified-trace/dedup/holdout gates with a SHA-256 dataset report.
+- `model/forgelm/server.py` — loopback-only ForgeNative HTTP service exposing `/health`, `/v1/models` and `/v1/chat/completions`.
+- `model/forgelm/pipeline_smoke_test.py` — governed dataset and BPE round-trip tests.
+- `model/forgelm/server_smoke_test.py` — real ephemeral localhost server round trip in CI.
+- `llm.js` — explicit `forge-native` provider on `127.0.0.1:11435`, path allowlist, live health probe and OpenAI-style chat adapter.
+- `config/training-sources.example.json` — source-manifest contract for approved training material.
 
 The Node control plane remains dependency-free. Python/PyTorch is an optional model runtime and does not gain permissions, credentials, execution authority or verification authority.
 
@@ -60,7 +65,7 @@ The Node control plane remains dependency-free. Python/PyTorch is an optional mo
 
 - train the byte-level BPE tokenizer while preserving the reserved IDs;
 - structured JSON grammar/schema decoding on top of the allowed-token constraint hook;
-- SFT/DPO and verified-trace dataset pipeline;
+- SFT/DPO, preference datasets and richer verified-trace transforms;
 - resumable/distributed training and evaluation suites;
 - ForgeNative localhost model server and Node provider adapter;
 - GGUF conversion/runtime compatibility work;
