@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Callable, Dict, Iterable, Optional, Sequence, Tuple
+from typing import Callable, Dict, Iterable, Iterator, Optional, Sequence, Tuple
 
 import torch
 
@@ -29,6 +29,15 @@ class GenerationStats:
 class GenerationResult:
     output_ids: torch.Tensor
     stats: GenerationStats
+
+
+@dataclass(frozen=True)
+class GenerationStreamEvent:
+    token_id: Optional[int]
+    generated_tokens: int
+    done: bool
+    output_ids: Optional[torch.Tensor] = None
+    stats: Optional[GenerationStats] = None
 
 
 def kv_cache_nbytes(past_key_values: Optional[Sequence[KVCache]]) -> int:
@@ -97,6 +106,99 @@ def sample_next_token(
     return torch.multinomial(probs, num_samples=1, generator=generator)
 
 
+def iter_generate(
+    model: ForgeLMForCausalLM,
+    input_ids: torch.Tensor,
+    *,
+    max_new_tokens: int = 64,
+    eos_token_id: Optional[int] = None,
+    temperature: float = 0.8,
+    top_k: int = 50,
+    top_p: float = 0.95,
+    repetition_penalty: float = 1.0,
+    seed: Optional[int] = None,
+    allowed_token_fn: Optional[AllowedTokenFn] = None,
+) -> Iterator[GenerationStreamEvent]:
+    with torch.inference_mode():
+        if input_ids.ndim != 2 or input_ids.shape[0] != 1:
+            raise ValueError("bootstrap generator currently supports batch size 1")
+        if input_ids.shape[1] == 0:
+            raise ValueError("generation prompt must not be empty")
+        max_new_tokens = max(0, int(max_new_tokens))
+        max_context = int(model.config.max_position_embeddings)
+        if input_ids.shape[1] > max_context:
+            raise ValueError("generation prompt exceeds model context window")
+
+        model.eval()
+        out_ids = input_ids.clone()
+        if max_new_tokens == 0 or input_ids.shape[1] >= max_context:
+            stats = GenerationStats(
+                prompt_tokens=int(input_ids.shape[1]),
+                generated_tokens=0,
+                peak_kv_cache_bytes=0,
+                final_kv_cache_bytes=0,
+                cache_layers=int(model.config.num_hidden_layers),
+                max_context_tokens=max_context,
+                stop_reason="context" if input_ids.shape[1] >= max_context else "max_tokens",
+            )
+            yield GenerationStreamEvent(None, 0, True, output_ids=out_ids, stats=stats)
+            return
+
+        generator = None
+        if seed is not None:
+            generator = torch.Generator(device=input_ids.device)
+            generator.manual_seed(seed)
+
+        output = model(out_ids, use_cache=True)
+        past = output.past_key_values
+        next_logits = output.logits[:, -1, :]
+        peak_cache = kv_cache_nbytes(past)
+        final_cache = peak_cache
+        generated_tokens = 0
+        stop_reason = "max_tokens"
+
+        for _ in range(max_new_tokens):
+            allowed = allowed_token_fn(out_ids) if allowed_token_fn is not None else None
+            next_token = sample_next_token(
+                next_logits,
+                temperature=temperature,
+                top_k=top_k,
+                top_p=top_p,
+                repetition_tokens=out_ids,
+                repetition_penalty=repetition_penalty,
+                allowed_token_ids=allowed,
+                generator=generator,
+            )
+            out_ids = torch.cat((out_ids, next_token), dim=1)
+            generated_tokens += 1
+            token_id = int(next_token.item())
+            yield GenerationStreamEvent(token_id, generated_tokens, False)
+
+            if eos_token_id is not None and token_id == int(eos_token_id):
+                stop_reason = "eos"
+                break
+            if out_ids.shape[1] >= max_context:
+                stop_reason = "context"
+                break
+
+            output = model(next_token, past_key_values=past, use_cache=True)
+            past = output.past_key_values
+            next_logits = output.logits[:, -1, :]
+            final_cache = kv_cache_nbytes(past)
+            peak_cache = max(peak_cache, final_cache)
+
+        stats = GenerationStats(
+            prompt_tokens=int(input_ids.shape[1]),
+            generated_tokens=generated_tokens,
+            peak_kv_cache_bytes=peak_cache,
+            final_kv_cache_bytes=final_cache,
+            cache_layers=len(past) if past is not None else 0,
+            max_context_tokens=max_context,
+            stop_reason=stop_reason,
+        )
+        yield GenerationStreamEvent(None, generated_tokens, True, output_ids=out_ids, stats=stats)
+
+
 @torch.inference_mode()
 def generate_with_stats(
     model: ForgeLMForCausalLM,
@@ -111,84 +213,24 @@ def generate_with_stats(
     seed: Optional[int] = None,
     allowed_token_fn: Optional[AllowedTokenFn] = None,
 ) -> GenerationResult:
-    if input_ids.ndim != 2 or input_ids.shape[0] != 1:
-        raise ValueError("bootstrap generator currently supports batch size 1")
-    if input_ids.shape[1] == 0:
-        raise ValueError("generation prompt must not be empty")
-    max_new_tokens = max(0, int(max_new_tokens))
-    max_context = int(model.config.max_position_embeddings)
-    if input_ids.shape[1] > max_context:
-        raise ValueError("generation prompt exceeds model context window")
-
-    model.eval()
-    out_ids = input_ids.clone()
-    if max_new_tokens == 0 or input_ids.shape[1] >= max_context:
-        return GenerationResult(
-            output_ids=out_ids,
-            stats=GenerationStats(
-                prompt_tokens=int(input_ids.shape[1]),
-                generated_tokens=0,
-                peak_kv_cache_bytes=0,
-                final_kv_cache_bytes=0,
-                cache_layers=int(model.config.num_hidden_layers),
-                max_context_tokens=max_context,
-                stop_reason="context" if input_ids.shape[1] >= max_context else "max_tokens",
-            ),
-        )
-
-    generator = None
-    if seed is not None:
-        generator = torch.Generator(device=input_ids.device)
-        generator.manual_seed(seed)
-
-    output = model(out_ids, use_cache=True)
-    past = output.past_key_values
-    next_logits = output.logits[:, -1, :]
-    peak_cache = kv_cache_nbytes(past)
-    final_cache = peak_cache
-    generated_tokens = 0
-    stop_reason = "max_tokens"
-
-    for _ in range(max_new_tokens):
-        allowed = allowed_token_fn(out_ids) if allowed_token_fn is not None else None
-        next_token = sample_next_token(
-            next_logits,
-            temperature=temperature,
-            top_k=top_k,
-            top_p=top_p,
-            repetition_tokens=out_ids,
-            repetition_penalty=repetition_penalty,
-            allowed_token_ids=allowed,
-            generator=generator,
-        )
-        out_ids = torch.cat((out_ids, next_token), dim=1)
-        generated_tokens += 1
-
-        if eos_token_id is not None and int(next_token.item()) == int(eos_token_id):
-            stop_reason = "eos"
-            break
-        if out_ids.shape[1] >= max_context:
-            stop_reason = "context"
-            break
-
-        output = model(next_token, past_key_values=past, use_cache=True)
-        past = output.past_key_values
-        next_logits = output.logits[:, -1, :]
-        final_cache = kv_cache_nbytes(past)
-        peak_cache = max(peak_cache, final_cache)
-
-    return GenerationResult(
-        output_ids=out_ids,
-        stats=GenerationStats(
-            prompt_tokens=int(input_ids.shape[1]),
-            generated_tokens=generated_tokens,
-            peak_kv_cache_bytes=peak_cache,
-            final_kv_cache_bytes=final_cache,
-            cache_layers=len(past) if past is not None else 0,
-            max_context_tokens=max_context,
-            stop_reason=stop_reason,
-        ),
-    )
+    final_event: Optional[GenerationStreamEvent] = None
+    for event in iter_generate(
+        model,
+        input_ids,
+        max_new_tokens=max_new_tokens,
+        eos_token_id=eos_token_id,
+        temperature=temperature,
+        top_k=top_k,
+        top_p=top_p,
+        repetition_penalty=repetition_penalty,
+        seed=seed,
+        allowed_token_fn=allowed_token_fn,
+    ):
+        if event.done:
+            final_event = event
+    if final_event is None or final_event.output_ids is None or final_event.stats is None:
+        raise RuntimeError("generation ended without a final event")
+    return GenerationResult(output_ids=final_event.output_ids, stats=final_event.stats)
 
 
 @torch.inference_mode()
