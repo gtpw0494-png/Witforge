@@ -6,8 +6,8 @@
  *  - a reply is always labelled with the provider and model that produced
  *    it — the rule engine and the AI brain are never confused;
  *  - keys travel in headers (never in URLs) and are masked in audit;
- *  - Ollama is the only local provider and the only one allowed to talk to
- *    loopback — validated here, never through the general HTTP tools.
+ *  - Ollama and ForgeNative are the only local providers allowed to talk to
+ *    loopback — each port/path is allowlisted here, never through general HTTP tools.
  *
  * Zero dependencies. Standard Node only. The network edge is injected
  * (deps.remoteFetch / deps.localFetch) so tests exercise everything dry.
@@ -223,8 +223,8 @@ function parseReply(shape, payload) {
   return { content: content.slice(0, 8000), usage: (payload.usage) || null };
 }
 
-/* Ollama is the ONLY local provider. This validator deliberately accepts
- * nothing but loopback on the Ollama port — it is not a general SSRF hole. */
+/* Ollama and ForgeNative are the only local model providers. Each path is
+ * explicitly allowlisted so this cannot become a general SSRF escape. */
 function validateLocalUrl(urlStr) {
   let u;
   try { u = new URL(urlStr); } catch (e) { return { error: 'Invalid URL' }; }
