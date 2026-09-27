@@ -83,7 +83,7 @@ const PROVIDERS = [
     free: 'fully local ForgeLM checkpoint served by WitForge; no key and no cloud',
     connect: 'start "python -m model.forgelm.server --checkpoint state/models/forgelm-nano", then "verify forge-native"',
     local: true,
-    capabilities: ['text_generation', 'structured_output', 'sse_streaming', 'kv_cache_telemetry', 'responses_api'],
+    capabilities: ['text_generation', 'structured_output', 'sse_streaming', 'kv_cache_telemetry', 'responses_api', 'stop_sequences', 'deterministic_seed', 'cache_strategy_control'],
     contextTokens: 2048
   },
   {
@@ -140,6 +140,13 @@ function normaliseSeedArg(value) {
   if (value == null) return { seed: null };
   if (!Number.isSafeInteger(value) || value < 0) return { error: 'seed must be a non-negative safe integer' };
   return { seed: value };
+}
+
+function normaliseCacheStrategyArg(value) {
+  if (value == null) return { cacheStrategy: null };
+  const strategy = String(value).toLowerCase();
+  if (!['dynamic', 'none'].includes(strategy)) return { error: 'cacheStrategy must be dynamic or none' };
+  return { cacheStrategy: strategy };
 }
 
 
@@ -201,6 +208,9 @@ function dryRun(providerId, args) {
     const seed = normaliseSeedArg(args.seed);
     if (seed.error) return { error: seed.error };
     if (seed.seed != null) body.seed = seed.seed;
+    const cache = normaliseCacheStrategyArg(args.cacheStrategy);
+    if (cache.error) return { error: cache.error };
+    if (cache.cacheStrategy != null) body.cache_strategy = cache.cacheStrategy;
     return {
       provider: p.id, model, url: p.endpoint + '/v1/chat/completions', method: 'POST', local: true,
       headers: { 'content-type': 'application/json' },
@@ -256,6 +266,9 @@ function responsesDryRun(providerId, args) {
   const seed = normaliseSeedArg(args.seed);
   if (seed.error) return { error: seed.error };
   if (seed.seed != null) body.seed = seed.seed;
+  const cache = normaliseCacheStrategyArg(args.cacheStrategy);
+  if (cache.error) return { error: cache.error };
+  if (cache.cacheStrategy != null) body.cache_strategy = cache.cacheStrategy;
   return {
     provider: p.id, model, url: p.endpoint + '/v1/responses', method: 'POST', local: true,
     headers: { 'content-type': 'application/json' },
@@ -570,5 +583,5 @@ async function ensemble(providerIds, args, deps) {
 }
 
 module.exports = {
-  RATE_RPM, RATE_TPD, PROVIDERS, PROVIDER_IDS, DEFAULT_ORDER, SYSTEM_PROMPT, providerById, normaliseStopArg, normaliseSeedArg, dryRun, responsesDryRun, parseReply, parseResponsesReply, validateLocalUrl, chat, response, streamChat, streamResponse, ollamaModels, forgeNativeStatus, ensemble,
+  RATE_RPM, RATE_TPD, PROVIDERS, PROVIDER_IDS, DEFAULT_ORDER, SYSTEM_PROMPT, providerById, normaliseStopArg, normaliseSeedArg, normaliseCacheStrategyArg, dryRun, responsesDryRun, parseReply, parseResponsesReply, validateLocalUrl, chat, response, streamChat, streamResponse, ollamaModels, forgeNativeStatus, ensemble,
   OLLAMA_PORT: () => OLLAMA_PORT, FORGE_NATIVE_PORT: () => FORGE_NATIVE_PORT };
