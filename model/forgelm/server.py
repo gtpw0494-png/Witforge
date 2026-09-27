@@ -5,12 +5,12 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, Iterator, List
 
 import torch
 
 from .checkpoint import load_checkpoint
-from .generation import generate_with_stats
+from .generation import generate_with_stats, iter_generate
 from .structured import TokenTrieConstraint, UnsupportedSchema, compile_finite_json_schema
 from .quantization import apply_inference_quantization, quantization_report
 from .promotion import verify_release_manifest
@@ -66,14 +66,14 @@ class ForgeNativeService:
         return {
             "ok": True,
             "service": "forge-native",
-            "version": "1",
+            "version": "2",
             "loaded": True,
             "model": self.model_id,
             "parameter_count": self.manifest.get("parameter_count"),
             "step": self.manifest.get("step"),
             "context_length": self.model.config.max_position_embeddings,
             "tokenizer_schema": getattr(self.tokenizer, "schema", "unknown"),
-            "capabilities": ["text_generation", "structured_output", "kv_cache_telemetry"],
+            "capabilities": ["text_generation", "structured_output", "kv_cache_telemetry", "sse_streaming"],
             "cache_strategy": "dynamic",
             "quantization": self.quantization,
             "release_verified": bool(self.release_verification and self.release_verification.get("ok")),
@@ -92,7 +92,7 @@ class ForgeNativeService:
             "parameter_count": h["parameter_count"],
         }]}
 
-    def chat(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def _prepare_chat(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         requested = str(payload.get("model") or self.model_id)
         if requested not in {self.model_id, "forgelm-nano", "forgelm"}:
             raise ValueError(f"model {requested!r} is not loaded")
@@ -109,6 +109,7 @@ class ForgeNativeService:
         top_k = int(payload.get("top_k", 50))
         repetition_penalty = float(payload.get("repetition_penalty", 1.05))
         input_ids = torch.tensor([ids], dtype=torch.long, device=self.device)
+
         response_format = payload.get("response_format")
         allowed_token_fn = None
         structured_candidates = None
@@ -127,25 +128,43 @@ class ForgeNativeService:
             constraint = TokenTrieConstraint(self.tokenizer, structured_candidates, prompt_length=input_ids.shape[1])
             allowed_token_fn = constraint.allowed
 
+        return {
+            "ids": ids,
+            "input_ids": input_ids,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "top_p": top_p,
+            "top_k": top_k,
+            "repetition_penalty": repetition_penalty,
+            "allowed_token_fn": allowed_token_fn,
+            "structured_candidates": structured_candidates,
+        }
+
+    def _validate_structured(self, content: str, candidates) -> None:
+        if candidates is None:
+            return
+        normalized = content.strip()
+        if normalized not in set(candidates):
+            raise ValueError("structured generation ended before a valid schema instance completed")
+        json.loads(normalized)
+
+    def chat(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        prep = self._prepare_chat(payload)
         started = time.time()
         generation = generate_with_stats(
             self.model,
-            input_ids,
-            max_new_tokens=max_tokens,
+            prep["input_ids"],
+            max_new_tokens=prep["max_tokens"],
             eos_token_id=self.tokenizer.eos_token_id,
-            temperature=temperature,
-            top_k=top_k,
-            top_p=top_p,
-            repetition_penalty=repetition_penalty,
-            allowed_token_fn=allowed_token_fn,
+            temperature=prep["temperature"],
+            top_k=prep["top_k"],
+            top_p=prep["top_p"],
+            repetition_penalty=prep["repetition_penalty"],
+            allowed_token_fn=prep["allowed_token_fn"],
         )
-        out = generation.output_ids
-        generated_ids = out[0, input_ids.shape[1]:].tolist()
+        generated_ids = generation.output_ids[0, prep["input_ids"].shape[1]:].tolist()
         content = self.tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
-        if structured_candidates is not None:
-            if content not in set(structured_candidates):
-                raise ValueError("structured generation ended before a valid schema instance completed")
-            json.loads(content)
+        self._validate_structured(content, prep["structured_candidates"])
         return {
             "id": f"forge-{int(time.time() * 1000)}",
             "object": "chat.completion",
@@ -157,12 +176,12 @@ class ForgeNativeService:
                 "finish_reason": "stop" if generation.stats.stop_reason == "eos" else "length",
             }],
             "usage": {
-                "prompt_tokens": len(ids),
+                "prompt_tokens": len(prep["ids"]),
                 "completion_tokens": len(generated_ids),
-                "total_tokens": len(ids) + len(generated_ids),
+                "total_tokens": len(prep["ids"]) + len(generated_ids),
             },
             "latency_ms": round((time.time() - started) * 1000, 3),
-            "structured": structured_candidates is not None,
+            "structured": prep["structured_candidates"] is not None,
             "inference": {
                 "cache_strategy": "dynamic",
                 "kv_cache": {
@@ -175,10 +194,102 @@ class ForgeNativeService:
             },
         }
 
+    def stream_chat(self, payload: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
+        prep = self._prepare_chat(payload)
+        request_id = f"forge-{int(time.time() * 1000)}"
+        created = int(time.time())
+        started = time.time()
+
+        def events() -> Iterator[Dict[str, Any]]:
+            generated_ids: List[int] = []
+            emitted_text = ""
+            yield {
+                "id": request_id,
+                "object": "chat.completion.chunk",
+                "created": created,
+                "model": self.model_id,
+                "choices": [{"index": 0, "delta": {"role": "assistant"}, "finish_reason": None}],
+            }
+            final_stats = None
+            for event in iter_generate(
+                self.model,
+                prep["input_ids"],
+                max_new_tokens=prep["max_tokens"],
+                eos_token_id=self.tokenizer.eos_token_id,
+                temperature=prep["temperature"],
+                top_k=prep["top_k"],
+                top_p=prep["top_p"],
+                repetition_penalty=prep["repetition_penalty"],
+                allowed_token_fn=prep["allowed_token_fn"],
+            ):
+                if event.token_id is not None:
+                    generated_ids.append(event.token_id)
+                    decoded = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
+                    stable = decoded.rstrip("\ufffd")
+                    delta = stable[len(emitted_text):] if stable.startswith(emitted_text) else ""
+                    if delta:
+                        emitted_text = stable
+                    yield {
+                        "id": request_id,
+                        "object": "chat.completion.chunk",
+                        "created": created,
+                        "model": self.model_id,
+                        "token_id": event.token_id,
+                        "choices": [{"index": 0, "delta": {"content": delta}, "finish_reason": None}],
+                    }
+                if event.done:
+                    final_stats = event.stats
+
+            if final_stats is None:
+                raise RuntimeError("stream generation ended without final stats")
+            final_raw = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
+            if final_raw.startswith(emitted_text):
+                tail = final_raw[len(emitted_text):]
+                if tail:
+                    emitted_text = final_raw
+                    yield {
+                        "id": request_id,
+                        "object": "chat.completion.chunk",
+                        "created": created,
+                        "model": self.model_id,
+                        "choices": [{"index": 0, "delta": {"content": tail}, "finish_reason": None}],
+                    }
+            self._validate_structured(final_raw, prep["structured_candidates"])
+            yield {
+                "id": request_id,
+                "object": "chat.completion.chunk",
+                "created": created,
+                "model": self.model_id,
+                "choices": [{
+                    "index": 0,
+                    "delta": {},
+                    "finish_reason": "stop" if final_stats.stop_reason == "eos" else "length",
+                }],
+                "usage": {
+                    "prompt_tokens": len(prep["ids"]),
+                    "completion_tokens": len(generated_ids),
+                    "total_tokens": len(prep["ids"]) + len(generated_ids),
+                },
+                "latency_ms": round((time.time() - started) * 1000, 3),
+                "structured": prep["structured_candidates"] is not None,
+                "inference": {
+                    "cache_strategy": "dynamic",
+                    "kv_cache": {
+                        "peak_bytes": final_stats.peak_kv_cache_bytes,
+                        "final_bytes": final_stats.final_kv_cache_bytes,
+                        "layers": final_stats.cache_layers,
+                    },
+                    "stop_reason": final_stats.stop_reason,
+                    "max_context_tokens": final_stats.max_context_tokens,
+                },
+            }
+
+        return events()
+
 
 def make_handler(service: ForgeNativeService):
     class Handler(BaseHTTPRequestHandler):
-        server_version = "ForgeNative/1"
+        server_version = "ForgeNative/2"
 
         def log_message(self, fmt: str, *args) -> None:
             return
@@ -191,6 +302,30 @@ def make_handler(service: ForgeNativeService):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+
+        def _sse(self, iterator: Iterator[Dict[str, Any]]) -> None:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            try:
+                for event in iterator:
+                    payload = json.dumps(event, ensure_ascii=False, separators=(",", ":"))
+                    self.wfile.write(("data: " + payload + "\n\n").encode("utf-8"))
+                    self.wfile.flush()
+                self.wfile.write(b"data: [DONE]\n\n")
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                return
+            except Exception as exc:
+                try:
+                    error = json.dumps({"error": {"code": "stream_failed", "message": str(exc)[:200]}}, ensure_ascii=False)
+                    self.wfile.write(("data: " + error + "\n\n").encode("utf-8"))
+                    self.wfile.write(b"data: [DONE]\n\n")
+                    self.wfile.flush()
+                except (BrokenPipeError, ConnectionResetError):
+                    return
 
         def do_GET(self) -> None:
             if self.path == "/health":
@@ -214,6 +349,9 @@ def make_handler(service: ForgeNativeService):
                 payload = json.loads(self.rfile.read(length))
                 if not isinstance(payload, dict):
                     raise ValueError("JSON object required")
+                if payload.get("stream") is True:
+                    iterator = service.stream_chat(payload)
+                    return self._sse(iterator)
                 result = service.chat(payload)
                 return self._json(200, result)
             except ValueError as exc:
