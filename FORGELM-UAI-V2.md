@@ -45,7 +45,7 @@ Implemented through WitForge 2.13.0 development:
 
 - `model/forgelm/configuration_forgelm.py` — validated Nano and smoke configurations.
 - `model/forgelm/modeling_forgelm.py` — decoder-only Transformer with GQA, RoPE, RMSNorm and SwiGLU.
-- `model/forgelm/generation.py` — KV-cache autoregressive generation with temperature, top-k, top-p, repetition penalty and an allowed-token constraint hook.
+- `model/forgelm/generation.py` — autoregressive generation with dynamic/no-cache execution, seeded sampling, stop sequences, temperature, top-k, top-p, repetition penalty, KV-cache telemetry and an allowed-token constraint hook.
 - `model/forgelm/tokenizer.py` — deterministic UTF-8 byte bootstrap tokenizer plus trainable byte-level BPE with immutable reserved action/memory/evidence token IDs.
 - `model/forgelm/checkpoint.py` — save/load plus SHA-256 manifest verification and exact parameter counts.
 - `model/forgelm/train.py` — local causal-language-model trainer for text and JSONL conversational corpora.
@@ -54,10 +54,10 @@ Implemented through WitForge 2.13.0 development:
 - `config/forgelm-nano.json` — the 25,172,352-parameter ForgeLM-Nano architecture target.
 - `requirements/forgelm.txt` — optional PyTorch runtime requirement.
 - `model/forgelm/dataset.py` — provenance/consent/license/privacy/secret/verified-trace/dedup/holdout gates with a SHA-256 dataset report.
-- `model/forgelm/server.py` — loopback-only ForgeNative HTTP service exposing `/health`, `/v1/models` and `/v1/chat/completions`.
+- `model/forgelm/server.py` — loopback-only ForgeNative HTTP service exposing `/health`, `/v1/models`, `/v1/chat/completions` and `/v1/responses`, including true SSE streaming.
 - `model/forgelm/pipeline_smoke_test.py` — governed dataset and BPE round-trip tests.
 - `model/forgelm/server_smoke_test.py` — real ephemeral localhost server round trip in CI.
-- `llm.js` — explicit `forge-native` provider on `127.0.0.1:11435`, path allowlist, live health probe and OpenAI-style chat adapter.
+- `llm.js` — explicit `forge-native` provider on `127.0.0.1:11435`, strict loopback path allowlist, Chat Completions and Responses adapters, SSE aggregation, stop/seed/cache-strategy propagation, and live health probing.
 - `config/training-sources.example.json` — source-manifest contract for approved training material.
 - `model/forgelm/sft.py` — assistant-only supervised fine-tuning with governed chat and tool-call records.
 - `model/forgelm/dpo.py` — Direct Preference Optimization against a verified reference checkpoint.
@@ -72,7 +72,7 @@ Implemented through WitForge 2.13.0 development:
 - `model/forgelm/quantization.py` — optional CPU dynamic-int8 Linear quantization with truthful runtime reporting; it is not presented as a new checkpoint format.
 - `model/forgelm/benchmark.py` — measured local prompt/generation latency, throughput, checkpoint bytes and process-memory report.
 - `model/forgelm/quality_eval.py` — checkpoint-bound quality evaluation over approved exact/contains/regex/finite-schema cases.
-- Production promotion now requires both runtime evals and a passing quality report; runtime-only promotion is explicitly dev-only.
+- Production promotion requires checkpoint-bound runtime, quality and regression evidence; release-manifest v3 signs all gates, while runtime-only promotion remains explicitly dev-only.
 - `model/forgelm/promotion.py` verifies signed release manifests against checkpoint/config/tokenizer/weight identities.
 - ForgeNative can run with `--require-promoted --release-manifest ...` so serving may be restricted to a verified promoted release.
 - `model/forgelm/bundle.py` creates and verifies portable promoted checkpoint bundles without claiming unsupported GGUF/vLLM compatibility.
@@ -81,6 +81,9 @@ Implemented through WitForge 2.13.0 development:
 - ForgeLM generation reports measured dynamic KV-cache bytes and stop reasons; benchmark v2 records cache telemetry.
 - `model/forgelm/inference_export.py` derives a verified inference-only checkpoint, strips optimizer state, preserves source lineage, and explicitly requires fresh evaluation/promotion.
 - `model/forgelm/device_profile.py` observes local CPU/RAM/Torch/Android/Termux capability and emits conservative labeled heuristics; performance claims still require benchmarks.
+- ForgeNative supports deterministic seeded inference, buffered stop sequences that are suppressed from streamed output, and request-selectable `dynamic` or `none` cache strategies.
+- `dynamic` remains the default fast path; `none` recomputes the full prefix each step and truthfully reports zero KV-cache bytes for low-memory/debug comparisons.
+- `model/forgelm/regression_eval.py` provides checkpoint-bound category-aware regression gates for prompt injection, tool truth, hallucination and conversational regressions.
 
 The Node control plane remains dependency-free. Python/PyTorch is an optional model runtime and does not gain permissions, credentials, execution authority or verification authority.
 
@@ -92,4 +95,4 @@ The Node control plane remains dependency-free. Python/PyTorch is an optional mo
 - expand real quality, tool-use, prompt-injection, hallucination and regression evaluation datasets;
 - add verified GGUF conversion/runtime compatibility;
 - add verified vLLM registration/serving compatibility;
-- add KV-cache storage variants beyond the measured dynamic cache, plus deeper Android/Termux tuning based on collected benchmark profiles.
+- add static, quantized and offloaded KV-cache storage variants beyond the implemented dynamic and no-cache strategies, plus deeper Android/Termux tuning from measured benchmark profiles.
