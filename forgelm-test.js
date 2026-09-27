@@ -4,7 +4,8 @@ const assert = require('assert');
 const context = require('./forge-context.js');
 const memoryMod = require('./forge-memory.js');
 const runtime = require('./forge-runtime.js');
-const contracts = require('./forge-contracts.js');\nconst llm = require('./llm.js');
+const contracts = require('./forge-contracts.js');
+const llm = require('./llm.js');
 
 let checks=0;
 function ok(cond,msg){ checks++; assert.ok(cond,msg); }
