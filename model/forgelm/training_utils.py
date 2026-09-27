@@ -97,3 +97,11 @@ def normalize_accumulation_steps(value: int) -> int:
     if value < 1:
         raise ValueError("gradient accumulation steps must be >= 1")
     return value
+
+def shard_bytes_from_mb(value: float | None) -> int | None:
+    if value is None:
+        return None
+    mb = float(value)
+    if mb <= 0:
+        raise ValueError("max shard size must be greater than zero MiB")
+    return max(1, int(mb * 1024 * 1024))
