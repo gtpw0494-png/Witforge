@@ -57,6 +57,9 @@ jobs:
       - name: Native ForgeLM train/save/load/generate smoke test
         run: python -m model.forgelm.smoke_test
 
+      - name: ForgeLM sharded checkpoint compatibility
+        run: python -m model.forgelm.checkpoint_shard_smoke_test
+
       - name: ForgeLM governed dataset and BPE pipeline
         run: python -m model.forgelm.pipeline_smoke_test
 
