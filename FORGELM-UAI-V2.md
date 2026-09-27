@@ -41,7 +41,7 @@ The information-only classes cannot grant authority.
 
 ## Native ForgeLM runtime
 
-Implemented through WitForge 2.12.0:
+Implemented through WitForge 2.13.0 development:
 
 - `model/forgelm/configuration_forgelm.py` — validated Nano and smoke configurations.
 - `model/forgelm/modeling_forgelm.py` — decoder-only Transformer with GQA, RoPE, RMSNorm and SwiGLU.
@@ -76,6 +76,11 @@ Implemented through WitForge 2.12.0:
 - `model/forgelm/promotion.py` verifies signed release manifests against checkpoint/config/tokenizer/weight identities.
 - ForgeNative can run with `--require-promoted --release-manifest ...` so serving may be restricted to a verified promoted release.
 - `model/forgelm/bundle.py` creates and verifies portable promoted checkpoint bundles without claiming unsupported GGUF/vLLM compatibility.
+- Checkpoint v2 supports hashed PyTorch weight shards; monolithic v1/v2 checkpoints remain load-compatible.
+- Pretraining, SFT and DPO accept optional shard limits and can resume directly from sharded checkpoints.
+- ForgeLM generation reports measured dynamic KV-cache bytes and stop reasons; benchmark v2 records cache telemetry.
+- `model/forgelm/inference_export.py` derives a verified inference-only checkpoint, strips optimizer state, preserves source lineage, and explicitly requires fresh evaluation/promotion.
+- `model/forgelm/device_profile.py` observes local CPU/RAM/Torch/Android/Termux capability and emits conservative labeled heuristics; performance claims still require benchmarks.
 
 The Node control plane remains dependency-free. Python/PyTorch is an optional model runtime and does not gain permissions, credentials, execution authority or verification authority.
 
@@ -83,8 +88,8 @@ The Node control plane remains dependency-free. Python/PyTorch is an optional mo
 
 - scale BPE training and governed corpus tooling for large datasets;
 - broaden strict structured decoding beyond finite schemas with a tested grammar backend;
-- add checkpoint sharding and distributed multi-device training;
+- add distributed multi-device training beyond the now-implemented checkpoint weight sharding;
 - expand real quality, tool-use, prompt-injection, hallucination and regression evaluation datasets;
 - add verified GGUF conversion/runtime compatibility;
 - add verified vLLM registration/serving compatibility;
-- add KV-cache variants and deeper Android/Termux performance tuning beyond current dynamic-int8 CPU serving.
+- add KV-cache storage variants beyond the measured dynamic cache, plus deeper Android/Termux tuning based on collected benchmark profiles.
