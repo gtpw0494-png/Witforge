@@ -1,6 +1,6 @@
 {
   "name": "witforge",
-  "version": "2.10.0",
+  "version": "2.11.0",
   "description": "WitForge — a local-first, security-first conversational AI operating platform (browser control surface + authoritative local server).",
   "keywords": [
     "local-first",
@@ -42,7 +42,13 @@
     "forgelm:dataset": "python -m model.forgelm.dataset",
     "forgelm:serve": "python -m model.forgelm.server",
     "test:forgelm-pipeline": "python -m model.forgelm.pipeline_smoke_test",
-    "test:forgelm-server": "python -m model.forgelm.server_smoke_test"
+    "test:forgelm-server": "python -m model.forgelm.server_smoke_test",
+    "forgelm:sft": "python -m model.forgelm.sft",
+    "forgelm:dpo": "python -m model.forgelm.dpo",
+    "forgelm:traces": "python -m model.forgelm.traces",
+    "forgelm:eval": "python -m model.forgelm.evals",
+    "forgelm:promote": "python -m model.forgelm.promotion",
+    "test:forgelm-advanced": "python -m model.forgelm.advanced_smoke_test"
   },
   "dependencies": {},
   "devDependencies": {},
