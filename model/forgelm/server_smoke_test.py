@@ -57,8 +57,8 @@ def main() -> None:
                 raise AssertionError("health endpoint did not report a loaded model")
             if "stop_sequences" not in health.get("capabilities", []):
                 raise AssertionError("health endpoint did not report stop-sequence capability")
-            if health.get("cache_strategies") != ["dynamic", "none"]:
-                raise AssertionError("health endpoint did not report both cache strategies")
+            if health.get("cache_strategies") != ["dynamic", "static", "none"]:
+                raise AssertionError("health endpoint did not report all cache strategies")
             status, models = request_json(base + "/v1/models")
             if status != 200 or not models.get("data"):
                 raise AssertionError("models endpoint returned no model")
@@ -219,9 +219,17 @@ def main() -> None:
                 "temperature": 0,
             }
             cached_chat = service.chat(dict(cache_payload, cache_strategy="dynamic"))
+            static_chat = service.chat(dict(cache_payload, cache_strategy="static"))
             uncached_chat = service.chat(dict(cache_payload, cache_strategy="none"))
+            if cached_chat["choices"][0]["message"]["content"] != static_chat["choices"][0]["message"]["content"]:
+                raise AssertionError("dynamic and static-cache greedy API output differed")
             if cached_chat["choices"][0]["message"]["content"] != uncached_chat["choices"][0]["message"]["content"]:
                 raise AssertionError("dynamic and no-cache greedy API output differed")
+            if static_chat["inference"].get("cache_strategy") != "static":
+                raise AssertionError("static-cache API response did not report its strategy")
+            static_kv = static_chat["inference"].get("kv_cache") or {}
+            if int(static_kv.get("peak_bytes", 0)) <= 0:
+                raise AssertionError("static-cache API response reported no allocated KV-cache bytes")
             if uncached_chat["inference"].get("cache_strategy") != "none":
                 raise AssertionError("no-cache API response did not report its strategy")
             uncached_kv = uncached_chat["inference"].get("kv_cache") or {}
