@@ -21,6 +21,7 @@ from .training_utils import (
     optimizer_step,
     resolve_device,
     resolve_precision,
+    shard_bytes_from_mb,
 )
 
 
@@ -103,6 +104,7 @@ def train(
     resume_dir: str | None = None,
     precision: str = "auto",
     gradient_accumulation_steps: int = 1,
+    max_shard_bytes: int | None = None,
 ) -> dict:
     random.seed(seed)
     torch.manual_seed(seed)
@@ -189,7 +191,9 @@ def train(
             "tokenizer_schema": getattr(tokenizer, "schema", "unknown"),
             "resumed_from": resume_dir,
             "parent_manifest_sha256": parent_identity,
+            "max_shard_bytes": max_shard_bytes,
         },
+        max_shard_bytes=max_shard_bytes,
     )
     return {
         "manifest": manifest,
@@ -213,6 +217,7 @@ def main() -> None:
     p.add_argument("--lr", type=float, default=3e-4)
     p.add_argument("--device", default="auto")
     p.add_argument("--precision", choices=["auto", "fp32", "bf16", "fp16"], default="auto")
+    p.add_argument("--max-shard-mb", type=float, help="optional maximum model weight shard size in MiB")
     p.add_argument("--seed", type=int, default=1337)
     p.add_argument("--tokenizer", help="ForgeLM tokenizer.json (byte or trained BPE)")
     p.add_argument("--dataset-report", help="Governed dataset report; requires exactly one corpus and verifies its SHA-256 before training")
@@ -241,6 +246,7 @@ def main() -> None:
         resume_dir=args.resume,
         precision=args.precision,
         gradient_accumulation_steps=args.grad_accum,
+        max_shard_bytes=shard_bytes_from_mb(args.max_shard_mb),
     )
     print(json.dumps({
         "ok": True,
