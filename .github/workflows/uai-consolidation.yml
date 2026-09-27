@@ -1,0 +1,188 @@
+name: Consolidate UAI into Witforge
+
+on:
+  push:
+    paths:
+      - ".uai-consolidation-trigger"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: uai-consolidation
+  cancel-in-progress: false
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Witforge main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Configure merge identity
+        run: |
+          git config user.name "witforge-consolidator"
+          git config user.email "witforge-consolidator@users.noreply.github.com"
+
+      - name: Fetch UAI main
+        run: |
+          git remote remove uai 2>/dev/null || true
+          git remote add uai https://github.com/gtpw0494-png/UAI.git
+          git fetch --no-tags uai main
+          echo "WITFORGE_BEFORE=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "UAI_SOURCE=$(git rev-parse uai/main)" >> "$GITHUB_ENV"
+
+      - name: Preserve conflicting UAI source files
+        run: |
+          mkdir -p integration/uai-source/.github/workflows integration/uai-workflows
+          git show uai/main:README.md > integration/uai-source/README.md
+          git show uai/main:package.json > integration/uai-source/package.json
+          git show uai/main:server.js > integration/uai-source/server.js
+          git show uai/main:.gitignore > integration/uai-source/.gitignore
+          git show uai/main:.github/workflows/ci.yml > integration/uai-source/.github/workflows/ci.yml
+          git show uai/main:package-lock.json > integration/uai-source/package-lock.json || true
+
+      - name: Merge UAI history additively
+        shell: bash
+        run: |
+          set +e
+          git merge --allow-unrelated-histories --no-commit --no-ff uai/main
+          merge_status=$?
+          set -e
+
+          allowed=".github/workflows/ci.yml .gitignore README.md package.json server.js"
+          unmerged="$(git diff --name-only --diff-filter=U || true)"
+          for path in $unmerged; do
+            case " $allowed " in
+              *" $path "*) ;;
+              *)
+                echo "Unexpected merge conflict: $path"
+                exit 1
+                ;;
+            esac
+          done
+
+          for path in .github/workflows/ci.yml .gitignore README.md package.json server.js; do
+            if git ls-files -u -- "$path" | grep -q .; then
+              git checkout --ours -- "$path"
+              git add "$path"
+            fi
+          done
+
+          if [ "$merge_status" -ne 0 ] && [ -n "$(git diff --name-only --diff-filter=U)" ]; then
+            echo "Unresolved merge conflicts remain"
+            git diff --name-only --diff-filter=U
+            exit 1
+          fi
+
+      - name: Preserve UAI workflows without activating duplicate CI
+        run: |
+          for path in             .github/workflows/bootstrap-v042.yml             .github/workflows/feature-evidence-gate.yml             .github/workflows/manifest-refresh.yml
+          do
+            if [ -f "$path" ]; then
+              mv "$path" "integration/uai-workflows/$(basename "$path")"
+            fi
+          done
+          git add -A
+
+      - name: Merge package scripts and dependencies
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const ours = JSON.parse(fs.readFileSync('package.json','utf8'));
+          const uai = JSON.parse(fs.readFileSync('integration/uai-source/package.json','utf8'));
+          const report = {scriptConflicts:{}, dependencyConflicts:{}};
+
+          ours.scripts ||= {};
+          for (const [name, command] of Object.entries(uai.scripts || {})) {
+            if (!(name in ours.scripts)) {
+              ours.scripts[name] = command;
+            } else if (ours.scripts[name] !== command) {
+              const alias = 'uai:' + name;
+              if (!(alias in ours.scripts)) ours.scripts[alias] = command;
+              report.scriptConflicts[name] = {witforge:ours.scripts[name], uai:command, preservedAs:alias};
+            }
+          }
+
+          for (const field of ['dependencies','devDependencies','optionalDependencies','peerDependencies']) {
+            ours[field] ||= {};
+            for (const [name, version] of Object.entries(uai[field] || {})) {
+              if (!(name in ours[field])) {
+                ours[field][name] = version;
+              } else if (ours[field][name] !== version) {
+                report.dependencyConflicts[field + ':' + name] = {witforge:ours[field][name], uai:version};
+              }
+            }
+            if (!Object.keys(ours[field]).length) delete ours[field];
+          }
+
+          ours.witforgeConsolidation = {
+            sourceRepository: 'gtpw0494-png/UAI',
+            sourceCommit: process.env.UAI_SOURCE,
+            strategy: 'additive-unrelated-history-merge',
+            conflictPolicy: 'Witforge authoritative; UAI conflicts archived under integration/uai-source'
+          };
+
+          fs.writeFileSync('package.json', JSON.stringify(ours,null,2)+'\n');
+          fs.mkdirSync('integration',{recursive:true});
+          fs.writeFileSync('integration/UAI-PACKAGE-MERGE.json', JSON.stringify(report,null,2)+'\n');
+          NODE
+
+      - name: Union gitignore rules
+        run: |
+          cat .gitignore integration/uai-source/.gitignore | awk '!seen[$0]++' > /tmp/witforge-gitignore
+          mv /tmp/witforge-gitignore .gitignore
+
+      - name: Write consolidation record
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const cp = require('child_process');
+          const files = cp.execSync('git ls-files', {encoding:'utf8'}).trim().split('\n').filter(Boolean);
+          const record = {
+            schema: 'witforge.uai-consolidation.v1',
+            target: 'gtpw0494-png/Witforge',
+            source: 'gtpw0494-png/UAI',
+            witforgeBefore: process.env.WITFORGE_BEFORE,
+            uaiSource: process.env.UAI_SOURCE,
+            policy: {
+              additive: true,
+              witforgeAuthoritativeConflicts: [
+                '.github/workflows/ci.yml',
+                '.gitignore',
+                'README.md',
+                'package.json',
+                'server.js'
+              ],
+              archivedConflicts: 'integration/uai-source',
+              archivedWorkflows: 'integration/uai-workflows'
+            },
+            resultingTrackedFiles: files.length
+          };
+          fs.writeFileSync('integration/UAI-CONSOLIDATION.json', JSON.stringify(record,null,2)+'\n');
+          NODE
+
+      - name: Regenerate combined lockfile
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Validate consolidated Node surface
+        run: |
+          npm install --ignore-scripts
+          npm test
+
+      - name: Validate imported UAI suite
+        run: |
+          if [ -f test.js ]; then
+            node test.js
+          fi
+
+      - name: Commit and push consolidated main
+        run: |
+          git add -A
+          git commit -m "Consolidate UAI history and additive modules into Witforge"
+          git push origin HEAD:main
