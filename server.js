@@ -11,6 +11,12 @@ const arena = require('./arena-engine.js');
 const P = require('./platform.js');
 const kernel = P.kernel, caps = P.caps, taskEngine = P.taskEngine, services = P.services;
 const engagement = P.engagement, ownerSec = P.ownerSec;
+const { MentalHealthService } = require('./mental-health.js');
+const { SnakeLab } = require('./snake-lab.js');
+const { PuterAdapter } = require('./integrations/puter/adapter.js');
+const mentalHealth = new MentalHealthService({ root: __dirname, audit: (t,d,a) => P.audit(t,d,a) });
+const snakeLab = new SnakeLab({ root: __dirname, audit: (t,d,a) => P.audit(t,d,a) });
+const puterAdapter = new PuterAdapter();
 const VERSION = P.VERSION;
 P.bindConfiguredOwnerEmail();
 P.migrateSessionHashes();
@@ -139,6 +145,28 @@ const server = http.createServer(async (req, res) => {
     if (!parsed.ok) return json(res, parsed.status, { ok: false, error: parsed.error });
     req.jsonBody = parsed.data;
   }
+  /* ── restored historical additives: v2.21/v2.24/v2.26 ── */
+  if (p === '/api/mental-health' && req.method === 'GET') return json(res, 200, mentalHealth.status());
+  if (p === '/api/mental-health/consent' && req.method === 'POST') { const b = await body(req); return json(res, 200, mentalHealth.setConsent(b.consent === true)); }
+  if (p === '/api/mental-health/screen' && req.method === 'POST') { const b = await body(req); return json(res, 200, mentalHealth.screen(b)); }
+  if (p === '/api/mental-health/support' && req.method === 'POST') { const b = await body(req); return json(res, 200, mentalHealth.support(b)); }
+  if (p === '/api/mental-health' && req.method === 'DELETE') { const b = await body(req); return json(res, 200, mentalHealth.deleteAll(b.confirm)); }
+
+  if (p === '/api/snake-lab' && req.method === 'GET') return json(res, 200, snakeLab.inspect());
+  if ((m = p.match(/^\/api\/snake-lab\/(demo|run|improve|inspect|reset)$/)) && req.method === 'POST') {
+    const b = await body(req), op = m[1];
+    if (op === 'demo' || op === 'run') return json(res, 200, snakeLab.run(b));
+    if (op === 'improve') return json(res, 200, snakeLab.improve(b));
+    if (op === 'inspect') return json(res, 200, b.inventory ? snakeLab.inventory() : snakeLab.inspect());
+    return json(res, 200, snakeLab.reset(b.confirm));
+  }
+
+  if (p === '/api/puter/status' && req.method === 'GET') return json(res, 200, puterAdapter.status());
+  if (p === '/api/puter/chat' && req.method === 'POST') {
+    if (process.env.IUV_ENABLE_EXTERNAL_MODEL_ROUTING !== '1') return json(res, 200, { state: 'BLOCKED', provider: 'puter', message: 'External model routing is disabled. Set IUV_ENABLE_EXTERNAL_MODEL_ROUTING=1 explicitly to enable optional Puter routing.' });
+    const b = await body(req); return json(res, 200, await puterAdapter.chat(b));
+  }
+
   /* ── platform: state & command router ── */
   if (p === '/api/audit' && req.method === 'POST') {
     const b = await body(req);
@@ -214,6 +242,14 @@ const server = http.createServer(async (req, res) => {
   }
   if (p === '/api/command' && req.method === 'POST') {
     const b = await body(req);
+    const spoken = String(b.text || '').trim();
+    const low = spoken.toLowerCase();
+    if (low === 'snake lab' || low === 'snake inspect') return json(res, 200, { ok: true, reply: 'Snake Overwatch is active with authority NONE.', snake: snakeLab.inspect() });
+    if (low === 'snake run') return json(res, 200, { ok: true, reply: 'Ran a governed Snake evaluation episode.', snake: snakeLab.run({}) });
+    if (low === 'snake improve') return json(res, 200, { ok: true, reply: 'Ran candidate Snake Q-policy learning with held-out before/after evaluation.', snake: snakeLab.improve({ episodes: 200 }) });
+    if (low === 'snake inventory') return json(res, 200, { ok: true, reply: 'Built a bounded source inventory. Private state/data and mental-health records are excluded.', snake: snakeLab.inventory() });
+    if (low === 'snake proposals') return json(res, 200, { ok: true, reply: 'Snake Overwatch cannot patch production source or self-authorize; production changes remain proposal-only.', snake: snakeLab.inspect() });
+    if (low === 'mental health' || low === 'mental health status') return json(res, 200, { ok: true, reply: 'Mental-health support is opt-in and excluded from training and retrieval.', mentalHealth: mentalHealth.status() });
     const r = await P.withCid(() => P.command(b.text));
     if (r) return json(res, 200, r);
     /* Nothing matched. The AI brain (if connected) answers, labelled;
