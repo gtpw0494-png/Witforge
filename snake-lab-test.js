@@ -1,0 +1,3 @@
+'use strict';
+const assert=require('assert');const fs=require('fs');const os=require('os');const path=require('path');const {SnakeLab}=require('./snake-lab.js');
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'witforge-snake-'));const lab=new SnakeLab({root});assert.equal(lab.inspect().agent.authority,'NONE');assert.equal(lab.run({seed:7}).state,'SUCCESS');const r=lab.improve({episodes:40});assert.equal(r.state,'SUCCESS');assert.ok(typeof r.promoted==='boolean');assert.equal(lab.reset('wrong').state,'DENIED');assert.equal(lab.reset('RESET SNAKE LEARNING').state,'SUCCESS');console.log('snake-lab tests passed');
