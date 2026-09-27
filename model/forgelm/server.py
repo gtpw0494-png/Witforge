@@ -73,7 +73,7 @@ class ForgeNativeService:
             "step": self.manifest.get("step"),
             "context_length": self.model.config.max_position_embeddings,
             "tokenizer_schema": getattr(self.tokenizer, "schema", "unknown"),
-            "capabilities": ["text_generation", "structured_output", "kv_cache_telemetry", "sse_streaming", "responses_api"],
+            "capabilities": ["text_generation", "structured_output", "kv_cache_telemetry", "sse_streaming", "responses_api", "stop_sequences"],
             "cache_strategy": "dynamic",
             "quantization": self.quantization,
             "release_verified": bool(self.release_verification and self.release_verification.get("ok")),
@@ -110,6 +110,26 @@ class ForgeNativeService:
         repetition_penalty = float(payload.get("repetition_penalty", 1.05))
         input_ids = torch.tensor([ids], dtype=torch.long, device=self.device)
 
+        raw_stop = payload.get("stop")
+        stop_strings: List[str] = []
+        if isinstance(raw_stop, str):
+            if raw_stop:
+                stop_strings = [raw_stop]
+        elif isinstance(raw_stop, list):
+            if len(raw_stop) > 8:
+                raise ValueError("stop supports at most 8 strings")
+            for value in raw_stop:
+                if not isinstance(value, str) or not value:
+                    raise ValueError("stop array values must be non-empty strings")
+                stop_strings.append(value)
+        elif raw_stop is not None:
+            raise ValueError("stop must be a string or array of strings")
+        if any(len(value) > 256 for value in stop_strings):
+            raise ValueError("each stop string must be at most 256 characters")
+        stop_token_sequences = [self.tokenizer.encode(value) for value in stop_strings]
+        if any(not seq for seq in stop_token_sequences):
+            raise ValueError("stop string tokenized to an empty sequence")
+
         response_format = payload.get("response_format")
         allowed_token_fn = None
         structured_candidates = None
@@ -138,6 +158,8 @@ class ForgeNativeService:
             "repetition_penalty": repetition_penalty,
             "allowed_token_fn": allowed_token_fn,
             "structured_candidates": structured_candidates,
+            "stop_strings": stop_strings,
+            "stop_token_sequences": stop_token_sequences,
         }
 
     def _validate_structured(self, content: str, candidates) -> None:
@@ -187,6 +209,8 @@ class ForgeNativeService:
             "top_k": payload.get("top_k", 50),
             "repetition_penalty": payload.get("repetition_penalty", 1.05),
         }
+        if "stop" in payload:
+            chat_payload["stop"] = payload.get("stop")
         text = payload.get("text")
         fmt = text.get("format") if isinstance(text, dict) else None
         if isinstance(fmt, dict) and fmt.get("type") == "json_schema":
@@ -319,6 +343,7 @@ class ForgeNativeService:
             top_p=prep["top_p"],
             repetition_penalty=prep["repetition_penalty"],
             allowed_token_fn=prep["allowed_token_fn"],
+            stop_token_sequences=prep["stop_token_sequences"],
         )
         generated_ids = generation.output_ids[0, prep["input_ids"].shape[1]:].tolist()
         content = self.tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
@@ -331,7 +356,7 @@ class ForgeNativeService:
             "choices": [{
                 "index": 0,
                 "message": {"role": "assistant", "content": content},
-                "finish_reason": "stop" if generation.stats.stop_reason == "eos" else "length",
+                "finish_reason": "stop" if generation.stats.stop_reason in {"eos", "stop_sequence"} else "length",
             }],
             "usage": {
                 "prompt_tokens": len(prep["ids"]),
@@ -348,6 +373,8 @@ class ForgeNativeService:
                     "layers": generation.stats.cache_layers,
                 },
                 "stop_reason": generation.stats.stop_reason,
+                "matched_stop_index": generation.stats.matched_stop_index,
+                "sampled_tokens": generation.stats.sampled_tokens,
                 "max_context_tokens": generation.stats.max_context_tokens,
             },
         }
@@ -379,6 +406,7 @@ class ForgeNativeService:
                 top_p=prep["top_p"],
                 repetition_penalty=prep["repetition_penalty"],
                 allowed_token_fn=prep["allowed_token_fn"],
+                stop_token_sequences=prep["stop_token_sequences"],
             ):
                 if event.token_id is not None:
                     generated_ids.append(event.token_id)
@@ -421,7 +449,7 @@ class ForgeNativeService:
                 "choices": [{
                     "index": 0,
                     "delta": {},
-                    "finish_reason": "stop" if final_stats.stop_reason == "eos" else "length",
+                    "finish_reason": "stop" if final_stats.stop_reason in {"eos", "stop_sequence"} else "length",
                 }],
                 "usage": {
                     "prompt_tokens": len(prep["ids"]),
@@ -438,6 +466,8 @@ class ForgeNativeService:
                         "layers": final_stats.cache_layers,
                     },
                     "stop_reason": final_stats.stop_reason,
+                    "matched_stop_index": final_stats.matched_stop_index,
+                    "sampled_tokens": final_stats.sampled_tokens,
                     "max_context_tokens": final_stats.max_context_tokens,
                 },
             }
