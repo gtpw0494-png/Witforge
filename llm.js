@@ -17,7 +17,8 @@
 /* Local Ollama port. Pinned to 11434 in normal operation; the env override
  * exists so the test suite can bind its scripted fake on another loopback
  * port without weakening validation (loopback-only either way). */
-const OLLAMA_PORT = Number(process.env.LIAM_OLLAMA_PORT) || 11434;\nconst FORGE_NATIVE_PORT = Number(process.env.WITFORGE_FORGELM_PORT) || 11435;
+const OLLAMA_PORT = Number(process.env.LIAM_OLLAMA_PORT) || 11434;
+const FORGE_NATIVE_PORT = Number(process.env.WITFORGE_FORGELM_PORT) || 11435;
 
 const PROVIDERS = [
   {
@@ -278,7 +279,9 @@ async function ollamaModels(deps) {
   const res = await deps.localFetch('http://127.0.0.1:' + OLLAMA_PORT + '/api/tags', {}, { method: 'GET', timeoutMs: 3000 });
   if (!res.ok) return null;
   try { const j = JSON.parse(res.text); return (j.models || []).map(m => m.name); } catch (e) { return null; }
-}\n\nasync function forgeNativeStatus(deps) {
+}
+
+async function forgeNativeStatus(deps) {
   if (!deps || !deps.localFetch) return null;
   const res = await deps.localFetch('http://127.0.0.1:' + FORGE_NATIVE_PORT + '/health', {}, { method: 'GET', timeoutMs: 3000 });
   if (!res.ok) return null;
