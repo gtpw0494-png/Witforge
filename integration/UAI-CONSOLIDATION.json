@@ -16,5 +16,13 @@
     "archivedConflicts": "integration/uai-source",
     "archivedWorkflows": "integration/uai-workflows"
   },
-  "resultingTrackedFiles": 472
+  "resultingTrackedFiles": 472,
+  "mergeCommit": "b0a46fb7e601b117355230af8f580e88bde717b7",
+  "validation": {
+    "consolidationWorkflow": "SUCCESS",
+    "witforgeValidation": "SUCCESS",
+    "importedUaiValidation": "SUCCESS",
+    "postMergeCi": "PENDING"
+  },
+  "completedAt": "2026-09-27"
 }
