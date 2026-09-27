@@ -73,6 +73,30 @@ def main() -> None:
         check(len(final_events) == 1 and final_events[0].stats is not None, "stream generator emits exactly one final stats event")
         check(len(token_events) == final_events[0].stats.generated_tokens, "stream generator emits one event per generated token")
 
+        stop_source = generate_with_stats(loaded, prompt, max_new_tokens=2, eos_token_id=tok.eos_token_id, temperature=0.0)
+        stop_ids = stop_source.output_ids[0, prompt.shape[1]:].tolist()
+        check(bool(stop_ids), "greedy generation supplies at least one token for stop-sequence testing")
+        stopped = generate_with_stats(
+            loaded,
+            prompt,
+            max_new_tokens=max(2, len(stop_ids) + 1),
+            eos_token_id=tok.eos_token_id,
+            temperature=0.0,
+            stop_token_sequences=[stop_ids],
+        )
+        check(stopped.stats.stop_reason == "stop_sequence" and stopped.stats.matched_stop_index == 0, "generation reports the matched stop sequence")
+        check(stopped.output_ids.shape[1] == prompt.shape[1], "matched stop-sequence tokens are excluded from generated output")
+        check(stopped.stats.generated_tokens == 0 and stopped.stats.sampled_tokens == len(stop_ids), "stop telemetry separates visible and sampled tokens")
+        stopped_events = list(iter_generate(
+            loaded,
+            prompt,
+            max_new_tokens=max(2, len(stop_ids) + 1),
+            eos_token_id=tok.eos_token_id,
+            temperature=0.0,
+            stop_token_sequences=[stop_ids],
+        ))
+        check(not any(event.token_id is not None for event in stopped_events), "streaming buffers and suppresses matched stop-sequence tokens")
+
     nano = ForgeLMConfig.nano()
     check(nano.hidden_size == 384 and nano.num_hidden_layers == 8 and nano.num_attention_heads == 6 and nano.num_key_value_heads == 2, "Nano profile matches WitForge contract")
     print("ForgeLM native PyTorch smoke test: PASS")
