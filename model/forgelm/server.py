@@ -11,6 +11,7 @@ import torch
 
 from .checkpoint import load_checkpoint
 from .generation import generate
+from .structured import TokenTrieConstraint, UnsupportedSchema, compile_finite_json_schema
 
 MAX_BODY_BYTES = 1024 * 1024
 LOOPBACKS = {"127.0.0.1", "localhost", "::1"}
@@ -55,7 +56,7 @@ class ForgeNativeService:
             "step": self.manifest.get("step"),
             "context_length": self.model.config.max_position_embeddings,
             "tokenizer_schema": getattr(self.tokenizer, "schema", "unknown"),
-            "capabilities": ["text_generation"],
+            "capabilities": ["text_generation", "structured_output"],
             "uptime_seconds": round(time.time() - self.started_at, 3),
         }
 
@@ -86,6 +87,24 @@ class ForgeNativeService:
         top_k = int(payload.get("top_k", 50))
         repetition_penalty = float(payload.get("repetition_penalty", 1.05))
         input_ids = torch.tensor([ids], dtype=torch.long, device=self.device)
+        response_format = payload.get("response_format")
+        allowed_token_fn = None
+        structured_candidates = None
+        if isinstance(response_format, dict) and response_format.get("type") == "json_schema":
+            spec = response_format.get("json_schema")
+            schema = spec.get("schema") if isinstance(spec, dict) else None
+            if not isinstance(schema, dict):
+                raise ValueError("response_format.json_schema.schema must be an object")
+            try:
+                structured_candidates = compile_finite_json_schema(schema, max_candidates=256)
+            except UnsupportedSchema as exc:
+                raise ValueError("unsupported strict JSON schema: " + str(exc))
+            required_tokens = max(len(self.tokenizer.encode(x)) for x in structured_candidates) + 1
+            if max_tokens < required_tokens:
+                raise ValueError(f"max_tokens must be at least {required_tokens} for this finite JSON schema")
+            constraint = TokenTrieConstraint(self.tokenizer, structured_candidates, prompt_length=input_ids.shape[1])
+            allowed_token_fn = constraint.allowed
+
         started = time.time()
         out = generate(
             self.model,
@@ -96,9 +115,14 @@ class ForgeNativeService:
             top_k=top_k,
             top_p=top_p,
             repetition_penalty=repetition_penalty,
+            allowed_token_fn=allowed_token_fn,
         )
         generated_ids = out[0, input_ids.shape[1]:].tolist()
         content = self.tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
+        if structured_candidates is not None:
+            if content not in set(structured_candidates):
+                raise ValueError("structured generation ended before a valid schema instance completed")
+            json.loads(content)
         return {
             "id": f"forge-{int(time.time() * 1000)}",
             "object": "chat.completion",
@@ -115,6 +139,7 @@ class ForgeNativeService:
                 "total_tokens": len(ids) + len(generated_ids),
             },
             "latency_ms": round((time.time() - started) * 1000, 3),
+            "structured": structured_candidates is not None,
         }
 
 
