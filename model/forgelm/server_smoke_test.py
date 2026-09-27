@@ -9,7 +9,7 @@ from urllib.request import Request, urlopen
 from .checkpoint import save_checkpoint
 from .configuration_forgelm import ForgeLMConfig
 from .modeling_forgelm import ForgeLMForCausalLM
-from .server import ForgeNativeService, make_server
+from .server import ForgeNativeService, InferenceBusy, make_server
 from .tokenizer import ByteTokenizer
 
 
@@ -57,6 +57,11 @@ def main() -> None:
                 raise AssertionError("health endpoint did not report a loaded model")
             if "stop_sequences" not in health.get("capabilities", []):
                 raise AssertionError("health endpoint did not report stop-sequence capability")
+            if "bounded_concurrency" not in health.get("capabilities", []):
+                raise AssertionError("health endpoint did not report bounded concurrency capability")
+            runtime = health.get("inference_runtime") or {}
+            if runtime.get("max_concurrent") != 1 or int(runtime.get("active", -1)) != 0:
+                raise AssertionError("health endpoint did not expose bounded concurrency runtime state")
             if health.get("cache_strategies") != ["dynamic", "static", "none"]:
                 raise AssertionError("health endpoint did not report all cache strategies")
             status, models = request_json(base + "/v1/models")
@@ -211,6 +216,35 @@ def main() -> None:
             })
             if response_seed.get("seed") != 77:
                 raise AssertionError("responses API did not propagate seed")
+
+            gate_service = ForgeNativeService(td, max_concurrent=1, queue_timeout_seconds=0.01)
+            held = gate_service._acquire_inference_slot()
+            rejected = False
+            try:
+                try:
+                    gate_service._acquire_inference_slot()
+                except InferenceBusy:
+                    rejected = True
+            finally:
+                gate_service._release_inference_slot(held, success=True)
+            if not rejected:
+                raise AssertionError("bounded inference gate did not reject a saturated queue")
+            gate_runtime = gate_service.health()["inference_runtime"]
+            if int(gate_runtime.get("rejected", 0)) < 1 or int(gate_runtime.get("active", -1)) != 0:
+                raise AssertionError("bounded inference metrics did not record rejection/release")
+
+            stream_service = ForgeNativeService(td, max_concurrent=1, queue_timeout_seconds=0.1)
+            stream_events = list(stream_service.stream_chat({
+                "model": stream_service.model_id,
+                "messages": [{"role": "user", "content": "stream gate release"}],
+                "max_tokens": 1,
+                "temperature": 0,
+            }))
+            if not any(event.get("usage") for event in stream_events):
+                raise AssertionError("bounded stream did not emit final usage")
+            stream_runtime = stream_service.health()["inference_runtime"]
+            if int(stream_runtime.get("active", -1)) != 0 or int(stream_runtime.get("completed", 0)) < 1:
+                raise AssertionError("bounded stream did not release its inference slot")
 
             cache_payload = {
                 "model": service.model_id,
