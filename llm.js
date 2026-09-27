@@ -83,7 +83,7 @@ const PROVIDERS = [
     free: 'fully local ForgeLM checkpoint served by WitForge; no key and no cloud',
     connect: 'start "python -m model.forgelm.server --checkpoint state/models/forgelm-nano", then "verify forge-native"',
     local: true,
-    capabilities: ['text_generation'],
+    capabilities: ['text_generation', 'structured_output'],
     contextTokens: 2048
   },
   {
@@ -137,6 +137,14 @@ function dryRun(providerId, args) {
   /* v1.90: callers with a real plan (the agentic brain) may carry their own
    * system brief; the default persona stays the floor for everyone else. */
   const systemPrompt = String(args.system ? args.system.slice(0, 6000) : SYSTEM_PROMPT);
+  let responseFormat = null;
+  if (args.responseFormat && typeof args.responseFormat === 'object') {
+    try {
+      const rawFormat = JSON.stringify(args.responseFormat);
+      if (rawFormat.length > 16000) return { error: 'responseFormat is too large' };
+      responseFormat = JSON.parse(rawFormat);
+    } catch (e) { return { error: 'responseFormat must be JSON-serializable' }; }
+  }
   if (p.shape === 'openai') {
     return {
       provider: p.id, url: p.endpoint, method: 'POST',
@@ -158,17 +166,19 @@ function dryRun(providerId, args) {
     };
   }
   if (p.shape === 'forge-native') {
+    const body = {
+      model,
+      messages: [{ role: 'system', content: systemPrompt }].concat(msgs.messages),
+      max_tokens: maxTokens,
+      temperature,
+      top_p: 0.95,
+      stream: false
+    };
+    if (responseFormat) body.response_format = responseFormat;
     return {
       provider: p.id, model, url: p.endpoint + '/v1/chat/completions', method: 'POST', local: true,
       headers: { 'content-type': 'application/json' },
-      body: {
-        model,
-        messages: [{ role: 'system', content: systemPrompt }].concat(msgs.messages),
-        max_tokens: maxTokens,
-        temperature,
-        top_p: 0.95,
-        stream: false
-      }
+      body
     };
   }
   return {
@@ -250,7 +260,7 @@ async function chat(providerId, args, deps) {
     }
   }
   let res;
-  if (p.shape === 'ollama') {
+  if (req.local) {
     if (!localFetch) return { ok: false, error: 'Local fetch unavailable in this runtime' };
     res = await localFetch(req.url, req.headers, { method: 'POST', body: JSON.stringify(req.body), timeoutMs: 120000 });
   } else {
