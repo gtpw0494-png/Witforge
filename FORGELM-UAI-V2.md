@@ -98,3 +98,21 @@ The Node control plane remains dependency-free. Python/PyTorch is an optional mo
 - add verified GGUF conversion/runtime compatibility;
 - add verified vLLM registration/serving compatibility;
 - add quantized and offloaded KV-cache storage variants beyond the implemented dynamic, static and no-cache strategies; measured Android/Termux tuning now has an autotune evidence path and still needs wider real-device profiles.
+
+
+### Termux measured runtime tuning
+
+Use the profiler first, then the measured autotuner against a real checkpoint. The autotuner benchmarks supported cache/quantization combinations in isolated subprocesses and writes raw measurements plus an advisory recommendation.
+
+```bash
+npm run forgelm:device-profile -- --out state/forgelm-device-profile.json
+
+npm run forgelm:autotune -- \
+  --checkpoint state/models/forgelm \
+  --device cpu \
+  --max-new-tokens 8 \
+  --memory-fraction 0.60 \
+  --out state/forgelm-autotune.json
+```
+
+Inspect `recommendation.quantization` and `recommendation.cache_strategy` before starting ForgeNative. Serving defaults are never changed automatically by autotune.
