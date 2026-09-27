@@ -1,8 +1,17 @@
 {
   "name": "witforge",
-  "version": "2.07.0",
+  "version": "2.08.0",
   "description": "WitForge — a local-first, security-first conversational AI operating platform (browser control surface + authoritative local server).",
-  "keywords": ["local-first", "permissions", "audit", "orchestration", "arena"],
+  "keywords": [
+    "local-first",
+    "permissions",
+    "audit",
+    "orchestration",
+    "arena",
+    "forgelm",
+    "context-engineering",
+    "governed-memory"
+  ],
   "license": "UNLICENSED",
   "private": true,
   "main": "server.js",
@@ -14,7 +23,7 @@
     "dev": "node server.js",
     "build": "node build.js",
     "lint": "node lint.js",
-    "test": "node spec-test.js && node storage-test.js && node adversarial-test.js && node platform-test.js && node arena-test.js && node engagement-test.js && node smoke-test.js",
+    "test": "node forgelm-test.js && node spec-test.js && node storage-test.js && node adversarial-test.js && node platform-test.js && node arena-test.js && node engagement-test.js && node smoke-test.js",
     "test:spec": "node spec-test.js",
     "test:storage": "node storage-test.js",
     "test:adversarial": "node adversarial-test.js",
@@ -24,7 +33,8 @@
     "test:smoke": "node smoke-test.js",
     "recover": "node recovery.js",
     "selftest": "node -e \"const P=require('./platform.js');const r=P.selftestAll();console.log(JSON.stringify(r.counts,null,2));process.exit(r.counts.FAIL?1:0)\"",
-    "health": "node -e \"const http=require('http');const port=process.env.PORT||8787;http.get({host:'127.0.0.1',port,path:'/api/health'},r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>{console.log(d);process.exit(r.statusCode===200?0:1)})}).on('error',e=>{console.error('health check failed: '+e.message);process.exit(1)})\""
+    "health": "node -e \"const http=require('http');const port=process.env.PORT||8787;http.get({host:'127.0.0.1',port,path:'/api/health'},r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>{console.log(d);process.exit(r.statusCode===200?0:1)})}).on('error',e=>{console.error('health check failed: '+e.message);process.exit(1)})\"",
+    "test:forgelm": "node forgelm-test.js"
   },
   "dependencies": {},
   "devDependencies": {},
