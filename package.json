@@ -54,7 +54,9 @@
     "forgelm:bundle": "python -m model.forgelm.bundle",
     "forgelm:export": "python -m model.forgelm.inference_export",
     "forgelm:device-profile": "python -m model.forgelm.device_profile",
-    "test:forgelm-mobile": "python -m model.forgelm.mobile_smoke_test"
+    "test:forgelm-mobile": "python -m model.forgelm.mobile_smoke_test",
+    "forgelm:regression-eval": "python -m model.forgelm.regression_eval",
+    "test:forgelm-regression": "python -m model.forgelm.regression_smoke_test"
   },
   "dependencies": {},
   "devDependencies": {},
