@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import time
 import threading
+import math
 from typing import Any, Dict, Iterator, List
 
 import torch
@@ -174,11 +175,32 @@ class ForgeNativeService:
         ids = self.tokenizer.encode(prompt, add_bos=True)
         if len(ids) >= self.model.config.max_position_embeddings:
             raise ValueError("prompt exceeds model context window")
-        max_tokens = min(512, max(1, int(payload.get("max_tokens", payload.get("max_output_tokens", 128)))))
+        raw_max_tokens = payload.get("max_tokens", payload.get("max_output_tokens", 128))
+        if isinstance(raw_max_tokens, bool) or not isinstance(raw_max_tokens, (int, float)) or not math.isfinite(float(raw_max_tokens)):
+            raise ValueError("max_tokens must be a finite number")
+        max_tokens = int(raw_max_tokens)
+        if max_tokens < 1 or max_tokens > 512:
+            raise ValueError("max_tokens must be between 1 and 512")
+
         temperature = float(payload.get("temperature", 0.8))
+        if not math.isfinite(temperature) or temperature < 0.0 or temperature > 5.0:
+            raise ValueError("temperature must be finite and between 0 and 5")
+
         top_p = float(payload.get("top_p", 0.95))
-        top_k = int(payload.get("top_k", 50))
+        if not math.isfinite(top_p) or top_p <= 0.0 or top_p > 1.0:
+            raise ValueError("top_p must be finite and in (0, 1]")
+
+        raw_top_k = payload.get("top_k", 50)
+        if isinstance(raw_top_k, bool) or not isinstance(raw_top_k, (int, float)) or not math.isfinite(float(raw_top_k)):
+            raise ValueError("top_k must be a finite number")
+        top_k = int(raw_top_k)
+        if top_k < 0 or top_k > self.model.config.vocab_size:
+            raise ValueError("top_k must be between 0 and the model vocabulary size")
+
         repetition_penalty = float(payload.get("repetition_penalty", 1.05))
+        if not math.isfinite(repetition_penalty) or repetition_penalty <= 0.0 or repetition_penalty > 10.0:
+            raise ValueError("repetition_penalty must be finite and in (0, 10]")
+
         cache_strategy = str(payload.get("cache_strategy", "dynamic")).lower()
         if cache_strategy not in {"dynamic", "static", "none"}:
             raise ValueError("cache_strategy must be one of: dynamic, static, none")
