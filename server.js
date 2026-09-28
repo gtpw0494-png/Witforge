@@ -610,10 +610,10 @@ const server = http.createServer(async (req, res) => {
   const requested = p === '/' ? '/index.html' : p;
   if (!PUBLIC_FILES.has(requested)) { res.writeHead(404, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' }); return res.end('Not found'); }
   const staticMap = {
-    '/onechat': '/public/index.html',
-    '/onechat/index.html': '/public/index.html',
-    '/onechat/app.js': '/public/app.js',
-    '/onechat/styles.css': '/public/styles.css'
+    '/onechat': '/index.html',
+    '/onechat/index.html': '/index.html',
+    '/onechat/app.js': '/app.js',
+    '/onechat/styles.css': '/styles.css'
   };
   const file = staticMap[requested] || requested;
   const resolved = path.normalize(path.join(ROOT, file));
