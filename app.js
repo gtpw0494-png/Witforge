@@ -323,14 +323,14 @@ async function sendChat() {
   chatConvoId = c.id;
   c = await pushMsg(c.id, 'user', text);
   paintLog(c);
-  const reply = await routeCommand(text);
+  const reply = await routeCommand(text, c.id);
   c = await pushMsg(c.id, reply.role || 'local', reply.text);
   paintLog(c);
   if (reply.action) setTimeout(reply.action, 200);
   refreshState();
 }
 /* Router: UI intents → server platform intents → Puter (opt-in) → honest fallback */
-async function routeCommand(text) {
+async function routeCommand(text, conversationId) {
   if (OFFLINE) return { text: 'Backend offline — I cannot act without the LIAM server. This hosted page is a static preview: run “node server.js” in the liam folder locally, then open http://127.0.0.1:5173 for full control. Truth rule intact: I will not pretend to execute anything.' };
   const low = text.toLowerCase().trim();
   let m;
@@ -365,7 +365,7 @@ async function routeCommand(text) {
     return r.ok ? { text: 'Logged in. Session cookie set (HttpOnly, SameSite). Mutations now require this session.' } : { role: 'notice', text: r.error || 'Login failed.' };
   }
   if (low === 'logout' || low === 'log out') { await post('/api/auth/logout', {}); return { text: 'Logged out; session invalidated server-side.' }; }
-  const cmd = await post('/api/command', { text });
+  const cmd = await post('/api/command', { text, conversationId: conversationId || null });
   if (cmd && cmd.ok && cmd.reply) return { text: cmd.reply };
   if (cmd && cmd.unhandled && low.startsWith('ask puter')) return puterAsk(text.replace(/^ask puter\s*/i, ''));
   if (/^(hi|hello|hey|yo)\b/.test(low)) return { text: 'Hey — LIAM, fully operational on your local server. Every system is live: type “help”.' };
