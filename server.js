@@ -132,7 +132,7 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'no-referrer');
-  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://js.puter.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://js.puter.com https://api.open-meteo.com https://geocoding-api.open-meteo.com https://api.github.com");
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://js.puter.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://puter.com https://*.puter.com; connect-src 'self' https://js.puter.com https://api.puter.com https://puter.com https://*.puter.com https://api.open-meteo.com https://geocoding-api.open-meteo.com https://api.github.com; frame-src https://puter.com https://*.puter.com");
   if (req.method !== 'GET' && rateLimited(req)) {
     return json(res, 429, { ok: false, error: 'Rate limited (120 req/min)' });
   }
