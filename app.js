@@ -66,7 +66,7 @@ const MODULES = [
 ];
 const byId = id => MODULES.find(x => x.id === id);
 const SECTIONS = ['CORE', 'AI', 'CONTROL', 'SECURITY', 'ACCOUNT', 'COMMERCE', 'SYSTEM'];
-const LIVE = new Set(['chat', 'conversations', 'tasks', 'projects', 'agents', 'memory', 'knowledge', 'files', 'tools', 'permissions', 'approvals', 'security', 'evidence', 'guardian', 'audit', 'devices', 'credentials', 'ldcoins', 'ldmarket', 'events', 'lotto', 'rewards', 'plans', 'status', 'settings', 'spec', 'documentation', 'profile', 'puter', 'avatar', 'arena', 'marketplace', 'automations', 'notifications', 'inventory']);
+const LIVE = new Set(['chat', 'conversations', 'projects', 'research', 'tasks', 'automations', 'memory', 'files', 'knowledge', 'agents', 'tools', 'models', 'permissions', 'approvals', 'termux', 'puter', 'credentials', 'github', 'device', 'devices', 'security', 'evidence', 'guardian', 'audit', 'profile', 'subscription', 'organization', 'plans', 'ldcoins', 'ldmarket', 'events', 'lotto', 'rewards', 'avatar', 'inventory', 'marketplace', 'arena', 'notifications', 'documentation', 'status', 'spec', 'settings']);
 
 /* ── Helpers ─────────────────────────────────────────────────────── */
 const $ = s => document.querySelector(s);
@@ -282,7 +282,7 @@ function openFacet(moduleId, facetId) {
 /* ── Live workspaces ─────────────────────────────────────────────── */
 async function renderLive(id) {
   await refreshState();
-  const renderer = ({ chat: renderChat, conversations: renderConversations, tasks: renderTasks, projects: renderProjects, agents: renderAgents, memory: renderMemory, knowledge: renderKnowledge, files: renderFiles, tools: renderTools, permissions: renderPermissions, approvals: renderApprovals, security: renderSecurity, evidence: renderEvidence, guardian: renderGuardian, audit: renderAudit, credentials: renderCredentials, ldmarket: renderLDMarket, events: renderEvents, lotto: renderLotto, rewards: renderRewards, plans: renderPlans, devices: renderDevices, ldcoins: renderLD, status: renderStatus, settings: renderSettings, puter: renderPuter, avatar: renderAvatarStudio, arena: renderArena, spec: renderSpec, documentation: renderDocs, profile: renderProfile, marketplace: renderMarket, automations: renderAutomations, notifications: renderNotifications, inventory: renderInventory })[id];
+  const renderer = ({ chat: renderChat, conversations: renderConversations, tasks: renderTasks, projects: renderProjects, research: renderResearch, agents: renderAgents, memory: renderMemory, knowledge: renderKnowledge, files: renderFiles, tools: renderTools, models: renderModels, permissions: renderPermissions, approvals: renderApprovals, termux: renderTermux, puter: renderPuter, github: renderGithub, device: renderDevices, devices: renderDevices, security: renderSecurity, evidence: renderEvidence, guardian: renderGuardian, audit: renderAudit, credentials: renderCredentials, ldmarket: renderLDMarket, events: renderEvents, lotto: renderLotto, rewards: renderRewards, plans: renderPlans, subscription: renderPlans, organization: renderProfile, ldcoins: renderLD, status: renderStatus, settings: renderSettings, avatar: renderAvatarStudio, arena: renderArena, spec: renderSpec, documentation: renderDocs, profile: renderProfile, marketplace: renderMarket, automations: renderAutomations, notifications: renderNotifications, inventory: renderInventory })[id];
   if (typeof renderer === 'function') await renderer();
 }
 function head(eyebrow, title, sub, right) {
@@ -464,6 +464,51 @@ async function renderPuter() {
   };
   $('#puterSend').onclick = async () => { const out=$('#puterOut'); out.textContent='Calling Puter…'; const r = await puterAsk($('#puterQ').value || 'hello'); out.textContent = (r.role === 'external' ? '[EXTERNAL · UNTRUSTED] ' : '[NOTICE] ') + r.text; await paint({load:true}); };
   await paint();
+}
+
+/* Live command-backed workspaces: these expose existing audited backend
+ * capabilities directly instead of rendering configuration-only placeholders. */
+async function runWorkspaceCommand(text, outputId) {
+  const out = $(outputId); if (out) out.textContent = 'Working…';
+  const r = await post('/api/command', { text });
+  const msg = r.reply || r.error || r.message || 'No result returned.';
+  if (out) out.textContent = msg;
+  await refreshState();
+  return r;
+}
+async function renderResearch() {
+  $('#main').innerHTML = head('GOVERNED RETRIEVAL', 'Research', 'Run attributable research through the existing guarded research command path. Network results remain untrusted information, never authority.') +
+  `<div class="facet-card"><h4>Research a topic</h4><div class="input-line"><input id="researchQ" placeholder="e.g. latest WebGPU browser support"><button class="mini-btn" id="researchRun">Research</button></div><pre id="researchOut" class="empty-note">No research run yet.</pre></div>`;
+  $('#researchRun').onclick = () => runWorkspaceCommand('research ' + ($('#researchQ').value || '').trim(), '#researchOut');
+}
+async function renderModels() {
+  $('#main').innerHTML = head('MODEL RUNTIME TRUTH', 'Models', 'Inspect real model availability, verify a runtime, and choose the owner-selected default without treating registration as connectivity.') +
+  `<div class="facet-card"><div class="input-line"><button class="mini-btn" id="modelsRefresh">Refresh status</button><button class="mini-btn" id="forgeVerify">Verify ForgeLM</button><button class="mini-btn" id="ollamaVerify">Verify Ollama</button></div><pre id="modelsOut" class="empty-note">Loading model status…</pre></div>
+  <div class="facet-card"><h4>Select default provider</h4><div class="input-line"><input id="modelProvider" placeholder="forge-native, ollama, groq…"><button class="mini-btn" id="modelSelect">Select</button></div></div>`;
+  const refresh = () => runWorkspaceCommand('ai models', '#modelsOut');
+  $('#modelsRefresh').onclick = refresh;
+  $('#forgeVerify').onclick = () => runWorkspaceCommand('verify forge-native', '#modelsOut');
+  $('#ollamaVerify').onclick = () => runWorkspaceCommand('verify ollama', '#modelsOut');
+  $('#modelSelect').onclick = () => runWorkspaceCommand('ai provider ' + ($('#modelProvider').value || '').trim(), '#modelsOut');
+  await refresh();
+}
+async function renderGithub() {
+  $('#main').innerHTML = head('OFFICIAL API CONNECTOR', 'GitHub', 'Read through the existing GitHub connector only when a real credential is configured and verified. Writes remain permission/approval governed.') +
+  `<div class="facet-card"><div class="input-line"><button class="mini-btn" id="ghStatus">Connections</button><button class="mini-btn" id="ghList">List repository</button></div>
+  <div class="input-line"><input id="ghFile" placeholder="README.md"><button class="mini-btn" id="ghRead">Read file</button></div><pre id="ghOut" class="empty-note">No GitHub operation yet.</pre></div>`;
+  $('#ghStatus').onclick = () => runWorkspaceCommand('connections', '#ghOut');
+  $('#ghList').onclick = () => runWorkspaceCommand('github list', '#ghOut');
+  $('#ghRead').onclick = () => runWorkspaceCommand('github read file ' + ($('#ghFile').value || 'README.md').trim(), '#ghOut');
+}
+async function renderTermux() {
+  $('#main').innerHTML = head('LOCAL EXECUTION BOUNDARY', 'Termux', 'Exercise only the allowlisted local execution path. This page does not claim Termux is connected unless the runtime evidence says so.') +
+  `<div class="facet-card"><div class="input-line"><button class="mini-btn" id="termuxInfo">System info</button><button class="mini-btn" id="termuxDate">Run date</button></div><pre id="termuxOut" class="empty-note">No local execution probe yet.</pre></div>`;
+  $('#termuxInfo').onclick = async () => {
+    const out=$('#termuxOut'); out.textContent='Checking…';
+    const r=await post('/api/tools/run',{tool:'sys.info',args:{}});
+    out.textContent=JSON.stringify(r.evidence||r.result||r,null,2);
+  };
+  $('#termuxDate').onclick = () => runWorkspaceCommand('run date', '#termuxOut');
 }
 
 /* Conversations */
