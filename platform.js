@@ -896,12 +896,38 @@ const TOOLS = {
       return { defaultProvider: (S.llm && S.llm.default) || null, providers: rows, note: 'registered ≠ available; ForgeNative and Ollama are live-probed on loopback, cloud providers require a real verify round trip' };
     } },
   'llm.chat': { cap: 'llm.chat', risk: 'medium', verification: 'provider reply parsed, non-empty; provider+model+latency recorded', run: async a => {
-      const p = llmResolveProvider(a.provider);
-      if (!p) return { error: 'No verified AI runtime is currently available. Start ForgeNative for this host or connect and verify a supported cloud provider. Ollama is optional and only used when explicitly selected.', truthful: true };
-      if (p.error) return p;
-      const r = await llm.chat(p.id, a, { remoteFetch: guardedFetch, localFetch: llmLocalFetch, apiKey: p.requiresKey ? decryptToken(p.id) : null });
-      if (r.ok) { S.llm.calls = (S.llm.calls || 0) + 1; save(); return { provider: r.provider, model: r.model, reply: r.content, usage: r.usage, latencyMs: r.latencyMs }; }
-      return Object.assign({ truthful: true }, r);
+      const requested = a.provider ? String(a.provider) : null;
+      if (requested) {
+        const p = llmResolveProvider(requested);
+        if (!p) return { error: 'No verified AI runtime is currently available.', truthful: true };
+        if (p.error) return p;
+        const r = await llm.chat(p.id, a, { remoteFetch: guardedFetch, localFetch: llmLocalFetch, apiKey: p.requiresKey ? decryptToken(p.id) : null });
+        if (r.ok) { S.llm.calls = (S.llm.calls || 0) + 1; save(); return { provider: r.provider, model: r.model, reply: r.content, usage: r.usage, latencyMs: r.latencyMs }; }
+        return Object.assign({ truthful: true }, r);
+      }
+
+      /* Repair after build 10: keyless registration is not availability.
+       * Try the owner default first, then ForgeLM (local-first), configured
+       * cloud providers, and finally optional Ollama. A failed transport is
+       * evidence to continue, not a reason to dead-end the conversation. */
+      const ids = [];
+      const add = id => { if (id && !ids.includes(id)) ids.push(id); };
+      add(S.llm && S.llm.default && S.llm.default !== 'auto' ? S.llm.default : null);
+      add('forge-native');
+      for (const p of llm.PROVIDERS) if (p.requiresKey && decryptToken(p.id)) add(p.id);
+      add('ollama');
+      const attempts = [];
+      for (const id of ids) {
+        const p = llm.providerById(id);
+        if (!p) continue;
+        const r = await llm.chat(p.id, Object.assign({}, a, { provider:p.id }), { remoteFetch: guardedFetch, localFetch: llmLocalFetch, apiKey: p.requiresKey ? decryptToken(p.id) : null });
+        if (r.ok) {
+          S.llm.calls = (S.llm.calls || 0) + 1; save();
+          return { provider:r.provider, model:r.model, reply:r.content, usage:r.usage, latencyMs:r.latencyMs, attempts };
+        }
+        attempts.push({ provider:p.id, error:String(r.error || 'unavailable').slice(0,180) });
+      }
+      return { error:'No verified AI runtime answered. Start ForgeNative, select Ollama explicitly if desired, or connect a supported cloud provider.', attempts, truthful:true };
     } },
   'llm.verify': { cap: 'llm.verify', risk: 'medium', verification: 'a real minimal round trip with the stored credential', run: async a => {
       const p = llmResolveProvider(a.provider);
@@ -2462,12 +2488,9 @@ const brain = require('./brain.js').create({
      * first, then the rest ranked by RECENT record — an exponential-decay
      * error bookkeeping per provider; a chronically-failing tail sinks. */
     let connected = llm.PROVIDERS.filter(x => x.requiresKey && decryptToken(x.id)).map(x => x.id);
-    /* Build 4: ForgeLM is a first-class local conversational runtime. The old
-     * planner only considered credentialed cloud providers plus Ollama, so a
-     * healthy ForgeNative server could be VERIFIED yet never receive ordinary
-     * conversation turns. Probe it explicitly and prefer it when reachable. */
-    const forgeLive = await llm.forgeNativeStatus({ localFetch: llmLocalFetch });
-    if (forgeLive && !connected.includes('forge-native')) connected.unshift('forge-native');
+    /* ForgeLM is always the first local candidate; an unavailable loopback
+     * service fails truthfully and the planner continues to the next runtime. */
+    if (!connected.includes('forge-native')) connected.unshift('forge-native');
     const skipped = [];
     connected = connected.filter(id => { const g = rateGate(id); if (g) { skipped.push(id + ' (' + g + ')'); return false; } return true; });
     if (S.brainStats && S.brainStats.byProvider) {
