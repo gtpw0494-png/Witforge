@@ -2663,7 +2663,8 @@ function brainBudgetOkay() {
   BRAIN_BUDGET.turns++;
   return { okay: true };
 }
-async function chatFallback(text) {
+async function chatFallback(text, opts) {
+  opts = opts || {};
   const q0 = String(text || '').trim();
   if (!q0) return null;
   if (BRAIN_ACTIVE) return null;
@@ -2676,7 +2677,7 @@ async function chatFallback(text) {
   }
   BRAIN_ACTIVE = true;
   let r;
-  try { r = await brain.converse(q0); } catch (e) { r = { ok: false, error: e && e.message }; }
+  try { r = await brain.converse(q0, { scope: opts.conversationId || opts.scope || 'default' }); } catch (e) { r = { ok: false, error: e && e.message }; }
   BRAIN_ACTIVE = false;
   /* planner telemetry — evidence for the owner, “ai models” to inspect it. */
   S.brainStats.turns++;
