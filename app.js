@@ -316,18 +316,36 @@ async function pushMsg(convoId, role, text) {
   return j.conversation;
 }
 async function sendChat() {
-  const input = $('#chatInput'); const text = input.value.trim(); if (!text) return;
-  input.value = '';
-  let c = S.conversations.find(x => x.id === chatConvoId) || S.conversations[0];
-  if (!c) { const j = await post('/api/conversations', { title: text.slice(0, 42) }); c = j.conversation; }
-  chatConvoId = c.id;
-  c = await pushMsg(c.id, 'user', text);
-  paintLog(c);
-  const reply = await routeCommand(text, c.id);
-  c = await pushMsg(c.id, reply.role || 'local', reply.text);
-  paintLog(c);
-  if (reply.action) setTimeout(reply.action, 200);
-  refreshState();
+  const input = $('#chatInput'); const send = $('#chatSend'); const text = input.value.trim(); if (!text || send.disabled) return;
+  input.value = ''; send.disabled = true;
+  let timer = null;
+  try {
+    let c = S.conversations.find(x => x.id === chatConvoId) || S.conversations[0];
+    if (!c) { const j = await post('/api/conversations', { title: text.slice(0, 42) }); c = j.conversation; }
+    chatConvoId = c.id;
+    c = await pushMsg(c.id, 'user', text);
+    paintLog(c);
+    const log = $('#chatLog'), started = Date.now();
+    if (log) {
+      log.insertAdjacentHTML('beforeend', '<div class="msg local" id="chatPending"><div class="who">LIAM · WORKING</div><p>Preparing governed response…</p></div>');
+      log.scrollTop = log.scrollHeight;
+      timer = setInterval(() => {
+        const p = $('#chatPending p');
+        if (p) p.textContent = 'Preparing governed response… ' + Math.max(1, Math.round((Date.now() - started) / 1000)) + 's';
+      }, 1000);
+    }
+    const reply = await routeCommand(text, c.id);
+    c = await pushMsg(c.id, reply.role || 'local', reply.text);
+    paintLog(c);
+    if (reply.action) setTimeout(reply.action, 200);
+    await refreshState();
+  } catch (e) {
+    toast('Chat failed: ' + String(e && e.message || e).slice(0, 140));
+  } finally {
+    if (timer) clearInterval(timer);
+    send.disabled = false;
+    input.focus();
+  }
 }
 /* Router: UI intents → server platform intents → Puter (opt-in) → honest fallback */
 async function routeCommand(text, conversationId) {
