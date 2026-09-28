@@ -94,7 +94,7 @@ const AIArt = {
       this._promise = new Promise(res => {
         if (this._disabled) return res(false);
         const s = document.createElement('script');
-        s.src = 'https://js.puter.com/v2/puter.js';
+        s.src = 'https://js.puter.com/v2/';
         const timer = setTimeout(() => { this._disabled = true; res(false); }, 8000);
         s.onload = () => { clearTimeout(timer); const ok2 = !!(window.puter && window.puter.ai && window.puter.ai.txt2img); this._disabled = !ok2; res(ok2); };
         s.onerror = () => { clearTimeout(timer); this._disabled = true; res(false); };
@@ -353,46 +353,84 @@ async function routeCommand(text) {
 }
 
 /* Puter bridge (optional, truthful) */
-let puterState = { loaded: false, models: [] };
+let puterState = { loaded: false, signedIn: false, user: null, models: [] };
 function loadPuterScript() {
   return new Promise(resolve => {
     if (window.puter) { puterState.loaded = true; return resolve(true); }
+    const existing = document.querySelector('script[data-witforge-puter]');
+    if (existing) { existing.addEventListener('load', () => resolve(!!window.puter), { once:true }); existing.addEventListener('error', () => resolve(false), { once:true }); return; }
     const s = document.createElement('script');
     s.src = 'https://js.puter.com/v2/';
-    s.onload = () => { puterState.loaded = !!window.puter; resolve(puterState.loaded); };
-    s.onerror = () => resolve(false);
+    s.dataset.witforgePuter = '1';
+    let settled = false;
+    const done = ok => { if (settled) return; settled = true; puterState.loaded = !!ok; resolve(!!ok); };
+    s.onload = () => done(!!window.puter);
+    s.onerror = () => done(false);
     document.head.appendChild(s);
-    setTimeout(() => resolve(!!window.puter), 6000);
+    setTimeout(() => done(!!window.puter), 8000);
   });
+}
+async function refreshPuterAuth() {
+  const ok = await loadPuterScript();
+  if (!ok || !window.puter?.auth) { puterState = { ...puterState, loaded:false, signedIn:false, user:null }; return puterState; }
+  puterState.loaded = true;
+  try {
+    puterState.signedIn = !!window.puter.auth.isSignedIn();
+    puterState.user = puterState.signedIn && window.puter.auth.getUser ? await window.puter.auth.getUser() : null;
+  } catch (e) {
+    puterState.signedIn = false; puterState.user = null;
+  }
+  return puterState;
+}
+async function puterSignIn() {
+  const ok = await loadPuterScript();
+  if (!ok || !window.puter?.auth?.signIn) throw new Error('Puter authentication is unavailable in this browser.');
+  await window.puter.auth.signIn();
+  return refreshPuterAuth();
+}
+async function puterSignOut() {
+  const ok = await loadPuterScript();
+  if (!ok || !window.puter?.auth?.signOut) return refreshPuterAuth();
+  await window.puter.auth.signOut();
+  puterState.models = [];
+  return refreshPuterAuth();
 }
 async function puterAsk(q) {
   const ok = await loadPuterScript();
-  if (!ok || !window.puter || !window.puter.ai) return { role: 'notice', text: 'Puter.js could not load in this environment — external model access UNAVAILABLE (not faked).' };
+  if (!ok || !window.puter?.ai) return { role: 'notice', text: 'Puter.js could not load in this environment — external model access UNAVAILABLE (not faked).' };
   try {
+    if (window.puter.auth && !window.puter.auth.isSignedIn()) await puterSignIn();
     if (!puterState.models.length && window.puter.ai.listModels) {
       try { puterState.models = (await window.puter.ai.listModels()) || []; } catch (e) { puterState.models = []; }
     }
     const resp = await window.puter.ai.chat(q);
-    const txt = typeof resp === 'string' ? resp : (resp && resp.message && resp.message.content) || (resp && resp.text) || JSON.stringify(resp).slice(0, 600);
-    return { role: 'external', text: String(txt).slice(0, 1500) };
+    const txt = typeof resp === 'string' ? resp : (resp && resp.message && resp.message.content) || (resp && resp.text) || JSON.stringify(resp).slice(0, 1200);
+    return { role: 'external', text: String(txt).slice(0, 8000) };
   } catch (e) {
-    return { role: 'notice', text: 'Puter request failed: ' + (e.message || e) + '. External access remains UNAVAILABLE.' };
+    return { role: 'notice', text: 'Puter request failed: ' + (e.message || e) + '. External access remains UNAVAILABLE until authentication/request succeeds.' };
   }
 }
 async function renderPuter() {
-  $('#main').innerHTML = head('OPTIONAL EXTERNAL BRIDGE', 'Puter', 'Live model discovery and chat only if the browser can load Puter.js. Output is always labelled EXTERNAL · UNTRUSTED and grants no authority.') +
-  `<div class="facet-card"><h4>Bridge state</h4><p id="puterStatus">Checking…</p><div class="input-line"><button class="mini-btn" id="puterLoad">Load bridge</button><button class="mini-btn" id="puterModels">List models</button></div></div>
-   <div class="facet-card"><h4>Ask (opt-in)</h4><div class="input-line"><input id="puterQ" placeholder="ask puter …"><button class="mini-btn" id="puterSend">Ask</button></div><p class="empty-note" id="puterOut" style="margin-top:10px">No external output this session.</p></div>`;
+  $('#main').innerHTML = head('OPTIONAL EXTERNAL BRIDGE', 'Puter', 'Browser-based Puter sign-in, live model discovery and opt-in AI calls. External output is always labelled EXTERNAL · UNTRUSTED and grants no authority.') +
+  `<div class="facet-card"><h4>Account</h4><p id="puterStatus">Checking Puter.js and account state…</p><div class="input-line"><button class="mini-btn" id="puterLogin">Sign in to Puter</button><button class="mini-btn" id="puterLogout">Sign out</button><button class="mini-btn" id="puterModels">List models</button></div></div>
+   <div class="facet-card"><h4>Ask (opt-in)</h4><div class="input-line"><input id="puterQ" placeholder="Ask via Puter…"><button class="mini-btn" id="puterSend">Ask</button></div><p class="empty-note" id="puterOut" style="margin-top:10px">No external output this session.</p></div>`;
   const st = $('#puterStatus');
-  st.textContent = window.puter ? 'Loaded in this browser.' : 'Not loaded. External model access UNAVAILABLE until loaded.';
-  $('#puterLoad').onclick = async () => { const ok = await loadPuterScript(); st.textContent = ok ? 'Loaded. Live discovery available.' : 'Load failed — UNAVAILABLE (truthfully).'; };
+  const paint = async () => {
+    const ps = await refreshPuterAuth();
+    const username = ps.user?.username || ps.user?.email || '';
+    st.textContent = !ps.loaded ? 'Puter.js unavailable in this browser.' : ps.signedIn ? 'SIGNED IN' + (username ? ' · ' + username : '') + ' · browser credentials remain managed by Puter.js.' : 'Puter.js loaded · not signed in.';
+    $('#puterLogin').hidden = ps.signedIn; $('#puterLogout').hidden = !ps.signedIn;
+  };
+  $('#puterLogin').onclick = async () => { try { st.textContent = 'Opening Puter sign-in…'; await puterSignIn(); await paint(); } catch (e) { st.textContent = 'Sign-in failed: ' + (e.message || e); } };
+  $('#puterLogout').onclick = async () => { try { await puterSignOut(); await paint(); } catch (e) { st.textContent = 'Sign-out failed: ' + (e.message || e); } };
   $('#puterModels').onclick = async () => {
     const ok = await loadPuterScript();
-    if (!ok || !window.puter || !window.puter.ai) { st.textContent = 'UNAVAILABLE.'; return; }
-    try { const ms = await window.puter.ai.listModels(); puterState.models = ms || []; st.textContent = `Models discovered: ${puterState.models.length}` + (puterState.models.length ? ' — ' + puterState.models.slice(0, 8).map(x => x.id || x.name).join(', ') : ''); }
+    if (!ok || !window.puter?.ai) { st.textContent = 'UNAVAILABLE.'; return; }
+    try { if (window.puter.auth && !window.puter.auth.isSignedIn()) await puterSignIn(); const ms = await window.puter.ai.listModels(); puterState.models = ms || []; st.textContent = `SIGNED IN · models discovered: ${puterState.models.length}` + (puterState.models.length ? ' · ' + puterState.models.slice(0, 8).map(x => x.id || x.name).join(', ') : ''); }
     catch (e) { st.textContent = 'Discovery failed: ' + (e.message || e); }
   };
-  $('#puterSend').onclick = async () => { const r = await puterAsk($('#puterQ').value || 'hello'); $('#puterOut').textContent = (r.role === 'external' ? '[EXTERNAL · UNTRUSTED] ' : '[NOTICE] ') + r.text; };
+  $('#puterSend').onclick = async () => { const out=$('#puterOut'); out.textContent='Calling Puter…'; const r = await puterAsk($('#puterQ').value || 'hello'); out.textContent = (r.role === 'external' ? '[EXTERNAL · UNTRUSTED] ' : '[NOTICE] ') + r.text; await paint(); };
+  await paint();
 }
 
 /* Conversations */
