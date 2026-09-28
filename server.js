@@ -254,7 +254,7 @@ const server = http.createServer(async (req, res) => {
     if (r) return json(res, 200, r);
     /* Nothing matched. The AI brain (if connected) answers, labelled;
      * otherwise the honest setup guidance. Chat never dead-ends. */
-    const fb = await P.chatFallback(b.text);
+    const fb = await P.chatFallback(b.text, { conversationId: b.conversationId || null });
     if (fb) return json(res, 200, fb);
     return json(res, 200, {
       ok: false, unhandled: true, text: b.text,
