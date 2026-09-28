@@ -174,14 +174,36 @@ function showOfflineBanner() {
 function enterOffline() { if (!OFFLINE) { OFFLINE = true; showOfflineBanner(); refreshStatus(); } }
 async function api(path, opts) {
   try {
-    const r = await fetch(path, opts);
+    const request = Object.assign({ credentials: 'same-origin' }, opts || {});
+    const r = await fetch(path, request);
     if (OFFLINE) { OFFLINE = false; const b = $('#offlineBanner'); if (b) b.remove(); refreshStatus(); }
-    if (r.status === 401) { toast('Login required — say “login <password>” in Chat'); return { ok: false, error: 'auth-required' }; }
-    return await r.json();
+    const raw = await r.text();
+    let data = {};
+    try { data = raw ? JSON.parse(raw) : {}; }
+    catch (e) { data = { ok: false, error: 'invalid-json-response', detail: raw.slice(0, 240) }; }
+    if (r.status === 401) { toast('Owner sign-in required — open Profile to unlock this session.'); return Object.assign({ ok: false, error: 'auth-required', status: 401 }, data); }
+    if (!r.ok) {
+      const msg = data.error || data.message || ('HTTP ' + r.status);
+      toast('Request failed: ' + String(msg).slice(0, 120));
+      return Object.assign({ ok: false, error: msg, status: r.status }, data);
+    }
+    return data;
   }
-  catch (e) { enterOffline(); return { ok: false, offline: true, error: 'offline' }; }
+  catch (e) { enterOffline(); return { ok: false, offline: true, error: 'offline', detail: String(e && e.message || e) }; }
 }
 const post = (p, b) => api(p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b || {}) });
+
+/* Build 8: no silent-dead controls. Renderer mistakes and rejected async
+ * handlers surface to the owner instead of disappearing in the console. */
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', e => {
+    const msg = e && e.reason && (e.reason.message || e.reason) || 'unknown async error';
+    toast('Action failed: ' + String(msg).slice(0, 140));
+  });
+  window.addEventListener('error', e => {
+    if (e && e.message) toast('UI error: ' + String(e.message).slice(0, 140));
+  });
+}
 
 let S = null; // server state snapshot
 async function refreshState() { const j = await api('/api/state'); if (j.ok) S = j; return S; }
