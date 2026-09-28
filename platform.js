@@ -2462,6 +2462,12 @@ const brain = require('./brain.js').create({
      * first, then the rest ranked by RECENT record — an exponential-decay
      * error bookkeeping per provider; a chronically-failing tail sinks. */
     let connected = llm.PROVIDERS.filter(x => x.requiresKey && decryptToken(x.id)).map(x => x.id);
+    /* Build 4: ForgeLM is a first-class local conversational runtime. The old
+     * planner only considered credentialed cloud providers plus Ollama, so a
+     * healthy ForgeNative server could be VERIFIED yet never receive ordinary
+     * conversation turns. Probe it explicitly and prefer it when reachable. */
+    const forgeLive = await llm.forgeNativeStatus({ localFetch: llmLocalFetch });
+    if (forgeLive && !connected.includes('forge-native')) connected.unshift('forge-native');
     const skipped = [];
     connected = connected.filter(id => { const g = rateGate(id); if (g) { skipped.push(id + ' (' + g + ')'); return false; } return true; });
     if (S.brainStats && S.brainStats.byProvider) {
@@ -2470,9 +2476,11 @@ const brain = require('./brain.js').create({
     }
     const order = [];
     if (S.llm && S.llm.default && S.llm.default !== 'auto' && connected.includes(S.llm.default)) order.push(S.llm.default);
+    /* Local-first means a reachable ForgeLM is preferred when the owner has
+     * not explicitly selected a different provider. */
+    if ((!S.llm || !S.llm.default || S.llm.default === 'auto') && connected.includes('forge-native')) order.push('forge-native');
     for (const id of connected) if (!order.includes(id)) order.push(id);
-    /* the keyless local model is always the honest final resort: when it is
-     * genuinely absent its error simply becomes the report (labels intact). */
+    /* Ollama remains an optional final local fallback, never a prerequisite. */
     if (!order.includes('ollama')) order.push('ollama');
     let lastErr = 'no provider connected';
     if (skipped.length) audit('guard', 'RATE FABRIC skipped: ' + skipped.join(', '), 'guard');
