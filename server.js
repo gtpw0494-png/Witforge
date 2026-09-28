@@ -40,7 +40,7 @@ const MIME = {
   '.ico': 'image/x-icon', '.md': 'text/plain; charset=utf-8'
 };
 const PUBLIC_API = new Set(['/api/health', '/api/version', '/api/auth/status', '/api/auth/owner', '/api/auth/login', '/api/oauth/callback']);
-const PUBLIC_FILES = new Set(['/index.html', '/styles.css', '/app.js', '/piece-gallery.html']);
+const PUBLIC_FILES = new Set(['/index.html', '/styles.css', '/app.js', '/piece-gallery.html', '/onechat', '/onechat/index.html', '/onechat/app.js', '/onechat/styles.css']);
 function isLoopback(req) {
   const ip = String((req.socket && req.socket.remoteAddress) || '');
   return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
@@ -607,8 +607,15 @@ const server = http.createServer(async (req, res) => {
   if (p.startsWith('/api/')) return json(res, 404, { ok: false, error: 'api-route-not-found' });
 
   /* ── static files ── */
-  const file = p === '/' ? '/index.html' : p;
-  if (!PUBLIC_FILES.has(file)) { res.writeHead(404, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' }); return res.end('Not found'); }
+  const requested = p === '/' ? '/index.html' : p;
+  if (!PUBLIC_FILES.has(requested)) { res.writeHead(404, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' }); return res.end('Not found'); }
+  const staticMap = {
+    '/onechat': '/public/index.html',
+    '/onechat/index.html': '/public/index.html',
+    '/onechat/app.js': '/public/app.js',
+    '/onechat/styles.css': '/public/styles.css'
+  };
+  const file = staticMap[requested] || requested;
   const resolved = path.normalize(path.join(ROOT, file));
   if (!resolved.startsWith(ROOT + path.sep) && resolved !== ROOT) { res.writeHead(403); return res.end('Forbidden'); }
   fs.readFile(resolved, (err, data) => {
