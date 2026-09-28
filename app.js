@@ -380,7 +380,12 @@ function loadPuterScript() {
   return new Promise(resolve => {
     if (window.puter) { puterState.loaded = true; return resolve(true); }
     const existing = document.querySelector('script[data-witforge-puter]');
-    if (existing) { existing.addEventListener('load', () => resolve(!!window.puter), { once:true }); existing.addEventListener('error', () => resolve(false), { once:true }); return; }
+    if (existing && String(existing.tagName || '').toUpperCase() === 'SCRIPT') {
+      existing.addEventListener('load', () => resolve(!!window.puter), { once:true });
+      existing.addEventListener('error', () => resolve(false), { once:true });
+      setTimeout(() => resolve(!!window.puter), 8000);
+      return;
+    }
     const s = document.createElement('script');
     s.src = 'https://js.puter.com/v2/';
     s.dataset.witforgePuter = '1';
@@ -437,21 +442,27 @@ async function renderPuter() {
   `<div class="facet-card"><h4>Account</h4><p id="puterStatus">Checking Puter.js and account state…</p><div class="input-line"><button class="mini-btn" id="puterLogin">Sign in to Puter</button><button class="mini-btn" id="puterLogout">Sign out</button><button class="mini-btn" id="puterModels">List models</button></div></div>
    <div class="facet-card"><h4>Ask (opt-in)</h4><div class="input-line"><input id="puterQ" placeholder="Ask via Puter…"><button class="mini-btn" id="puterSend">Ask</button></div><p class="empty-note" id="puterOut" style="margin-top:10px">No external output this session.</p></div>`;
   const st = $('#puterStatus');
-  const paint = async () => {
+  const paint = async ({ load=false }={}) => {
+    if (!window.puter && !load) {
+      puterState = { ...puterState, loaded:false, signedIn:false, user:null };
+      st.textContent = 'Puter bridge not loaded. Press “Sign in to Puter”, “List models”, or “Ask” to opt in.';
+      $('#puterLogin').hidden = false; $('#puterLogout').hidden = true;
+      return;
+    }
     const ps = await refreshPuterAuth();
     const username = ps.user?.username || ps.user?.email || '';
     st.textContent = !ps.loaded ? 'Puter.js unavailable in this browser.' : ps.signedIn ? 'SIGNED IN' + (username ? ' · ' + username : '') + ' · browser credentials remain managed by Puter.js.' : 'Puter.js loaded · not signed in.';
     $('#puterLogin').hidden = ps.signedIn; $('#puterLogout').hidden = !ps.signedIn;
   };
-  $('#puterLogin').onclick = async () => { try { st.textContent = 'Opening Puter sign-in…'; await puterSignIn(); await paint(); } catch (e) { st.textContent = 'Sign-in failed: ' + (e.message || e); } };
-  $('#puterLogout').onclick = async () => { try { await puterSignOut(); await paint(); } catch (e) { st.textContent = 'Sign-out failed: ' + (e.message || e); } };
+  $('#puterLogin').onclick = async () => { try { st.textContent = 'Opening Puter sign-in…'; await puterSignIn(); await paint({load:true}); } catch (e) { st.textContent = 'Sign-in failed: ' + (e.message || e); } };
+  $('#puterLogout').onclick = async () => { try { await puterSignOut(); await paint({load:true}); } catch (e) { st.textContent = 'Sign-out failed: ' + (e.message || e); } };
   $('#puterModels').onclick = async () => {
     const ok = await loadPuterScript();
     if (!ok || !window.puter?.ai) { st.textContent = 'UNAVAILABLE.'; return; }
     try { if (window.puter.auth && !window.puter.auth.isSignedIn()) await puterSignIn(); const ms = await window.puter.ai.listModels(); puterState.models = ms || []; st.textContent = `SIGNED IN · models discovered: ${puterState.models.length}` + (puterState.models.length ? ' · ' + puterState.models.slice(0, 8).map(x => x.id || x.name).join(', ') : ''); }
     catch (e) { st.textContent = 'Discovery failed: ' + (e.message || e); }
   };
-  $('#puterSend').onclick = async () => { const out=$('#puterOut'); out.textContent='Calling Puter…'; const r = await puterAsk($('#puterQ').value || 'hello'); out.textContent = (r.role === 'external' ? '[EXTERNAL · UNTRUSTED] ' : '[NOTICE] ') + r.text; await paint(); };
+  $('#puterSend').onclick = async () => { const out=$('#puterOut'); out.textContent='Calling Puter…'; const r = await puterAsk($('#puterQ').value || 'hello'); out.textContent = (r.role === 'external' ? '[EXTERNAL · UNTRUSTED] ' : '[NOTICE] ') + r.text; await paint({load:true}); };
   await paint();
 }
 
