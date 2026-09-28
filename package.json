@@ -23,7 +23,7 @@
     "dev": "node server.js",
     "build": "node build.js",
     "lint": "node lint.js",
-    "test": "node mental-health-test.js && node snake-lab-test.js && node forgelm-test.js && node spec-test.js && node storage-test.js && node adversarial-test.js && node platform-test.js && node arena-test.js && node engagement-test.js && node smoke-test.js",
+    "test": "node verification/ui-control-surface.test.mjs && node mental-health-test.js && node snake-lab-test.js && node forgelm-test.js && node spec-test.js && node storage-test.js && node adversarial-test.js && node platform-test.js && node arena-test.js && node engagement-test.js && node smoke-test.js",
     "test:spec": "node spec-test.js",
     "test:storage": "node storage-test.js",
     "test:adversarial": "node adversarial-test.js",
@@ -172,7 +172,8 @@
     "test:mental-health": "node mental-health-test.js",
     "test:snake-lab": "node snake-lab-test.js",
     "puter:verify": "node scripts/verify-puter-source.mjs",
-    "puter:fetch": "node scripts/fetch-puter-source.mjs"
+    "puter:fetch": "node scripts/fetch-puter-source.mjs",
+    "test:ui-controls": "node verification/ui-control-surface.test.mjs"
   },
   "comment": "Node runtime remains zero-dependency by design. ForgeLM native training/chat is an optional Python/PyTorch runtime under model/forgelm.",
   "optionalDependencies": {
@@ -190,6 +191,16 @@
       "v2.24 mental-health specialists",
       "v2.26 Snake Lab / Snake Overwatch"
     ],
-    "restoredAt": "2026-09-27"
+    "restoredAt": "2026-09-27",
+    "stabilizationSprint": {
+      "date": "2026-09-28",
+      "builds": 10,
+      "focus": [
+        "Puter browser authentication",
+        "all-tab control surface",
+        "ForgeLM conversational responsiveness"
+      ],
+      "policy": "additive-main-branch; capability truth and approval boundaries preserved"
+    }
   }
 }
